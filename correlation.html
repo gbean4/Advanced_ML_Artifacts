@@ -64,6 +64,11 @@
             <button onclick="presetLine()">Perfect Line</button>
             <button onclick="presetParabola()">U-Shape (r ≈ 0)</button>
         </div>
+        <div class="explanation" style="margin-top: 30px; text-align: left; border-top: 1px solid #e2e8f0; padding-top: 20px;">
+            <h3 style="margin-top: 0; font-size: 1.1em; color: #334155;">The Mathematical Intuition</h3>
+            <p style="color: #475569; line-height: 1.5; font-size: 0.95em;">The correlation coefficient (Pearson's <i>r</i>) is often misunderstood as a measure of "how related" two variables are. In reality, it only measures how well their relationship can be described by a <b>straight line</b>.</p>
+            <p style="color: #475569; line-height: 1.5; font-size: 0.95em;">Two variables can be perfectly related (like the U-shape parabola), but if that relationship is non-linear, the linear correlation coefficient will often evaluate to near zero. It evaluates the <i>tightness</i> of the data points around a single line of best fit, not the slope of that line.</p>
+        </div>
     </div>
 
     <script>
