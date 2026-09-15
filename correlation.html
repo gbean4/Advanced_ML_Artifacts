@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pearson Correlation Explorer</title>
+    <style>
+        body { 
+            font-family: system-ui, -apple-system, sans-serif; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            background-color: #f4f4f9; 
+            padding: 40px 20px; 
+            color: #333;
+        }
+        .container {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            text-align: center;
+        }
+        canvas { 
+            background-color: #ffffff; 
+            border: 1px solid #e1e1e8; 
+            border-radius: 8px; 
+            cursor: crosshair; 
+            margin-top: 10px;
+        }
+        .controls { 
+            margin-top: 20px; 
+            display: flex; 
+            gap: 12px; 
+            justify-content: center;
+        }
+        button { 
+            padding: 8px 16px; 
+            border: none; 
+            border-radius: 6px; 
+            background-color: #2563eb; 
+            color: white; 
+            font-weight: 500;
+            cursor: pointer; 
+            transition: background 0.2s;
+        }
+        button:hover { background-color: #1d4ed8; }
+        button.secondary { background-color: #64748b; }
+        button.secondary:hover { background-color: #475569; }
+        h2 { margin: 0 0 5px 0; }
+        #r-value { color: #dc2626; font-weight: bold; }
+        p.subtitle { color: #64748b; margin-top: 0; font-size: 0.95em;}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Pearson Correlation: <span id="r-value">0.00</span></h2>
+        <p class="subtitle">Click anywhere to add points. Drag points to move them.</p>
+        
+        <canvas id="plot" width="600" height="400"></canvas>
+        
+        <div class="controls">
+            <button onclick="clearPoints()" class="secondary">Clear Plot</button>
+            <button onclick="presetLine()">Perfect Line</button>
+            <button onclick="presetParabola()">U-Shape (r ≈ 0)</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('plot');
+        const ctx = canvas.getContext('2d');
+        let points = [];
+        let draggingPoint = null;
+
+        // Math: Calculate Pearson r and Line of Best Fit
+        function getMean(arr) { return arr.reduce((a, b) => a + b, 0) / arr.length; }
+        
+        function calculateStats() {
+            if (points.length < 2) return { r: 0, m: 0, b: 0 };
+            
+            const xs = points.map(p => p.x);
+            const ys = points.map(p => p.y); // Note: canvas Y is inverted (0 at top)
+            const xMean = getMean(xs);
+            const yMean = getMean(ys);
+            
+            let num = 0, denX = 0, denY = 0;
+            
+            for (let i = 0; i < points.length; i++) {
+                const dx = xs[i] - xMean;
+                const dy = ys[i] - yMean;
+                num += dx * dy;
+                denX += dx * dx;
+                denY += dy * dy;
+            }
+            
+            const r = num / Math.sqrt(denX * denY) || 0;
+            const m = num / denX || 0;
+            const b = yMean - m * xMean;
+            
+            return { r: -r, m, b }; // Invert 'r' back for display because canvas Y is top-down
+        }
+
+        // Rendering
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const stats = calculateStats();
+            document.getElementById('r-value').innerText = stats.r.toFixed(2);
+
+            // Draw line of best fit
+            if (points.length > 1 && Math.abs(stats.r) > 0.01) {
+                ctx.beginPath();
+                ctx.moveTo(0, stats.b);
+                ctx.lineTo(canvas.width, stats.m * canvas.width + stats.b);
+                ctx.strokeStyle = "rgba(220, 38, 38, 0.4)";
+                ctx.lineWidth = 3;
+                ctx.stroke();
+            }
+
+            // Draw points
+            points.forEach(p => {
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 7, 0, Math.PI * 2);
+                ctx.fillStyle = "#2563eb";
+                ctx.fill();
+                ctx.strokeStyle = "white";
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            });
+        }
+
+        // Interactivity
+        canvas.addEventListener('mousedown', e => {
+            const rect = canvas.getBoundingClientRect();
+            const mx = e.clientX - rect.left;
+            const my = e.clientY - rect.top;
+            
+            draggingPoint = points.find(p => Math.hypot(p.x - mx, p.y - my) < 12);
+            
+            if (!draggingPoint) {
+                points.push({ x: mx, y: my });
+                draw();
+            }
+        });
+
+        canvas.addEventListener('mousemove', e => {
+            if (draggingPoint) {
+                const rect = canvas.getBoundingClientRect();
+                draggingPoint.x = e.clientX - rect.left;
+                draggingPoint.y = e.clientY - rect.top;
+                draw();
+            }
+        });
+
+        canvas.addEventListener('mouseup', () => draggingPoint = null);
+        canvas.addEventListener('mouseleave', () => draggingPoint = null);
+
+        // Presets
+        function clearPoints() { 
+            points = []; 
+            draw(); 
+        }
+        
+        function presetLine() {
+            points = [];
+            for(let i = 1; i <= 10; i++) {
+                points.push({ x: i * 50, y: 350 - (i * 30) + (Math.random() * 20 - 10) });
+            }
+            draw();
+        }
+
+        function presetParabola() {
+            points = [];
+            for(let i = 0; i <= 10; i++) {
+                let x = 50 + i * 50;
+                let normalizedX = (i - 5);
+                let y = 350 - (normalizedX * normalizedX * 10);
+                points.push({ x, y });
+            }
+            draw();
+        }
+
+        // Initialize empty
+        draw();
+    </script>
+</body>
+</html>
