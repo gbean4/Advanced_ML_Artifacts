@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mahalanobis vs Euclidean Distance</title>
+    <style>
+        body { 
+            font-family: system-ui, -apple-system, sans-serif; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            background-color: #f4f4f9; 
+            padding: 40px 20px; 
+            color: #333;
+        }
+        .container {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            text-align: center;
+            max-width: 650px;
+        }
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 15px;
+            background: #f8fafc;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+        .stat-box { font-size: 1.1em; }
+        .stat-value { font-weight: bold; font-family: monospace; font-size: 1.2em; }
+        #euclidean-val { color: #2563eb; }
+        #mahalanobis-val { color: #dc2626; }
+        canvas { 
+            background-color: #ffffff; 
+            border: 1px solid #e1e1e8; 
+            border-radius: 8px; 
+            cursor: crosshair; 
+        }
+        .controls { 
+            margin-top: 20px; 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 15px; 
+            text-align: left;
+        }
+        .control-group { display: flex; flex-direction: column; }
+        label { font-size: 0.9em; font-weight: 600; color: #475569; margin-bottom: 4px; }
+        input[type="range"] { width: 100%; }
+        p.subtitle { color: #64748b; margin-top: 0; font-size: 0.95em; margin-bottom: 20px;}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Distance Metric Explorer</h2>
+        <p class="subtitle">Drag the red target point to see how distance changes relative to the distribution.</p>
+        
+        <div class="stats">
+            <div class="stat-box">Euclidean: <span id="euclidean-val" class="stat-value">0.00</span></div>
+            <div class="stat-box">Mahalanobis: <span id="mahalanobis-val" class="stat-value">0.00</span></div>
+        </div>
+
+        <canvas id="plot" width="600" height="400"></canvas>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label>X Spread (Std Dev): <span id="std-x-label">50</span></label>
+                <input type="range" id="std-x" min="10" max="150" value="70">
+            </div>
+            <div class="control-group">
+                <label>Y Spread (Std Dev): <span id="std-y-label">50</span></label>
+                <input type="range" id="std-y" min="10" max="150" value="40">
+            </div>
+            <div class="control-group" style="grid-column: span 2;">
+                <label>Correlation (r): <span id="corr-label">0.70</span></label>
+                <input type="range" id="corr" min="-0.95" max="0.95" step="0.05" value="0.75">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('plot');
+        const ctx = canvas.getContext('2d');
+        
+        // Distribution Center
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        
+        // Target Point (Draggable)
+        let target = { x: centerX + 100, y: centerY - 50 };
+        let isDragging = false;
+        
+        // Data points (regenerated when sliders move)
+        let points = [];
+
+        // Box-Muller transform for standard normal distribution
+        function randn_bm() {
+            let u = 0, v = 0;
+            while(u === 0) u = Math.random();
+            while(v === 0) v = Math.random();
+            return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+        }
+
+        function generateData(stdX, stdY, r) {
+            points = [];
+            // Cholesky decomposition for 2D multivariate normal
+            const L11 = stdX;
+            const L21 = r * stdY;
+            const L22 = stdY * Math.sqrt(1 - r * r);
+            
+            for(let i = 0; i < 300; i++) {
+                const z1 = randn_bm();
+                const z2 = randn_bm();
+                points.push({
+                    x: centerX + L11 * z1,
+                    y: centerY + L21 * z1 + L22 * z2
+                });
+            }
+        }
+
+        function update() {
+            // Get slider values
+            const stdX = parseFloat(document.getElementById('std-x').value);
+            const stdY = parseFloat(document.getElementById('std-y').value);
+            const r = parseFloat(document.getElementById('corr').value);
+            
+            // Update labels
+            document.getElementById('std-x-label').innerText = stdX;
+            document.getElementById('std-y-label').innerText = stdY;
+            document.getElementById('corr-label').innerText = r.toFixed(2);
+            
+            // Covariance Matrix [a, c; c, b]
+            const a = stdX * stdX;
+            const b = stdY * stdY;
+            const c = r * stdX * stdY;
+            
+            // Matrix Inverse
+            const det = a * b - c * c;
+            const invA = b / det;
+            const invB = a / det;
+            const invC = -c / det;
+
+            // Difference vector
+            const dx = target.x - centerX;
+            const dy = target.y - centerY;
+
+            // Euclidean Distance
+            const distE = Math.sqrt(dx * dx + dy * dy);
+            
+            // Mahalanobis Distance
+            const distM_sq = (dx * invA * dx) + (dx * invC * dy) + (dy * invC * dx) + (dy * invB * dy);
+            const distM = Math.sqrt(distM_sq);
+
+            document.getElementById('euclidean-val').innerText = (distE / 20).toFixed(2); // scaled down for readability
+            document.getElementById('mahalanobis-val').innerText = distM.toFixed(2);
+
+            // Render
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw scatter points
+            ctx.fillStyle = "rgba(100, 116, 139, 0.3)";
+            points.forEach(p => {
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 2, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // Draw Distribution Center
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 5, 0, Math.PI * 2);
+            ctx.fillStyle = "#000";
+            ctx.fill();
+
+            // Draw Euclidean Circle
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, distE, 0, Math.PI * 2);
+            ctx.strokeStyle = "rgba(37, 99, 235, 0.5)";
+            ctx.setLineDash([5, 5]);
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Calculate Eigenvalues for Mahalanobis Ellipse
+            const trace = a + b;
+            const lambda1 = (trace + Math.sqrt(trace * trace - 4 * det)) / 2;
+            const lambda2 = (trace - Math.sqrt(trace * trace - 4 * det)) / 2;
+            
+            let angle = 0;
+            if (c !== 0) {
+                angle = Math.atan2(lambda1 - a, c);
+            } else {
+                angle = a >= b ? 0 : Math.PI / 2;
+            }
+
+            // Draw Mahalanobis Contour
+            ctx.beginPath();
+            ctx.ellipse(
+                centerX, centerY, 
+                distM * Math.sqrt(lambda1), 
+                distM * Math.sqrt(lambda2), 
+                angle, 0, Math.PI * 2
+            );
+            ctx.strokeStyle = "rgba(220, 38, 38, 0.8)";
+            ctx.setLineDash([]);
+            ctx.stroke();
+
+            // Draw Target Point
+            ctx.beginPath();
+            ctx.arc(target.x, target.y, 8, 0, Math.PI * 2);
+            ctx.fillStyle = "#dc2626";
+            ctx.fill();
+            ctx.strokeStyle = "white";
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+
+        // Interactivity Events
+        canvas.addEventListener('mousedown', e => {
+            const rect = canvas.getBoundingClientRect();
+            const mx = e.clientX - rect.left;
+            const my = e.clientY - rect.top;
+            if (Math.hypot(target.x - mx, target.y - my) < 15) isDragging = true;
+        });
+        
+        canvas.addEventListener('mousemove', e => {
+            if (isDragging) {
+                const rect = canvas.getBoundingClientRect();
+                target.x = e.clientX - rect.left;
+                target.y = e.clientY - rect.top;
+                update();
+            }
+        });
+        
+        canvas.addEventListener('mouseup', () => isDragging = false);
+        canvas.addEventListener('mouseleave', () => isDragging = false);
+
+        ['std-x', 'std-y', 'corr'].forEach(id => {
+            document.getElementById(id).addEventListener('input', () => {
+                generateData(
+                    parseFloat(document.getElementById('std-x').value),
+                    parseFloat(document.getElementById('std-y').value),
+                    parseFloat(document.getElementById('corr').value)
+                );
+                update();
+            });
+        });
+
+        // Initialize
+        generateData(70, 40, 0.75);
+        update();
+    </script>
+</body>
+</html>
