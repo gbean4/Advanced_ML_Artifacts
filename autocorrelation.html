@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Autocorrelation Explorer</title>
+    <style>
+        body { 
+            font-family: system-ui, -apple-system, sans-serif; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            background-color: #f4f4f9; 
+            padding: 40px 20px; 
+            color: #333;
+        }
+        .container {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            text-align: center;
+            max-width: 650px;
+            width: 100%;
+        }
+        canvas { 
+            background-color: #ffffff; 
+            border: 1px solid #e1e1e8; 
+            border-radius: 8px; 
+            margin-bottom: 15px;
+            width: 100%;
+        }
+        .controls { 
+            margin-top: 10px; 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 15px; 
+            text-align: left;
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+        .control-group { display: flex; flex-direction: column; }
+        .full-width { grid-column: span 2; }
+        label { font-size: 0.9em; font-weight: 600; color: #475569; margin-bottom: 4px; }
+        input[type="range"], select { width: 100%; padding: 4px 0; }
+        select { padding: 6px; border: 1px solid #cbd5e1; border-radius: 4px; }
+        h2 { margin: 0 0 5px 0; }
+        h3 { margin: 10px 0 5px 0; font-size: 1.1em; color: #334155; text-align: left;}
+        p.subtitle { color: #64748b; margin-top: 0; font-size: 0.95em; margin-bottom: 20px;}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Autocorrelation Explorer</h2>
+        <p class="subtitle">Change the signal type to see how the autocorrelation function (ACF) adapts.</p>
+        
+        <h3>Time Series (X vs Time)</h3>
+        <canvas id="ts-plot" width="600" height="200"></canvas>
+        
+        <h3>Correlogram (Autocorrelation vs Lag)</h3>
+        <canvas id="acf-plot" width="600" height="200"></canvas>
+        
+        <div class="controls">
+            <div class="control-group full-width">
+                <label>Signal Type</label>
+                <select id="signal-type">
+                    <option value="sine">Sine Wave (Seasonal)</option>
+                    <option value="walk">Random Walk (Trending)</option>
+                    <option value="noise">White Noise (Random)</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label>Noise Level: <span id="noise-label">0.5</span></label>
+                <input type="range" id="noise" min="0" max="3" step="0.1" value="0.5">
+            </div>
+            <div class="control-group">
+                <label>Frequency (Sine Only): <span id="freq-label">0.10</span></label>
+                <input type="range" id="freq" min="0.02" max="0.3" step="0.01" value="0.10">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const tsCanvas = document.getElementById('ts-plot');
+        const tsCtx = tsCanvas.getContext('2d');
+        const acfCanvas = document.getElementById('acf-plot');
+        const acfCtx = acfCanvas.getContext('2d');
+        
+        const N = 200; // Number of time steps
+        const MAX_LAG = 40; // Max lag to calculate ACF for
+        let timeSeries = [];
+        let acfData = [];
+
+        function generateData() {
+            const type = document.getElementById('signal-type').value;
+            const noiseLevel = parseFloat(document.getElementById('noise').value);
+            const freq = parseFloat(document.getElementById('freq').value);
+            
+            document.getElementById('noise-label').innerText = noiseLevel.toFixed(1);
+            document.getElementById('freq-label').innerText = freq.toFixed(2);
+            
+            // Toggle frequency slider opacity based on selection
+            document.getElementById('freq').style.opacity = type === 'sine' ? '1' : '0.4';
+
+            timeSeries = [];
+            let walkVal = 0;
+            
+            for(let i = 0; i < N; i++) {
+                // Generate random noise between -1 and 1
+                let noise = (Math.random() * 2 - 1) * noiseLevel;
+                
+                if (type === 'sine') {
+                    timeSeries.push(Math.sin(i * freq * Math.PI) + noise);
+                } else if (type === 'noise') {
+                    timeSeries.push(noise);
+                } else if (type === 'walk') {
+                    walkVal += (Math.random() * 2 - 1) + (noise * 0.2); 
+                    timeSeries.push(walkVal);
+                }
+            }
+        }
+
+        function calculateACF() {
+            acfData = [];
+            const mean = timeSeries.reduce((a, b) => a + b, 0) / N;
+            
+            // Calculate Variance (Covariance at lag 0)
+            let var0 = 0;
+            for(let i = 0; i < N; i++) {
+                var0 += Math.pow(timeSeries[i] - mean, 2);
+            }
+
+            // Calculate Covariance for each lag k
+            for(let k = 0; k <= MAX_LAG; k++) {
+                let cov = 0;
+                for(let i = 0; i < N - k; i++) {
+                    cov += (timeSeries[i] - mean) * (timeSeries[i + k] - mean);
+                }
+                // Normalize by variance to get correlation [-1, 1]
+                acfData.push(cov / var0);
+            }
+        }
+
+        function drawTimeSeries() {
+            tsCtx.clearRect(0, 0, tsCanvas.width, tsCanvas.height);
+            
+            // Find min/max for scaling
+            const maxVal = Math.max(...timeSeries);
+            const minVal = Math.min(...timeSeries);
+            const range = Math.max(maxVal - minVal, 0.1); // Prevent division by zero
+            
+            tsCtx.beginPath();
+            for(let i = 0; i < N; i++) {
+                const x = (i / (N - 1)) * tsCanvas.width;
+                // Scale y to fit canvas with some padding
+                const y = tsCanvas.height - ((timeSeries[i] - minVal) / range) * (tsCanvas.height - 20) - 10;
+                
+                if (i === 0) tsCtx.moveTo(x, y);
+                else tsCtx.lineTo(x, y);
+            }
+            tsCtx.strokeStyle = "#2563eb";
+            tsCtx.lineWidth = 2;
+            tsCtx.stroke();
+        }
+
+        function drawACF() {
+            acfCtx.clearRect(0, 0, acfCanvas.width, acfCanvas.height);
+            
+            const midY = acfCanvas.height / 2;
+            
+            // Draw zero line
+            acfCtx.beginPath();
+            acfCtx.moveTo(0, midY);
+            acfCtx.lineTo(acfCanvas.width, midY);
+            acfCtx.strokeStyle = "#94a3b8";
+            acfCtx.lineWidth = 1;
+            acfCtx.stroke();
+
+            // Draw ACF bars
+            const barWidth = (acfCanvas.width / MAX_LAG) * 0.6;
+            
+            for(let k = 0; k <= MAX_LAG; k++) {
+                const x = (k / MAX_LAG) * (acfCanvas.width - 20) + 10;
+                // Scale Y from [-1, 1] to canvas height
+                const y = midY - (acfData[k] * midY * 0.8);
+                
+                acfCtx.beginPath();
+                acfCtx.moveTo(x, midY);
+                acfCtx.lineTo(x, y);
+                acfCtx.strokeStyle = k === 0 ? "#1e293b" : "#dc2626"; // Black for lag 0, red for others
+                acfCtx.lineWidth = barWidth;
+                acfCtx.stroke();
+                
+                // Draw dot at end of bar
+                acfCtx.beginPath();
+                acfCtx.arc(x, y, barWidth/1.5, 0, Math.PI * 2);
+                acfCtx.fillStyle = k === 0 ? "#1e293b" : "#dc2626";
+                acfCtx.fill();
+            }
+        }
+
+        function update() {
+            generateData();
+            calculateACF();
+            drawTimeSeries();
+            drawACF();
+        }
+
+        // Event Listeners
+        document.getElementById('signal-type').addEventListener('change', update);
+        document.getElementById('noise').addEventListener('input', update);
+        document.getElementById('freq').addEventListener('input', update);
+
+        // Initialize
+        update();
+    </script>
+</body>
+</html>
