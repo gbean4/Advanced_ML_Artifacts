@@ -80,6 +80,11 @@
                 <input type="range" id="freq" min="0.02" max="0.3" step="0.01" value="0.10">
             </div>
         </div>
+        <div class="explanation" style="margin-top: 30px; text-align: left; border-top: 1px solid #e2e8f0; padding-top: 20px;">
+            <h3 style="margin-top: 0; font-size: 1.1em; color: #334155;">Time Series Memory</h3>
+            <p style="color: #475569; line-height: 1.5; font-size: 0.95em;">While standard correlation captures relationships between <i>different</i> variables, <b>autocorrelation</b> captures relationships within the <i>same</i> variable across different points in time (lags).</p>
+            <p style="color: #475569; line-height: 1.5; font-size: 0.95em;">Standard machine learning models assume data points are independent. Autocorrelation violates this assumption. If you set the signal to "White Noise," the autocorrelation drops to near-zero for all lags > 0 (independent). But for a "Random Walk" or "Sine Wave", knowing previous values gives you massive predictive power for the next value.</p>
+        </div>
     </div>
 
     <script>
