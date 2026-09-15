@@ -80,6 +80,11 @@
                 <input type="range" id="corr" min="-0.95" max="0.95" step="0.05" value="0.75">
             </div>
         </div>
+        <div class="explanation" style="margin-top: 30px; text-align: left; border-top: 1px solid #e2e8f0; padding-top: 20px;">
+            <h3 style="margin-top: 0; font-size: 1.1em; color: #334155;">Why Shape Matters</h3>
+            <p style="color: #475569; line-height: 1.5; font-size: 0.95em;">Unlike Euclidean distance, which treats all dimensions equally and assumes data spreads out in a perfect circle, <b>Mahalanobis distance</b> measures how far a point is from the center of a distribution by scaling it according to the variance and covariance of the data.</p>
+            <p style="color: #475569; line-height: 1.5; font-size: 0.95em;">It measures distance relative to the <i>shape</i> of the data. A point that sits far away on the major axis of a distribution might have a small Mahalanobis distance (it follows the expected trend), while a point that is physically closer to the center but sits off-axis has a massive Mahalanobis distance (it is a statistical anomaly).</p>
+        </div>
     </div>
 
     <script>
