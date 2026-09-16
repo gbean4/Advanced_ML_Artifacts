@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bias-Variance Tradeoff Simulator</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            color: #333;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        h1, h2 { color: #2c3e50; }
+        .summary-box {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .interactive-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .controls {
+            flex: 1;
+            min-width: 250px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .control-group { margin-bottom: 25px; }
+        label { font-weight: bold; display: block; margin-bottom: 8px; }
+        input[type=range] { width: 100%; cursor: pointer; }
+        .canvas-container {
+            flex: 1;
+            min-width: 300px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #eef2f5;
+            border-radius: 8px;
+            padding: 10px;
+        }
+        canvas { background: white; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .explanation { font-size: 0.9em; color: #555; background: #e8f4f8; padding: 10px; border-left: 4px solid #3498db;}
+    </style>
+</head>
+<body>
+
+    <div class="summary-box">
+        <h1>Bias / Variance Tradeoff Study Notes</h1>
+        <h2>Summary of Concepts</h2>
+        <ul>
+            <li><strong>Bias:</strong> Error due to oversimplifying a model. High bias = Underfitting (ignoring data patterns).</li>
+            <li><strong>Variance:</strong> Error due to sensitivity to training noise. High variance = Overfitting (memorizing noise).</li>
+            <li><strong>MSE Decomposition:</strong> <code>MSE = Bias² + Variance + Irreducible Error</code>. To minimize total error, we must balance bias and variance.</li>
+            <li><strong>Relation to MAP:</strong> Maximum Likelihood Estimation (MLE) minimizes training error but can lead to high variance. Maximum A Posteriori (MAP) introduces a <em>prior distribution</em> (like assuming weights should be near zero). This acts as regularization (L1/L2), deliberately increasing Bias slightly to achieve a massive reduction in Variance, yielding a better generalizing model.</li>
+        </ul>
+    </div>
+
+    <div class="interactive-container">
+        <div class="controls">
+            <h2>Dartboard Visualization</h2>
+            <p style="font-size: 0.9em;"><em>The center is the true function. Darts are model predictions trained on different samples of data.</em></p>
+            
+            <div class="control-group">
+                <label for="biasSlider">Model Bias: <span id="biasVal">Low</span></label>
+                <input type="range" id="biasSlider" min="0" max="100" value="10">
+                <p class="explanation" id="biasText">Low Bias: The models, on average, hit the true target.</p>
+            </div>
+
+            <div class="control-group">
+                <label for="varianceSlider">Model Variance: <span id="varVal">Low</span></label>
+                <input type="range" id="varianceSlider" min="10" max="150" value="15">
+                <p class="explanation" id="varText">Low Variance: The models are highly consistent with each other.</p>
+            </div>
+            
+            <button onclick="drawDarts()" style="padding: 10px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer;">Regenerate Data Samples</button>
+        </div>
+
+        <div class="canvas-container">
+            <canvas id="dartboard" width="300" height="300"></canvas>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('dartboard');
+        const ctx = canvas.getContext('2d');
+        const biasSlider = document.getElementById('biasSlider');
+        const varianceSlider = document.getElementById('varianceSlider');
+        const biasVal = document.getElementById('biasVal');
+        const varVal = document.getElementById('varVal');
+        const biasText = document.getElementById('biasText');
+        const varText = document.getElementById('varText');
+
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+
+        // Box-Muller transform for normal distribution
+        function randomNormal(mean, stdDev) {
+            let u1 = Math.random();
+            let u2 = Math.random();
+            let z0 = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
+            return z0 * stdDev + mean;
+        }
+
+        function drawBoard() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const colors = ['#e74c3c', '#ecf0f1', '#e74c3c', '#ecf0f1', '#34495e'];
+            const radii = [140, 110, 80, 50, 20];
+            
+            for (let i = 0; i < radii.length; i++) {
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radii[i], 0, 2 * Math.PI);
+                ctx.fillStyle = colors[i];
+                ctx.fill();
+                ctx.lineWidth = 1;
+                ctx.strokeStyle = '#bdc3c7';
+                ctx.stroke();
+            }
+        }
+
+        function drawDarts() {
+            drawBoard();
+            const bias = parseInt(biasSlider.value);
+            const variance = parseInt(varianceSlider.value);
+            
+            // Calculate cluster center (Bias moves it away from true center)
+            const angle = Math.random() * 2 * Math.PI; // Random direction for bias
+            const clusterX = centerX + bias * Math.cos(angle);
+            const clusterY = centerY + bias * Math.sin(angle);
+
+            // Draw darts (models)
+            ctx.fillStyle = '#f1c40f'; // Yellow darts
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 1;
+
+            for (let i = 0; i < 20; i++) {
+                const dartX = randomNormal(clusterX, variance);
+                const dartY = randomNormal(clusterY, variance);
+
+                ctx.beginPath();
+                ctx.arc(dartX, dartY, 5, 0, 2 * Math.PI);
+                ctx.fill();
+                ctx.stroke();
+                
+                // Draw little X for the dart
+                ctx.beginPath();
+                ctx.moveTo(dartX - 3, dartY - 3);
+                ctx.lineTo(dartX + 3, dartY + 3);
+                ctx.moveTo(dartX + 3, dartY - 3);
+                ctx.lineTo(dartX - 3, dartY + 3);
+                ctx.stroke();
+            }
+        }
+
+        function updateUI() {
+            const b = parseInt(biasSlider.value);
+            const v = parseInt(varianceSlider.value);
+
+            if (b < 33) { biasVal.textContent = "Low"; biasText.textContent = "Low Bias: The models, on average, hit the true target (MLE/Complex model)."; }
+            else if (b < 66) { biasVal.textContent = "Medium"; biasText.textContent = "Medium Bias: The models are shifted slightly away from the truth (e.g., light MAP/Regularization)."; }
+            else { biasVal.textContent = "High"; biasText.textContent = "High Bias: The models systematically miss the target (Underfitting / Heavy Regularization)."; }
+
+            if (v < 40) { varVal.textContent = "Low"; varText.textContent = "Low Variance: The models are highly consistent (Simple model / Heavy MAP Regularization)."; }
+            else if (v < 90) { varVal.textContent = "Medium"; varText.textContent = "Medium Variance: Moderate sensitivity to training data noise."; }
+            else { varVal.textContent = "High"; varText.textContent = "High Variance: Predictions are scattered widely. Model memorized training noise (Overfitting)."; }
+            
+            drawDarts();
+        }
+
+        biasSlider.addEventListener('input', updateUI);
+        varianceSlider.addEventListener('input', updateUI);
+
+        // Initial draw
+        updateUI();
+    </script>
+</body>
+</html>
