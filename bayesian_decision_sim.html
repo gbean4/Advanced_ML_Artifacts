@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bayesian Decision Theory & Asymmetric Risk</title>
+    
+    <!-- Load Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Load MathJax for LaTeX rendering -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <style>
+        /* Custom scrollbar and minor tweaks for a polished academic look */
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f8fafc;
+            color: #1e293b;
+        }
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+        }
+        .math-block {
+            overflow-x: auto;
+            padding: 1rem 0;
+        }
+    </style>
+</head>
+<body class="antialiased min-h-screen p-4 md:p-8">
+
+    <main class="max-w-7xl mx-auto">
+        <header class="mb-10 text-center md:text-left">
+            <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight text-slate-900 mb-2">Bayesian Decision Theory & Asymmetric Risk</h1>
+            <p class="text-lg text-slate-600">Visualizing the Maximum Expected Utility Principle in 2D Feature Space</p>
+        </header>
+
+        <div class="grid grid-cols-1 xl:grid-cols-12 gap-8">
+            
+            <section class="xl:col-span-6 flex flex-col gap-6">
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col items-center">
+                    <h2 class="text-xl font-bold mb-4 text-slate-800 self-start">Interactive 2D Decision Surface</h2>
+                    
+                    <!-- Canvas Container -->
+                    <div class="relative w-full aspect-square max-w-[500px] border border-slate-300 rounded overflow-hidden bg-slate-50 mb-6 shadow-inner">
+                        <canvas id="decisionCanvas" width="500" height="500" class="w-full h-full block cursor-crosshair"></canvas>
+                        
+                        <!-- Legend -->
+                        <div class="absolute top-2 left-2 bg-white/90 backdrop-blur px-3 py-2 rounded text-xs shadow border border-slate-200 flex flex-col gap-1 pointer-events-none">
+                            <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-blue-500 block"></span> Class 0: Benign</div>
+                            <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-red-500 block"></span> Class 1: Malignant</div>
+                        </div>
+                    </div>
+
+                    <!-- Controls -->
+                    <div class="w-full space-y-5 max-w-[500px]">
+                        <!-- Cost False Negative -->
+                        <div>
+                            <div class="slider-label text-red-700">
+                                <span>False Negative Cost ($L_{FN}$)</span>
+                                <span id="valFN" class="font-bold">10</span>
+                            </div>
+                            <input type="range" id="sliderFN" min="1" max="50" step="1" value="10" class="w-full h-2 bg-red-200 rounded-lg appearance-none cursor-pointer accent-red-600">
+                            <p class="text-xs text-slate-500 mt-1">Penalty for predicting Benign when true state is Malignant.</p>
+                        </div>
+
+                        <!-- Cost False Positive -->
+                        <div>
+                            <div class="slider-label text-blue-700">
+                                <span>False Positive Cost ($L_{FP}$)</span>
+                                <span id="valFP" class="font-bold">1</span>
+                            </div>
+                            <input type="range" id="sliderFP" min="1" max="50" step="1" value="1" class="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
+                            <p class="text-xs text-slate-500 mt-1">Penalty for predicting Malignant when true state is Benign.</p>
+                        </div>
+
+                        <!-- Prior Probability -->
+                        <div>
+                            <div class="slider-label text-purple-700">
+                                <span>Prior Probability $P(\omega_1)$ (Malignant)</span>
+                                <span id="valPrior" class="font-bold">0.50</span>
+                            </div>
+                            <input type="range" id="sliderPrior" min="0.01" max="0.99" step="0.01" value="0.5" class="w-full h-2 bg-purple-200 rounded-lg appearance-none cursor-pointer accent-purple-600">
+                            <p class="text-xs text-slate-500 mt-1">Base rate likelihood of a tumor being malignant before seeing data.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="xl:col-span-6 bg-white rounded-2xl shadow-sm border border-slate-200 p-6 md:p-8 text-slate-700 leading-relaxed overflow-y-auto">
+                <h2 class="text-2xl font-bold text-slate-900 mb-6 border-b pb-2">The Mathematics of Rational Decisions</h2>
+                
+                <h3 class="text-lg font-semibold text-slate-800 mt-6 mb-2">1. The Observation and The Posterior</h3>
+                <p class="mb-4">
+                    In classification, we observe a feature vector $x$ (e.g., cell area, perimeter) and want to determine the true state of nature $\omega$. In our binary example:
+                </p>
+                <ul class="list-disc pl-6 mb-4 space-y-1">
+                    <li>$\omega_0$: Benign (Class 0)</li>
+                    <li>$\omega_1$: Malignant (Class 1)</li>
+                </ul>
+                <p class="mb-4">
+                    Using Bayes' Theorem, we calculate the <strong>posterior probability</strong> of each state given our observation $x$:
+                </p>
+                <div class="math-block">
+                    $$ P(\omega_i|x) = \frac{P(x|\omega_i) P(\omega_i)}{P(x)} $$
+                </div>
+                <p class="mb-4">
+                    Where $P(x|\omega_i)$ is the class-conditional density (likelihood), and $P(\omega_i)$ is our prior belief.
+                </p>
+
+                <h3 class="text-lg font-semibold text-slate-800 mt-6 mb-2">2. Maximum Expected Utility (MEU) & Conditional Risk</h3>
+                <p class="mb-4">
+                    Simply knowing the probability of a state is not enough to make a real-world decision. We must map our actions $a_i$ (predicting class $i$) to a consequence. We define a Loss function $L(a_i, \omega_j)$, representing the penalty incurred by predicting $i$ when the truth is $j$.
+                </p>
+                <p class="mb-4">
+                    The <strong>Conditional Risk</strong> $R(a_i|x)$ is the expected loss of taking action $a_i$, computed by weighting the loss of every possible true state by the posterior probability of that state:
+                </p>
+                <div class="math-block">
+                    $$ R(a_i|x) = \sum_{j} L(a_i, \omega_j) P(\omega_j|x) $$
+                </div>
+                <p class="mb-4 text-sm bg-slate-50 p-4 rounded-lg border border-slate-100 italic">
+                    The <strong>Maximum Expected Utility</strong> principle dictates that a rational agent should select the action that minimizes this expected conditional risk. (Minimizing risk is identical to maximizing utility).
+                </p>
+
+                <h3 class="text-lg font-semibold text-slate-800 mt-6 mb-2">3. The Decision Boundary</h3>
+                <p class="mb-4">
+                    Assuming correct predictions incur $0$ loss, the risk of our two actions simplifies to:
+                </p>
+                <ul class="list-none mb-4 space-y-2">
+                    <li>Risk of $a_0$ (Predict Benign): $R(a_0|x) = L_{FN} \cdot P(\omega_1|x)$</li>
+                    <li>Risk of $a_1$ (Predict Malignant): $R(a_1|x) = L_{FP} \cdot P(\omega_0|x)$</li>
+                </ul>
+                <p class="mb-4">
+                    We choose action $a_1$ (Predict Malignant) if $R(a_1|x) < R(a_0|x)$. By substituting Bayes' formula and canceling the common evidence term $P(x)$, we arrive at the optimal decision rule:
+                </p>
+                <div class="math-block bg-blue-50/50 p-4 rounded-xl border border-blue-100">
+                    <p class="text-center font-semibold text-blue-900 mb-2">Predict Malignant if:</p>
+                    $$ L_{FP} \cdot P(x|\omega_0) P(\omega_0) < L_{FN} \cdot P(x|\omega_1) P(\omega_1) $$
+                </div>
+                <p class="mb-4 mt-4">
+                    <strong>Notice the interactive graph:</strong> When you increase the False Negative Cost ($L_{FN}$), the right side of the inequality grows. The mathematical surface representing the "Malignant" decision region expands outward, eagerly claiming territory to ensure risky false negatives are minimized, even if it causes a spike in harmless false positives.
+                </p>
+
+            </section>
+        </div>
+    </main>
+
+    <script>
+        // State variables
+        let costFN = 10;
+        let costFP = 1;
+        let prior1 = 0.5;
+        let prior0 = 0.5;
+
+        // Gaussian distributions settings (Means and standard deviations for X and Y)
+        const dist0 = { muX: 200, muY: 250, sigma: 60 }; // Class 0: Benign
+        const dist1 = { muX: 300, muY: 250, sigma: 60 }; // Class 1: Malignant
+
+        // Data points arrays
+        const points0 = [];
+        const points1 = [];
+        const numPoints = 150; // Points per class
+
+        // Canvas setup
+        const canvas = document.getElementById('decisionCanvas');
+        const ctx = canvas.getContext('2d');
+        const width = canvas.width;
+        const height = canvas.height;
+        const resolution = 4; // Render risk surface in 4x4 pixel blocks for performance
+
+        // DOM Elements
+        const sliderFN = document.getElementById('sliderFN');
+        const valFN = document.getElementById('valFN');
+        const sliderFP = document.getElementById('sliderFP');
+        const valFP = document.getElementById('valFP');
+        const sliderPrior = document.getElementById('sliderPrior');
+        const valPrior = document.getElementById('valPrior');
+
+        // Helper function for Box-Muller transform to generate Gaussian random numbers
+        function randomGaussian(mean, stdev) {
+            let u = 1 - Math.random(); // Converting [0,1) to (0,1]
+            let v = Math.random();
+            let z = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+            return z * stdev + mean;
+        }
+
+        function generateData() {
+            points0.length = 0;
+            points1.length = 0;
+            
+            for(let i=0; i<numPoints; i++) {
+                points0.push({
+                    x: randomGaussian(dist0.muX, dist0.sigma),
+                    y: randomGaussian(dist0.muY, dist0.sigma)
+                });
+                points1.push({
+                    x: randomGaussian(dist1.muX, dist1.sigma),
+                    y: randomGaussian(dist1.muY, dist1.sigma)
+                });
+            }
+        }
+
+        // Calculates P(x | w) for an independent 2D Gaussian
+        function pdf2D(x, y, dist) {
+            const expX = Math.pow(x - dist.muX, 2) / (2 * Math.pow(dist.sigma, 2));
+            const expY = Math.pow(y - dist.muY, 2) / (2 * Math.pow(dist.sigma, 2));
+            const coef = 1 / (2 * Math.PI * Math.pow(dist.sigma, 2));
+            return coef * Math.exp(-(expX + expY));
+        }
+
+        function drawSimulation() {
+            ctx.clearRect(0, 0, width, height);
+
+            // 1. Render the Background Decision Regions (Risk Surface)
+            // We iterate over the canvas grid and compute the decision rule per cell.
+            for (let x = 0; x < width; x += resolution) {
+                for (let y = 0; y < height; y += resolution) {
+                    
+                    // Likelihoods: P(x|w0) and P(x|w1)
+                    const p_x_w0 = pdf2D(x, y, dist0);
+                    const p_x_w1 = pdf2D(x, y, dist1);
+
+                    // Risk Evaluation without dividing by evidence P(x) as it cancels out
+                    // Risk of predicting Malignant (Class 1) -> Cost(FP) * P(x|w0) * P(w0)
+                    const riskPredict1 = costFP * p_x_w0 * prior0;
+                    
+                    // Risk of predicting Benign (Class 0) -> Cost(FN) * P(x|w1) * P(w1)
+                    const riskPredict0 = costFN * p_x_w1 * prior1;
+
+                    // Decision Rule
+                    if (riskPredict1 < riskPredict0) {
+                        // Predict Malignant (Red region)
+                        ctx.fillStyle = 'rgba(254, 226, 226, 0.6)'; // Tailwind red-100 with opacity
+                    } else {
+                        // Predict Benign (Blue region)
+                        ctx.fillStyle = 'rgba(219, 234, 254, 0.6)'; // Tailwind blue-100 with opacity
+                    }
+                    
+                    ctx.fillRect(x, y, resolution, resolution);
+                }
+            }
+
+            // 2. Draw Data Points for Class 0 (Benign)
+            ctx.fillStyle = '#3b82f6'; // blue-500
+            ctx.strokeStyle = '#2563eb'; // blue-600
+            ctx.lineWidth = 1;
+            for (const p of points0) {
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+            }
+
+            // 3. Draw Data Points for Class 1 (Malignant)
+            ctx.fillStyle = '#ef4444'; // red-500
+            ctx.strokeStyle = '#dc2626'; // red-600
+            for (const p of points1) {
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+            }
+        }
+
+        // Update variables from UI inputs and redraw
+        function updateState() {
+            costFN = parseFloat(sliderFN.value);
+            valFN.textContent = costFN;
+
+            costFP = parseFloat(sliderFP.value);
+            valFP.textContent = costFP;
+
+            prior1 = parseFloat(sliderPrior.value);
+            prior0 = 1 - prior1;
+            valPrior.textContent = prior1.toFixed(2);
+
+            // Request animation frame for smooth rendering if triggered rapidly
+            requestAnimationFrame(drawSimulation);
+        }
+
+        // Event Listeners for sliders
+        sliderFN.addEventListener('input', updateState);
+        sliderFP.addEventListener('input', updateState);
+        sliderPrior.addEventListener('input', updateState);
+
+        // Initial setup
+        generateData();
+        updateState(); // This will also call drawSimulation
+
+    </script>
+</body>
+</html>
