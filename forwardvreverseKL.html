@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Forward vs Reverse KL Divergence</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f4f4f9; padding: 20px; color: #333; max-width: 800px; margin: 0 auto; }
+        .container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        canvas { border: 1px solid #ddd; border-radius: 4px; background: #fff; width: 100%; height: 350px; }
+        .controls { display: flex; flex-direction: column; gap: 15px; margin-top: 20px; }
+        .slider-group { display: flex; align-items: center; gap: 10px; }
+        .slider-group label { width: 150px; font-weight: bold; }
+        input[type="range"] { flex-grow: 1; }
+        
+        .metrics { display: flex; justify-content: space-between; margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 6px; border: 1px solid #eee; }
+        .metric-box { text-align: center; width: 45%; }
+        .metric-value { font-size: 24px; font-weight: bold; font-family: monospace; }
+        .fwd-color { color: #8e44ad; }
+        .rev-color { color: #d35400; }
+        
+        .legend { display: flex; gap: 20px; margin-bottom: 10px; justify-content: center; }
+        .legend span { display: flex; align-items: center; gap: 5px; font-weight: bold; }
+        .blue-dot { width: 12px; height: 12px; background: blue; border-radius: 50%; }
+        .red-dot { width: 12px; height: 12px; background: red; border-radius: 50%; }
+
+        /* New Summary Section Styles */
+        .summary-section { display: flex; gap: 20px; margin-top: 20px; }
+        .summary-card { flex: 1; padding: 15px; border-radius: 6px; border-left: 4px solid; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05); font-size: 14px; line-height: 1.5; }
+        .fwd-card { border-left-color: #8e44ad; }
+        .rev-card { border-left-color: #d35400; }
+        .summary-card h4 { margin: 0 0 8px 0; font-size: 16px; }
+        .summary-card ul { margin: 0; padding-left: 20px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>KL Divergence Sandbox</h2>
+    <div class="legend">
+        <span><div class="blue-dot"></div> True p(x) [Bimodal]</span>
+        <span><div class="red-dot"></div> Approx q(x) [Unimodal]</span>
+    </div>
+    
+    <canvas id="klCanvas" width="760" height="350"></canvas>
+    
+    <div class="controls">
+        <div class="slider-group">
+            <label>q(x) Mean (μ): <span id="muVal">0.00</span></label>
+            <input type="range" id="mu" min="-5" max="5" step="0.1" value="0">
+        </div>
+        <div class="slider-group">
+            <label>q(x) Std Dev (σ): <span id="sigmaVal">2.50</span></label>
+            <input type="range" id="sigma" min="0.3" max="5" step="0.1" value="2.5">
+        </div>
+    </div>
+
+    <div class="metrics">
+        <div class="metric-box">
+            <div>Forward KL (Inclusive)</div>
+            <div class="metric-value fwd-color" id="fwdScore">0.000</div>
+        </div>
+        <div class="metric-box">
+            <div>Reverse KL (Exclusive)</div>
+            <div class="metric-value rev-color" id="revScore">0.000</div>
+        </div>
+    </div>
+
+    <!-- Quick Reference Summary -->
+    <div class="summary-section">
+        <div class="summary-card fwd-card">
+            <h4 class="fwd-color">Forward KL: D<sub>KL</sub>(p || q)</h4>
+            <ul>
+                <li><strong>Also known as:</strong> Inclusive KL, Moment Projection.</li>
+                <li><strong>Behavior:</strong> Zero-avoiding / Mode-covering.</li>
+                <li><strong>Intuition:</strong> Penalizes the model <em>q</em> infinitely if it misses any part of the true data <em>p</em>. Forces <em>q</em> to stretch out and cover all peaks, often overestimating the data's spread.</li>
+            </ul>
+        </div>
+        <div class="summary-card rev-card">
+            <h4 class="rev-color">Reverse KL: D<sub>KL</sub>(q || p)</h4>
+            <ul>
+                <li><strong>Also known as:</strong> Exclusive KL, Information Projection.</li>
+                <li><strong>Behavior:</strong> Zero-forcing / Mode-seeking.</li>
+                <li><strong>Intuition:</strong> Penalizes the model <em>q</em> infinitely if it places probability mass where the true data <em>p</em> is empty. Forces <em>q</em> to lock onto a single peak, often underestimating the data's spread.</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('klCanvas');
+    const ctx = canvas.getContext('2d');
+    const muSlider = document.getElementById('mu');
+    const sigmaSlider = document.getElementById('sigma');
+    const muDisplay = document.getElementById('muVal');
+    const sigmaDisplay = document.getElementById('sigmaVal');
+    const fwdScore = document.getElementById('fwdScore');
+    const revScore = document.getElementById('revScore');
+
+    // Math functions
+    function normPdf(x, mu, sigma) {
+        const variance = sigma * sigma;
+        return (1 / Math.sqrt(2 * Math.PI * variance)) * Math.exp(-Math.pow(x - mu, 2) / (2 * variance));
+    }
+
+    // True bimodal distribution p(x)
+    function p(x) {
+        return 0.5 * normPdf(x, -2.5, 0.8) + 0.5 * normPdf(x, 2.5, 0.8);
+    }
+
+    // Approx unimodal distribution q(x)
+    function q(x, mu, sigma) {
+        return normPdf(x, mu, sigma);
+    }
+
+    function update() {
+        const mu = parseFloat(muSlider.value);
+        const sigma = parseFloat(sigmaSlider.value);
+        muDisplay.innerText = mu.toFixed(2);
+        sigmaDisplay.innerText = sigma.toFixed(2);
+
+        // Drawing bounds
+        const xMin = -8;
+        const xMax = 8;
+        const yMax = 0.45;
+        const width = canvas.width;
+        const height = canvas.height;
+
+        ctx.clearRect(0, 0, width, height);
+
+        // Draw Grid
+        ctx.strokeStyle = '#eee';
+        ctx.beginPath();
+        for(let i = 0; i <= width; i += width/16) {
+            ctx.moveTo(i, 0); ctx.lineTo(i, height);
+        }
+        ctx.stroke();
+
+        // Path functions
+        function mapX(x) { return ((x - xMin) / (xMax - xMin)) * width; }
+        function mapY(y) { return height - (y / yMax) * height; }
+
+        ctx.lineWidth = 3;
+
+        // Draw p(x) - Blue
+        ctx.beginPath();
+        ctx.strokeStyle = 'blue';
+        for (let x = xMin; x <= xMax; x += 0.05) {
+            const px = mapX(x);
+            const py = mapY(p(x));
+            if (x === xMin) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+        }
+        ctx.stroke();
+
+        // Draw q(x) - Red
+        ctx.beginPath();
+        ctx.strokeStyle = 'red';
+        for (let x = xMin; x <= xMax; x += 0.05) {
+            const px = mapX(x);
+            const py = mapY(q(x, mu, sigma));
+            if (x === xMin) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+        }
+        ctx.stroke();
+
+        // Calculate KL Divergences
+        let fwdKL = 0;
+        let revKL = 0;
+        const dx = 0.05;
+        const epsilon = 1e-12;
+
+        for (let x = xMin; x <= xMax; x += dx) {
+            const p_val = p(x);
+            const q_val = q(x, mu, sigma);
+            
+            if (p_val > epsilon) {
+                fwdKL += p_val * Math.log(p_val / (q_val + epsilon)) * dx;
+            }
+            if (q_val > epsilon) {
+                revKL += q_val * Math.log(q_val / (p_val + epsilon)) * dx;
+            }
+        }
+
+        fwdScore.innerText = fwdKL.toFixed(3);
+        revScore.innerText = revKL.toFixed(3);
+    }
+
+    muSlider.addEventListener('input', update);
+    sigmaSlider.addEventListener('input', update);
+    
+    // Initial draw
+    update();
+</script>
+
+</body>
+</html>
