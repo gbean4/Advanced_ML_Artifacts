@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Understanding the EM Algorithm</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            color: #1e293b;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            touch-action: none; /* Prevent scrolling when interacting with canvas */
+        }
+        .prose h2, .prose h3 {
+            color: #0f172a;
+            margin-top: 1.5em;
+            margin-bottom: 0.5em;
+            font-weight: 600;
+        }
+        .prose p {
+            margin-bottom: 1em;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center py-10 px-4 sm:px-6 lg:px-8">
+
+    <main class="w-full max-w-5xl bg-white shadow-xl rounded-2xl overflow-hidden border border-slate-200">
+        
+        <!-- Header -->
+        <header class="bg-slate-900 text-white p-8">
+            <h1 class="text-3xl font-bold tracking-tight">Understanding the Expectation-Maximization (EM) Algorithm</h1>
+            <p class="mt-2 text-slate-300">An interactive exploration of bound optimization in Gaussian Mixture Models.</p>
+        </header>
+
+        <div class="p-8 lg:flex lg:gap-12">
+            <!-- Left Column: Explanations -->
+            <div class="lg:w-1/2 prose max-w-none">
+                <h2 class="text-2xl border-b pb-2">Three Levels of Understanding</h2>
+                
+                <h3 class="text-xl text-blue-700">1. The Intuitive Concept (Limited Technical)</h3>
+                <p>
+                    Imagine sorting a crowd of students into two high schools, but no one is wearing school colors. You don't know who goes where, and you don't know the exact profile of either school. This is a "chicken-and-egg" problem. The EM algorithm solves this by taking a random guess at the school profiles, assigning students to the school they best match, and then using that newly sorted group to calculate a better, more accurate profile for the schools. It repeats this until the groups stop changing.
+                </p>
+
+                <h3 class="text-xl text-blue-700">2. The Algorithmic Structure (Intermediate)</h3>
+                <p>
+                    Computationally, EM alternates between two specific steps to find the best-fitting parameters for a model with hidden (latent) variables:
+                    <ul class="list-disc pl-5 mb-4">
+                        <li><strong>E-step (Expectation):</strong> Calculates a "soft probability" (or responsibility). Instead of a hard assignment, it determines the probability that a data point belongs to a specific cluster based on the current parameter estimates.</li>
+                        <li><strong>M-step (Maximization):</strong> Uses the probabilistic fractional assignments from the E-step as weights to recalculate and update the mean, variance, and weight of the clusters.</li>
+                    </ul>
+                </p>
+
+                <h3 class="text-xl text-blue-700">3. The Mathematical Framework (ML Undergrad)</h3>
+                <p>
+                    EM is a specialized form of Minorize-Maximization (bound optimization). Because maximizing the marginal log-likelihood directly is intractable for latent variable models, EM constructs a tight lower bound at the current parameter estimate and maximizes that surrogate function instead.
+                    <br><br>
+                    The surrogate function is the <em>expected value of the complete-data log-likelihood</em>. In the E-step, we compute the posterior distribution of the latent variables given the current parameters. In the M-step, we maximize the expected log-likelihood with respect to the parameters, which simplifies into a weighted Maximum Likelihood Estimation (MLE) problem with closed-form solutions for models like GMMs.
+                </p>
+            </div>
+
+            <!-- Right Column: Interactive Widget -->
+            <div class="lg:w-1/2 mt-10 lg:mt-0 flex flex-col">
+                <h2 class="text-2xl border-b pb-2 font-semibold mb-4 text-slate-900">Interactive 1D GMM Simulation</h2>
+                
+                <div class="bg-slate-50 p-4 rounded-lg text-sm text-slate-700 mb-6 border border-slate-200 shadow-inner">
+                    <strong>How it works:</strong> The dots at the bottom represent 1D data points. We are trying to fit two Gaussian distributions (bell curves) to this data. 
+                    <br><br>
+                    Click <strong>"Next Step"</strong> to alternate between:
+                    <ul class="list-disc pl-5 mt-1">
+                        <li><strong>E-Step:</strong> Updates the colors of the points based on their <em>responsibility</em> to the Blue or Red cluster. (Purple means 50/50).</li>
+                        <li><strong>M-Step:</strong> Updates the shape and position of the bell curves based on the weighted points.</li>
+                    </ul>
+                </div>
+
+                <!-- Canvas Container -->
+                <div class="w-full relative bg-white border border-slate-300 rounded-lg overflow-hidden shadow-sm" style="height: 300px;" id="canvas-container">
+                    <canvas id="em-canvas"></canvas>
+                </div>
+
+                <!-- Controls -->
+                <div class="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-100 p-4 rounded-lg border border-slate-200">
+                    <div class="flex flex-col">
+                        <span class="text-xs text-slate-500 font-bold uppercase tracking-wider">Current Phase</span>
+                        <span id="status-text" class="text-lg font-semibold text-slate-800">Ready to Start</span>
+                    </div>
+                    <div class="flex gap-3">
+                        <button id="reset-btn" class="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded shadow-sm hover:bg-slate-50 transition font-medium">
+                            Reset
+                        </button>
+                        <button id="next-btn" class="px-6 py-2 bg-blue-600 text-white rounded shadow-md hover:bg-blue-700 transition font-medium flex items-center gap-2">
+                            Next Step &rarr;
+                        </button>
+                    </div>
+                </div>
+                <div class="mt-2 text-right">
+                    <span class="text-sm text-slate-500">Iteration: <span id="iteration-count" class="font-bold">0</span></span>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Configuration & State
+        const config = {
+            numPoints: 150,
+            xMin: 0,
+            xMax: 100,
+            trueParams: [
+                { mu: 30, sigma: 8, weight: 0.4 },
+                { mu: 75, sigma: 12, weight: 0.6 }
+            ],
+            initParams: [
+                { mu: 20, sigma: 20, weight: 0.5 },
+                { mu: 80, sigma: 20, weight: 0.5 }
+            ]
+        };
+
+        let state = {
+            data: [], // { x, r1, r2 }
+            clusters: [], // [{ mu, sigma, weight }, { mu, sigma, weight }]
+            phase: 'ready', // 'ready', 'e-step', 'm-step'
+            iteration: 0
+        };
+
+        // DOM Elements
+        const canvas = document.getElementById('em-canvas');
+        const ctx = canvas.getContext('2d');
+        const container = document.getElementById('canvas-container');
+        const nextBtn = document.getElementById('next-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const statusText = document.getElementById('status-text');
+        const iterationCount = document.getElementById('iteration-count');
+
+        // Math Helpers
+        function gaussianPdf(x, mu, sigma) {
+            const variance = sigma * sigma;
+            return (1 / Math.sqrt(2 * Math.PI * variance)) * Math.exp(-Math.pow(x - mu, 2) / (2 * variance));
+        }
+
+        // Generate normally distributed random numbers (Box-Muller transform)
+        function randomNormal(mu, sigma) {
+            let u = 0, v = 0;
+            while(u === 0) u = Math.random();
+            while(v === 0) v = Math.random();
+            let num = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+            return num * sigma + mu;
+        }
+
+        function generateData() {
+            state.data = [];
+            for (let i = 0; i < config.numPoints; i++) {
+                // Decide which true cluster generates this point based on weight
+                const clusterIdx = Math.random() < config.trueParams[0].weight ? 0 : 1;
+                const params = config.trueParams[clusterIdx];
+                let x = randomNormal(params.mu, params.sigma);
+                
+                // Keep within bounds
+                x = Math.max(config.xMin, Math.min(config.xMax, x));
+                
+                state.data.push({
+                    x: x,
+                    r1: 0.5, // Initial dummy responsibility
+                    r2: 0.5,
+                    yJitter: Math.random() // for spreading points visually on the y-axis bottom
+                });
+            }
+        }
+
+        // EM Algorithm Steps
+        function performEStep() {
+            for (let i = 0; i < state.data.length; i++) {
+                const pt = state.data[i];
+                
+                // Calculate weighted likelihood for each cluster
+                const likelihood1 = state.clusters[0].weight * gaussianPdf(pt.x, state.clusters[0].mu, state.clusters[0].sigma);
+                const likelihood2 = state.clusters[1].weight * gaussianPdf(pt.x, state.clusters[1].mu, state.clusters[1].sigma);
+                
+                const totalLikelihood = likelihood1 + likelihood2;
+                
+                // Update responsibilities
+                if (totalLikelihood === 0) {
+                    pt.r1 = 0.5;
+                    pt.r2 = 0.5;
+                } else {
+                    pt.r1 = likelihood1 / totalLikelihood;
+                    pt.r2 = likelihood2 / totalLikelihood;
+                }
+            }
+        }
+
+        function performMStep() {
+            const N = state.data.length;
+            
+            // Calculate sum of responsibilities (Nk)
+            let N1 = 0;
+            let N2 = 0;
+            for (let i = 0; i < N; i++) {
+                N1 += state.data[i].r1;
+                N2 += state.data[i].r2;
+            }
+
+            // Update Weights
+            state.clusters[0].weight = N1 / N;
+            state.clusters[1].weight = N2 / N;
+
+            // Update Means
+            let sumMu1 = 0, sumMu2 = 0;
+            for (let i = 0; i < N; i++) {
+                sumMu1 += state.data[i].r1 * state.data[i].x;
+                sumMu2 += state.data[i].r2 * state.data[i].x;
+            }
+            state.clusters[0].mu = sumMu1 / Math.max(N1, 1e-6);
+            state.clusters[1].mu = sumMu2 / Math.max(N2, 1e-6);
+
+            // Update Variances (Sigmas)
+            let sumVar1 = 0, sumVar2 = 0;
+            for (let i = 0; i < N; i++) {
+                sumVar1 += state.data[i].r1 * Math.pow(state.data[i].x - state.clusters[0].mu, 2);
+                sumVar2 += state.data[i].r2 * Math.pow(state.data[i].x - state.clusters[1].mu, 2);
+            }
+            // Add tiny epsilon to variance to prevent division by zero
+            state.clusters[0].sigma = Math.sqrt(sumVar1 / Math.max(N1, 1e-6)) + 0.1;
+            state.clusters[1].sigma = Math.sqrt(sumVar2 / Math.max(N2, 1e-6)) + 0.1;
+        }
+
+        // Drawing logic
+        function resizeCanvas() {
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+            draw();
+        }
+
+        function getXPixel(xValue) {
+            return (xValue / config.xMax) * canvas.width;
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const paddingBottom = 40; // Space for points
+            const graphHeight = canvas.height - paddingBottom;
+            
+            // Find max density for scaling curves
+            let maxDensity = 0;
+            for(let x = 0; x <= config.xMax; x += 1) {
+                const d1 = state.clusters[0].weight * gaussianPdf(x, state.clusters[0].mu, state.clusters[0].sigma);
+                const d2 = state.clusters[1].weight * gaussianPdf(x, state.clusters[1].mu, state.clusters[1].sigma);
+                if (d1 > maxDensity) maxDensity = d1;
+                if (d2 > maxDensity) maxDensity = d2;
+            }
+            
+            // Scaling factor for Y axis (leave top padding)
+            const yScale = (graphHeight * 0.8) / (maxDensity || 1);
+
+            // Draw Gaussians
+            const drawGaussian = (cluster, color, strokeColor) => {
+                ctx.beginPath();
+                for (let x = 0; x <= canvas.width; x++) {
+                    const xValue = (x / canvas.width) * config.xMax;
+                    const density = cluster.weight * gaussianPdf(xValue, cluster.mu, cluster.sigma);
+                    const yPixel = graphHeight - (density * yScale);
+                    
+                    if (x === 0) ctx.moveTo(x, yPixel);
+                    else ctx.lineTo(x, yPixel);
+                }
+                ctx.lineTo(canvas.width, graphHeight);
+                ctx.lineTo(0, graphHeight);
+                ctx.closePath();
+                
+                ctx.fillStyle = color;
+                ctx.fill();
+                ctx.lineWidth = 3;
+                ctx.strokeStyle = strokeColor;
+                ctx.stroke();
+            };
+
+            // Cluster 1 (Blue)
+            drawGaussian(state.clusters[0], 'rgba(59, 130, 246, 0.2)', 'rgba(37, 99, 235, 1)'); // Blue
+            // Cluster 2 (Red)
+            drawGaussian(state.clusters[1], 'rgba(239, 68, 68, 0.2)', 'rgba(220, 38, 38, 1)');   // Red
+
+            // Draw axis line
+            ctx.beginPath();
+            ctx.moveTo(0, graphHeight);
+            ctx.lineTo(canvas.width, graphHeight);
+            ctx.strokeStyle = '#cbd5e1';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Draw Data Points
+            state.data.forEach(pt => {
+                const xPx = getXPixel(pt.x);
+                // Jitter Y slightly to show density
+                const yPx = canvas.height - 15 - (pt.yJitter * 15);
+
+                // Blend colors based on responsibility
+                // Blue: 59, 130, 246 | Red: 239, 68, 68
+                const r = (pt.r1 * 59) + (pt.r2 * 239);
+                const g = (pt.r1 * 130) + (pt.r2 * 68);
+                const b = (pt.r1 * 246) + (pt.r2 * 68);
+
+                ctx.beginPath();
+                ctx.arc(xPx, yPx, 4, 0, Math.PI * 2);
+                
+                // If phase is ready, draw them neutral grey
+                if (state.phase === 'ready') {
+                    ctx.fillStyle = '#94a3b8';
+                    ctx.strokeStyle = '#64748b';
+                } else {
+                    ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+                    ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, 0.8)`;
+                }
+                
+                ctx.fill();
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            });
+        }
+
+        // UI Controls
+        function init() {
+            generateData();
+            // Deep copy initial params
+            state.clusters = JSON.parse(JSON.stringify(config.initParams));
+            state.phase = 'ready';
+            state.iteration = 0;
+            
+            updateUI();
+            resizeCanvas();
+        }
+
+        function updateUI() {
+            iterationCount.textContent = state.iteration;
+            
+            if (state.phase === 'ready') {
+                statusText.textContent = "Ready to start";
+                statusText.className = "text-lg font-semibold text-slate-500";
+                nextBtn.innerHTML = "Start E-Step &rarr;";
+            } else if (state.phase === 'e-step') {
+                statusText.textContent = "E-Step Complete (Responsibilities Updated)";
+                statusText.className = "text-lg font-semibold text-purple-600";
+                nextBtn.innerHTML = "Run M-Step &rarr;";
+            } else if (state.phase === 'm-step') {
+                statusText.textContent = "M-Step Complete (Parameters Updated)";
+                statusText.className = "text-lg font-semibold text-emerald-600";
+                nextBtn.innerHTML = "Run E-Step &rarr;";
+            }
+        }
+
+        nextBtn.addEventListener('click', () => {
+            if (state.phase === 'ready' || state.phase === 'm-step') {
+                performEStep();
+                state.phase = 'e-step';
+                if(state.phase === 'm-step') state.iteration++;
+                else state.iteration = 1; // first iteration
+            } else if (state.phase === 'e-step') {
+                performMStep();
+                state.phase = 'm-step';
+            }
+            updateUI();
+            draw();
+        });
+
+        resetBtn.addEventListener('click', init);
+        window.addEventListener('resize', resizeCanvas);
+
+        // Start
+        window.onload = init;
+
+    </script>
+</body>
+</html>
