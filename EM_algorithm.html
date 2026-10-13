@@ -128,7 +128,7 @@
             data: [], // { x, r1, r2 }
             clusters: [], // [{ mu, sigma, weight }, { mu, sigma, weight }]
             phase: 'ready', // 'ready', 'e-step', 'm-step'
-            iteration: 0
+            : 0
         };
 
         // DOM Elements
@@ -357,18 +357,28 @@
         }
 
         nextBtn.addEventListener('click', () => {
-            if (state.phase === 'ready' || state.phase === 'm-step') {
-                performEStep();
-                state.phase = 'e-step';
-                if(state.phase === 'm-step') state.iteration++;
-                else state.iteration = 1; // first iteration
-            } else if (state.phase === 'e-step') {
-                performMStep();
-                state.phase = 'm-step';
-            }
-            updateUI();
-            draw();
-        });
+    if (state.phase === 'ready' || state.phase === 'm-step') {
+        // Check the previous state before overwriting it
+        if (state.phase === 'm-step') {
+            state.iteration++;
+        } else {
+            state.iteration = 1; // first iteration
+        }
+        
+        performEStep();
+        state.phase = 'e-step';
+        
+        // Use the correct state variable for the string injection
+        document.getElementById('iteration-counter').innerText = `Iteration: ${state.iteration}`;
+        
+    } else if (state.phase === 'e-step') {
+        performMStep();
+        state.phase = 'm-step';
+    }
+    
+    updateUI();
+    draw();
+});
 
         resetBtn.addEventListener('click', init);
         window.addEventListener('resize', resizeCanvas);
