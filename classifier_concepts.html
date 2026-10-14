@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Machine Learning Portfolio: Classifiers</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc; /* Slate 50 */
+            color: #0f172a; /* Slate 900 */
+        }
+        
+        /* Smooth transitions for interactive elements */
+        .transition-all {
+            transition-property: all;
+            transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+            transition-duration: 300ms;
+        }
+
+        /* Custom range slider styling */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #3b82f6;
+            cursor: pointer;
+            margin-top: -6px;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #cbd5e1;
+            border-radius: 2px;
+        }
+        
+        .active-tab {
+            background-color: #1e293b;
+            color: white;
+        }
+    </style>
+</head>
+<body class="antialiased min-h-screen pb-12">
+
+    <!-- Header Section -->
+    <header class="bg-white border-b border-slate-200 shadow-sm pt-12 pb-8 mb-10">
+        <div class="max-w-5xl mx-auto px-6">
+            <h1 class="text-4xl font-bold tracking-tight text-slate-900 mb-3">Probabilistic Classifiers</h1>
+            <p class="text-lg text-slate-600 max-w-3xl">
+                An interactive exploration of <strong>Naive Bayes</strong> and the fundamental differences between <strong>Generative</strong> and <strong>Discriminative</strong> models. Inspired by university-level machine learning curricula.
+            </p>
+        </div>
+    </header>
+
+    <main class="max-w-5xl mx-auto px-6 space-y-12">
+
+        <!-- Module 1: Naive Bayes Sandbox -->
+        <section class="bg-white rounded-2xl shadow-md border border-slate-200 overflow-hidden">
+            <div class="bg-slate-50 border-b border-slate-200 p-6">
+                <h2 class="text-2xl font-semibold flex items-center gap-2">
+                    <span class="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-bold">1</span>
+                    The Naive Bayes Sandbox
+                </h2>
+                <p class="text-slate-600 mt-2 text-sm">
+                    Adjust the probabilities below to see how a Naive Bayes classifier updates its belief. 
+                    <strong>The Scenario:</strong> You are a doctor diagnosing the Flu. You observe two symptoms: Fever and Cough. 
+                    The model calculates the joint probability by "naively" assuming the symptoms are independent given the disease.
+                </p>
+            </div>
+            
+            <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- Controls -->
+                <div class="space-y-6">
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <label class="text-sm font-medium text-slate-700">Prior Probability of Flu: P(Flu)</label>
+                            <span id="val-prior" class="text-sm font-bold text-blue-600">5%</span>
+                        </div>
+                        <input type="range" id="slider-prior" min="1" max="50" value="5" class="w-full">
+                    </div>
+
+                    <div class="p-4 bg-slate-50 rounded-xl border border-slate-100">
+                        <h3 class="text-sm font-bold text-slate-800 mb-4 border-b pb-2">Likelihoods: P(Symptom | Flu)</h3>
+                        
+                        <div class="mb-4">
+                            <div class="flex justify-between mb-1">
+                                <label class="text-sm font-medium text-slate-600">P(Fever | Flu)</label>
+                                <span id="val-fever-flu" class="text-sm font-bold text-blue-600">80%</span>
+                            </div>
+                            <input type="range" id="slider-fever-flu" min="10" max="99" value="80" class="w-full">
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <label class="text-sm font-medium text-slate-600">P(Cough | Flu)</label>
+                                <span id="val-cough-flu" class="text-sm font-bold text-blue-600">70%</span>
+                            </div>
+                            <input type="range" id="slider-cough-flu" min="10" max="99" value="70" class="w-full">
+                        </div>
+                    </div>
+
+                    <div class="p-4 bg-slate-50 rounded-xl border border-slate-100">
+                        <h3 class="text-sm font-bold text-slate-800 mb-4 border-b pb-2">Likelihoods: P(Symptom | No Flu)</h3>
+                        
+                        <div class="mb-4">
+                            <div class="flex justify-between mb-1">
+                                <label class="text-sm font-medium text-slate-600">P(Fever | No Flu)</label>
+                                <span id="val-fever-noflu" class="text-sm font-bold text-slate-500">10%</span>
+                            </div>
+                            <input type="range" id="slider-fever-noflu" min="1" max="50" value="10" class="w-full">
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <label class="text-sm font-medium text-slate-600">P(Cough | No Flu)</label>
+                                <span id="val-cough-noflu" class="text-sm font-bold text-slate-500">20%</span>
+                            </div>
+                            <input type="range" id="slider-cough-noflu" min="1" max="50" value="20" class="w-full">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Visualization -->
+                <div class="bg-slate-900 rounded-xl p-6 text-white flex flex-col justify-center relative overflow-hidden">
+                    <div class="absolute top-0 right-0 p-4 opacity-10">
+                        <!-- Abstract math decoration -->
+                        <svg width="100" height="100" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2L3 14h12.5l-3-12"></path><path d="M12 17v5"></path><path d="M9 22h6"></path></svg>
+                    </div>
+                    
+                    <h3 class="text-lg font-medium text-slate-300 mb-6">Patient has Fever AND Cough</h3>
+                    
+                    <div class="space-y-4 relative z-10">
+                        <div>
+                            <p class="text-sm text-slate-400 mb-1">Naive Numerator (Flu):</p>
+                            <p class="font-mono text-sm break-all text-slate-300">
+                                P(Flu) × P(Fever|Flu) × P(Cough|Flu)<br>
+                                = <span id="calc-num-flu-math">0.05 × 0.80 × 0.70</span>
+                                = <span id="calc-num-flu" class="text-blue-400 font-bold">0.0280</span>
+                            </p>
+                        </div>
+                        
+                        <div class="border-t border-slate-700 pt-4">
+                            <p class="text-sm text-slate-400 mb-1">Naive Numerator (No Flu):</p>
+                            <p class="font-mono text-sm break-all text-slate-300">
+                                P(No Flu) × P(Fever|No Flu) × P(Cough|No Flu)<br>
+                                = <span id="calc-num-noflu-math">0.95 × 0.10 × 0.20</span>
+                                = <span id="calc-num-noflu" class="text-slate-400 font-bold">0.0190</span>
+                            </p>
+                        </div>
+
+                        <div class="border-t border-slate-700 pt-6 mt-4">
+                            <p class="text-sm text-slate-400 mb-2">Final Posterior Probability:</p>
+                            <p class="font-mono text-sm mb-2 text-slate-300">
+                                P(Flu | Fever, Cough) = <br>
+                                <span class="text-blue-400">Num(Flu)</span> / (<span class="text-blue-400">Num(Flu)</span> + <span class="text-slate-400">Num(No Flu)</span>)
+                            </p>
+                            <div class="flex items-end gap-4 mt-4">
+                                <div class="text-5xl font-black text-white" id="calc-posterior">
+                                    59.6%
+                                </div>
+                                <div id="diagnosis-badge" class="px-3 py-1 mb-1 rounded bg-red-500/20 text-red-400 text-sm font-bold">
+                                    Likely Flu
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Module 2: Generative vs Discriminative -->
+        <section class="bg-white rounded-2xl shadow-md border border-slate-200 overflow-hidden">
+            <div class="bg-slate-50 border-b border-slate-200 p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-2xl font-semibold flex items-center gap-2">
+                        <span class="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-sm font-bold">2</span>
+                        Generative vs. Discriminative
+                    </h2>
+                    <p class="text-slate-600 mt-2 text-sm max-w-2xl">
+                        Explore the theoretical trade-offs. Generative models (like Naive Bayes) model the joint distribution $P(X,Y)$. Discriminative models (like Logistic Regression) model the conditional distribution $P(Y|X)$ directly.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Intuition / Analogy Bar -->
+            <div class="bg-indigo-50 border-b border-indigo-100 p-4 px-6 flex items-start gap-4">
+                <div class="mt-1 text-indigo-400">
+                    <!-- Lightbulb icon -->
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="9" y1="18" x2="15" y2="18"></line><line x1="10" y1="22" x2="14" y2="22"></line><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"></path></svg>
+                </div>
+                <div>
+                    <h4 class="font-bold text-indigo-900 text-sm">The Artist Analogy</h4>
+                    <p class="text-sm text-indigo-800 mt-1">
+                        <strong>Generative:</strong> Learns the fundamental rules of *how* Monet and Picasso paint, then asks "Could Monet have painted this?".<br>
+                        <strong>Discriminative:</strong> Ignores overall style and just learns the boundary: "Monet uses pastels, Picasso uses geometry."
+                    </p>
+                </div>
+            </div>
+
+            <div class="p-6">
+                <!-- Navigation Tabs -->
+                <div class="flex flex-wrap gap-2 mb-8 border-b border-slate-200 pb-4" id="tradeoff-tabs">
+                    <!-- Rendered via JS -->
+                </div>
+
+                <!-- Comparison Layout -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 relative">
+                    
+                    <!-- VS Badge in middle (desktop only) -->
+                    <div class="hidden md:flex absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-slate-200 text-slate-500 rounded-full w-10 h-10 items-center justify-center font-bold text-sm z-10 shadow-sm border-4 border-white">
+                        VS
+                    </div>
+
+                    <!-- Generative Card -->
+                    <div class="bg-blue-50/50 rounded-xl p-6 border border-blue-100 h-full transition-all" id="card-gen">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600 font-bold">G</div>
+                            <h3 class="text-lg font-bold text-slate-800">Generative Classifiers</h3>
+                        </div>
+                        <p class="text-sm text-slate-500 mb-4 font-mono bg-white inline-block px-2 py-1 rounded border border-slate-200">Models P(X, Y)</p>
+                        
+                        <div id="content-gen" class="text-slate-700 space-y-3">
+                            <!-- Dynamic Content -->
+                        </div>
+                    </div>
+
+                    <!-- Discriminative Card -->
+                    <div class="bg-emerald-50/50 rounded-xl p-6 border border-emerald-100 h-full transition-all" id="card-disc">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-600 font-bold">D</div>
+                            <h3 class="text-lg font-bold text-slate-800">Discriminative Classifiers</h3>
+                        </div>
+                        <p class="text-sm text-slate-500 mb-4 font-mono bg-white inline-block px-2 py-1 rounded border border-slate-200">Models P(Y | X)</p>
+                        
+                        <div id="content-disc" class="text-slate-700 space-y-3">
+                            <!-- Dynamic Content -->
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        // ==========================================
+        // MODULE 1: NAIVE BAYES CALCULATOR LOGIC
+        // ==========================================
+        
+        const ui = {
+            prior: document.getElementById('slider-prior'),
+            feverFlu: document.getElementById('slider-fever-flu'),
+            coughFlu: document.getElementById('slider-cough-flu'),
+            feverNoFlu: document.getElementById('slider-fever-noflu'),
+            coughNoFlu: document.getElementById('slider-cough-noflu'),
+            
+            valPrior: document.getElementById('val-prior'),
+            valFeverFlu: document.getElementById('val-fever-flu'),
+            valCoughFlu: document.getElementById('val-cough-flu'),
+            valFeverNoFlu: document.getElementById('val-fever-noflu'),
+            valCoughNoFlu: document.getElementById('val-cough-noflu'),
+            
+            calcNumFluMath: document.getElementById('calc-num-flu-math'),
+            calcNumFlu: document.getElementById('calc-num-flu'),
+            calcNumNoFluMath: document.getElementById('calc-num-noflu-math'),
+            calcNumNoFlu: document.getElementById('calc-num-noflu'),
+            calcPosterior: document.getElementById('calc-posterior'),
+            diagnosisBadge: document.getElementById('diagnosis-badge')
+        };
+
+        function updateBayes() {
+            // Get values as decimals
+            const pFlu = parseInt(ui.prior.value) / 100;
+            const pNoFlu = 1 - pFlu;
+            
+            const pFevFlu = parseInt(ui.feverFlu.value) / 100;
+            const pCouFlu = parseInt(ui.coughFlu.value) / 100;
+            
+            const pFevNo = parseInt(ui.feverNoFlu.value) / 100;
+            const pCouNo = parseInt(ui.coughNoFlu.value) / 100;
+
+            // Update Labels
+            ui.valPrior.innerText = `${ui.prior.value}%`;
+            ui.valFeverFlu.innerText = `${ui.feverFlu.value}%`;
+            ui.valCoughFlu.innerText = `${ui.coughFlu.value}%`;
+            ui.valFeverNoFlu.innerText = `${ui.feverNoFlu.value}%`;
+            ui.valCoughNoFlu.innerText = `${ui.coughNoFlu.value}%`;
+
+            // Calculate Numerators
+            const numFlu = pFlu * pFevFlu * pCouFlu;
+            const numNoFlu = pNoFlu * pFevNo * pCouNo;
+            
+            // Calculate Posterior
+            const evidence = numFlu + numNoFlu;
+            const posterior = evidence === 0 ? 0 : (numFlu / evidence);
+
+            // Update UI Math blocks
+            ui.calcNumFluMath.innerText = `${pFlu.toFixed(2)} × ${pFevFlu.toFixed(2)} × ${pCouFlu.toFixed(2)}`;
+            ui.calcNumFlu.innerText = numFlu.toFixed(4);
+            
+            ui.calcNumNoFluMath.innerText = `${pNoFlu.toFixed(2)} × ${pFevNo.toFixed(2)} × ${pCouNo.toFixed(2)}`;
+            ui.calcNumNoFlu.innerText = numNoFlu.toFixed(4);
+
+            ui.calcPosterior.innerText = `${(posterior * 100).toFixed(1)}%`;
+
+            // Update Badge
+            if (posterior > 0.5) {
+                ui.diagnosisBadge.innerText = "Likely Flu";
+                ui.diagnosisBadge.className = "px-3 py-1 mb-1 rounded bg-red-500/20 text-red-400 text-sm font-bold";
+            } else {
+                ui.diagnosisBadge.innerText = "Unlikely Flu";
+                ui.diagnosisBadge.className = "px-3 py-1 mb-1 rounded bg-green-500/20 text-green-400 text-sm font-bold";
+            }
+        }
+
+        // Attach listeners
+        [ui.prior, ui.feverFlu, ui.coughFlu, ui.feverNoFlu, ui.coughNoFlu].forEach(slider => {
+            slider.addEventListener('input', updateBayes);
+        });
+        
+        // Initial Calculation
+        updateBayes();
+
+
+        // ==========================================
+        // MODULE 2: GENERATIVE VS DISCRIMINATIVE LOGIC
+        // ==========================================
+
+        const tradeOffData = [
+            {
+                id: 'accuracy',
+                title: 'Predictive Accuracy',
+                gen: `<p><strong>Often lower asymptotic accuracy.</strong></p>
+                      <p>Because generative models (like Naive Bayes) spend "wasted effort" modeling the full joint distribution of the input features, their independence assumptions often restrict their theoretical accuracy ceiling.</p>`,
+                disc: `<p><strong>Better predictive accuracy.</strong></p>
+                       <p>Discriminative classifiers optimize the conditional distribution directly. By strictly focusing on the decision boundary separating classes, they typically achieve a lower asymptotic error (assuming sufficient data).</p>`,
+                genWin: false,
+                discWin: true
+            },
+            {
+                id: 'missing-data',
+                title: 'Handling Missing Features',
+                gen: `<p><strong>Principled, elegant handling.</strong></p>
+                      <p>If an input feature (e.g., $x_1$) is missing during training or testing, a generative classifier can simply marginalize it out. In Naive Bayes, you completely ignore the missing likelihood term because it sums to 1.</p>`,
+                disc: `<p><strong>Requires imputation or workarounds.</strong></p>
+                       <p>There is no uniquely optimal way to handle missing inputs. The model relies on a complete feature vector to compute the decision boundary, requiring missing values to be filled in (imputed) artificially.</p>`,
+                genWin: true,
+                discWin: false
+            },
+            {
+                id: 'speed',
+                title: 'Fitting / Training Speed',
+                gen: `<p><strong>Extremely fast to fit.</strong></p>
+                      <p>Often requires simple counting, averaging, and calculating empirical frequencies (Maximum Likelihood Estimation). Reaches its asymptotic accuracy quickly with less data.</p>`,
+                disc: `<p><strong>Slower, requires optimization.</strong></p>
+                       <p>Requires solving convex (Logistic Regression) or non-convex (Neural Networks) optimization problems iteratively (e.g., via Gradient Descent), which takes more compute time.</p>`,
+                genWin: true,
+                discWin: false
+            },
+            {
+                id: 'preprocessing',
+                title: 'Feature Preprocessing',
+                gen: `<p><strong>Hard to handle complex feature correlations.</strong></p>
+                      <p>If you perform polynomial expansion or word embeddings, the new features become highly correlated. A generative model struggles to accurately model a joint distribution over such complex, overlapping data.</p>`,
+                disc: `<p><strong>Handles arbitrary preprocessing easily.</strong></p>
+                       <p>A big advantage. You can transform the input space aggressively (embeddings, kernels) without worrying about modeling how the newly generated features relate to one another.</p>`,
+                genWin: false,
+                discWin: true
+            },
+            {
+                id: 'adding-classes',
+                title: 'Adding New Classes',
+                gen: `<p><strong>Fits classes separately.</strong></p>
+                      <p>You estimate the parameters of each class conditional density independently. If you want to add a new class later, you just calculate its specific probabilities—no need to retrain the existing classes.</p>`,
+                disc: `<p><strong>Requires complete retraining.</strong></p>
+                       <p>Because all parameters interact to define the relative decision boundaries, the entire model must be retrained from scratch if a new class is introduced.</p>`,
+                genWin: true,
+                discWin: false
+            }
+        ];
+
+        const tabsContainer = document.getElementById('tradeoff-tabs');
+        const contentGen = document.getElementById('content-gen');
+        const contentDisc = document.getElementById('content-disc');
+        const cardGen = document.getElementById('card-gen');
+        const cardDisc = document.getElementById('card-disc');
+
+        function renderTradeoffs(activeId) {
+            tabsContainer.innerHTML = '';
+            
+            tradeOffData.forEach(item => {
+                const btn = document.createElement('button');
+                btn.className = `px-4 py-2 rounded-full text-sm font-medium transition-colors border ${item.id === activeId ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`;
+                btn.innerText = item.title;
+                btn.onclick = () => updateContent(item);
+                tabsContainer.appendChild(btn);
+
+                if (item.id === activeId) {
+                    updateContent(item, false); // Initial load without redundant tab render
+                }
+            });
+        }
+
+        function updateContent(item, reRenderTabs = true) {
+            // Add fade effect
+            contentGen.style.opacity = 0;
+            contentDisc.style.opacity = 0;
+            
+            setTimeout(() => {
+                contentGen.innerHTML = item.gen;
+                contentDisc.innerHTML = item.disc;
+                
+                // Highlight winning side subtly
+                if (item.genWin) {
+                    cardGen.className = "bg-blue-100/80 rounded-xl p-6 border-2 border-blue-300 h-full transition-all shadow-md";
+                } else {
+                    cardGen.className = "bg-slate-50 rounded-xl p-6 border border-slate-200 h-full transition-all opacity-80";
+                }
+
+                if (item.discWin) {
+                    cardDisc.className = "bg-emerald-100/80 rounded-xl p-6 border-2 border-emerald-300 h-full transition-all shadow-md";
+                } else {
+                    cardDisc.className = "bg-slate-50 rounded-xl p-6 border border-slate-200 h-full transition-all opacity-80";
+                }
+
+                contentGen.style.opacity = 1;
+                contentDisc.style.opacity = 1;
+            }, 150);
+
+            if (reRenderTabs) {
+                renderTradeoffs(item.id);
+            }
+        }
+
+        // Add CSS transition to content areas for smooth fading
+        contentGen.style.transition = "opacity 0.2s ease-in-out";
+        contentDisc.style.transition = "opacity 0.2s ease-in-out";
+
+        // Initialize with the first tab
+        renderTradeoffs(tradeOffData[0].id);
+
+    </script>
+</body>
+</html>
