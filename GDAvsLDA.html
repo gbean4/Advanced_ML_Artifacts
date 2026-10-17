@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive GDA vs LDA</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        canvas {
+            background-color: #ffffff;
+            cursor: crosshair;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            border-radius: 0.5rem;
+            width: 100%;
+            height: auto;
+            max-width: 800px;
+        }
+    </style>
+</head>
+<body class="text-slate-800 p-4 md:p-8">
+
+<div class="max-w-6xl mx-auto flex flex-col lg:flex-row gap-8">
+    <!-- Main Visualization Area -->
+    <div class="flex-grow flex flex-col items-center w-full lg:w-2/3">
+        <h1 class="text-3xl font-bold mb-2 text-slate-900">GDA vs LDA Visualizer</h1>
+        <p class="text-slate-600 mb-4 text-center">Click on the canvas to add data points. Observe how the decision boundary changes.</p>
+        
+        <canvas id="canvas" width="800" height="500"></canvas>
+        
+        <div class="mt-4 flex gap-4 w-full justify-center">
+            <button id="btnClear" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-md transition font-medium">Clear Canvas</button>
+        </div>
+    </div>
+
+    <!-- Control Panel -->
+    <div class="w-full lg:w-1/3 flex flex-col gap-6">
+        
+        <!-- Controls -->
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+            <h2 class="text-xl font-semibold mb-4 border-b pb-2">Controls</h2>
+            
+            <div class="mb-5">
+                <p class="font-medium mb-2">1. Select Class to Add:</p>
+                <div class="flex gap-4">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="classType" value="0" checked class="w-4 h-4 text-red-600 focus:ring-red-500">
+                        <span class="text-red-600 font-semibold">Class A (Red)</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="classType" value="1" class="w-4 h-4 text-blue-600 focus:ring-blue-500">
+                        <span class="text-blue-600 font-semibold">Class B (Blue)</span>
+                    </label>
+                </div>
+            </div>
+
+            <div>
+                <p class="font-medium mb-2">2. Select Covariance Model:</p>
+                <div class="flex flex-col gap-2">
+                    <label class="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-slate-50 transition">
+                        <input type="radio" name="modelType" value="gda" checked class="w-4 h-4 text-indigo-600 focus:ring-indigo-500">
+                        <div>
+                            <span class="font-semibold block">GDA / QDA</span>
+                            <span class="text-sm text-slate-500">Independent Covariances</span>
+                        </div>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-slate-50 transition">
+                        <input type="radio" name="modelType" value="lda" class="w-4 h-4 text-indigo-600 focus:ring-indigo-500">
+                        <div>
+                            <span class="font-semibold block">LDA</span>
+                            <span class="text-sm text-slate-500">Shared Covariance</span>
+                        </div>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Explanation Panel -->
+        <div class="bg-indigo-50 p-6 rounded-xl border border-indigo-100">
+            <h2 class="text-xl font-semibold mb-2 text-indigo-900" id="infoTitle">GDA (Quadratic Boundary)</h2>
+            <div class="text-sm text-indigo-800 space-y-3" id="infoContent">
+                <!-- Content injected via JS -->
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const btnClear = document.getElementById('btnClear');
+    const infoTitle = document.getElementById('infoTitle');
+    const infoContent = document.getElementById('infoContent');
+
+    // State
+    let points = { 0: [], 1: [] };
+    let activeClass = 0;
+    let modelType = 'gda'; // 'gda' or 'lda'
+
+    // Math Utility Functions
+    const addVec = (a, b) => [a[0] + b[0], a[1] + b[1]];
+    const subVec = (a, b) => [a[0] - b[0], a[1] - b[1]];
+    const scaleVec = (v, s) => [v[0] * s, v[1] * s];
+    const dotVec = (a, b) => a[0] * b[0] + a[1] * b[1];
+
+    function invert2x2(m) {
+        const det = m[0][0] * m[1][1] - m[0][1] * m[1][0];
+        if (Math.abs(det) < 1e-6) return [[1, 0], [0, 1]]; // Fallback for singular matrix
+        return [
+            [m[1][1] / det, -m[0][1] / det],
+            [-m[1][0] / det, m[0][0] / det]
+        ];
+    }
+
+    function det2x2(m) {
+        return m[0][0] * m[1][1] - m[0][1] * m[1][0];
+    }
+
+    // Compute Eigenvalues/Vectors for 2x2 symmetric matrix for ellipse drawing
+    function getEigen(m) {
+        const a = m[0][0], b = m[0][1], c = m[1][0], d = m[1][1];
+        const trace = a + d;
+        const det = a * d - b * c;
+        const gap = Math.sqrt(Math.max(0, trace * trace - 4 * det));
+        const lambda1 = (trace + gap) / 2;
+        const lambda2 = (trace - gap) / 2;
+        
+        let v1, v2;
+        if (b !== 0) {
+            v1 = [lambda1 - d, c];
+            v2 = [lambda2 - d, c];
+        } else if (c !== 0) {
+            v1 = [b, lambda1 - a];
+            v2 = [b, lambda2 - a];
+        } else {
+            v1 = [1, 0];
+            v2 = [0, 1];
+        }
+        
+        const mag1 = Math.hypot(v1[0], v1[1]);
+        const mag2 = Math.hypot(v2[0], v2[1]);
+        
+        return {
+            l1: lambda1, l2: lambda2,
+            v1: mag1 > 0 ? [v1[0]/mag1, v1[1]/mag1] : [1, 0],
+            v2: mag2 > 0 ? [v2[0]/mag2, v2[1]/mag2] : [0, 1]
+        };
+    }
+
+    // Core Stats Computation
+    function computeStats(pts) {
+        if (pts.length === 0) return null;
+        let n = pts.length;
+        let mean = [0, 0];
+        pts.forEach(p => { mean[0] += p[0]; mean[1] += p[1]; });
+        mean = scaleVec(mean, 1/n);
+
+        let cov = [[0, 0], [0, 0]];
+        if (n > 1) {
+            pts.forEach(p => {
+                let dx = p[0] - mean[0];
+                let dy = p[1] - mean[1];
+                cov[0][0] += dx * dx;
+                cov[0][1] += dx * dy;
+                cov[1][0] += dy * dx;
+                cov[1][1] += dy * dy;
+            });
+            cov[0][0] /= (n - 1);
+            cov[0][1] /= (n - 1);
+            cov[1][0] /= (n - 1);
+            cov[1][1] /= (n - 1);
+        } else {
+            // Identity-like fallback if only 1 point
+            cov = [[1000, 0], [0, 1000]];
+        }
+        return { n, mean, cov };
+    }
+
+    // Discriminant function (log unnormalized posterior)
+    function discriminant(x, stats, invCov, logDetCov, prior) {
+        const dx = x[0] - stats.mean[0];
+        const dy = x[1] - stats.mean[1];
+        // (x-mu)^T * Sigma^-1 * (x-mu)
+        const term1 = dx * (invCov[0][0] * dx + invCov[0][1] * dy) + dy * (invCov[1][0] * dx + invCov[1][1] * dy);
+        return -0.5 * term1 - 0.5 * logDetCov + Math.log(prior);
+    }
+
+    // Rendering
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        const stats0 = computeStats(points[0]);
+        const stats1 = computeStats(points[1]);
+        
+        const totalN = (stats0 ? stats0.n : 0) + (stats1 ? stats1.n : 0);
+
+        // Only draw boundaries if we have points in both classes
+        if (stats0 && stats1 && totalN > 0) {
+            const prior0 = stats0.n / totalN;
+            const prior1 = stats1.n / totalN;
+
+            let cov0 = stats0.cov;
+            let cov1 = stats1.cov;
+            
+            if (modelType === 'lda') {
+                // Pooled Covariance
+                let pooledCov = [[0, 0], [0, 0]];
+                let n0 = stats0.n, n1 = stats1.n;
+                // Weighted average of covariances
+                pooledCov[0][0] = ((n0>1?n0-1:1)*cov0[0][0] + (n1>1?n1-1:1)*cov1[0][0]) / (n0 + n1 - 2 || 1);
+                pooledCov[0][1] = ((n0>1?n0-1:1)*cov0[0][1] + (n1>1?n1-1:1)*cov1[0][1]) / (n0 + n1 - 2 || 1);
+                pooledCov[1][0] = ((n0>1?n0-1:1)*cov0[1][0] + (n1>1?n1-1:1)*cov1[1][0]) / (n0 + n1 - 2 || 1);
+                pooledCov[1][1] = ((n0>1?n0-1:1)*cov0[1][1] + (n1>1?n1-1:1)*cov1[1][1]) / (n0 + n1 - 2 || 1);
+                
+                cov0 = pooledCov;
+                cov1 = pooledCov;
+            }
+
+            const invCov0 = invert2x2(cov0);
+            const invCov1 = invert2x2(cov1);
+            const logDet0 = Math.log(Math.max(1e-6, det2x2(cov0)));
+            const logDet1 = Math.log(Math.max(1e-6, det2x2(cov1)));
+
+            // Draw Decision Boundary (Background Heatmap Approximation)
+            const step = 4; // Resolution of the background grid
+            for (let x = 0; x < canvas.width; x += step) {
+                for (let y = 0; y < canvas.height; y += step) {
+                    const g0 = discriminant([x, y], stats0, invCov0, logDet0, prior0);
+                    const g1 = discriminant([x, y], stats1, invCov1, logDet1, prior1);
+                    
+                    if (g0 > g1) {
+                        ctx.fillStyle = 'rgba(254, 226, 226, 0.4)'; // Red-ish bg
+                    } else {
+                        ctx.fillStyle = 'rgba(219, 234, 254, 0.4)'; // Blue-ish bg
+                    }
+                    ctx.fillRect(x, y, step, step);
+                }
+            }
+
+            // Draw Ellipses (2 Standard Deviations)
+            drawEllipse(stats0.mean, cov0, 'rgba(220, 38, 38, 0.6)');
+            drawEllipse(stats1.mean, cov1, 'rgba(37, 99, 235, 0.6)');
+        }
+
+        // Draw points
+        points[0].forEach(p => drawPoint(p, '#dc2626')); // Red
+        points[1].forEach(p => drawPoint(p, '#2563eb')); // Blue
+    }
+
+    function drawEllipse(mean, cov, strokeColor) {
+        const eigen = getEigen(cov);
+        // Math.sqrt(chi-square value for 2 DOF at 95% is ~2.447, but we'll use 2 for simplicity)
+        const scale = 2.0; 
+        const r1 = Math.sqrt(Math.max(0, eigen.l1)) * scale;
+        const r2 = Math.sqrt(Math.max(0, eigen.l2)) * scale;
+        const angle = Math.atan2(eigen.v1[1], eigen.v1[0]);
+
+        if (r1 > 0 && r2 > 0) {
+            ctx.beginPath();
+            ctx.ellipse(mean[0], mean[1], r1, r2, angle, 0, 2 * Math.PI);
+            ctx.strokeStyle = strokeColor;
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 5]);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+        
+        // Draw Mean Center
+        ctx.beginPath();
+        ctx.arc(mean[0], mean[1], 4, 0, 2*Math.PI);
+        ctx.fillStyle = strokeColor;
+        ctx.fill();
+    }
+
+    function drawPoint(p, color) {
+        ctx.beginPath();
+        ctx.arc(p[0], p[1], 6, 0, 2 * Math.PI);
+        ctx.fillStyle = color;
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+    }
+
+    function updateInfoText() {
+        if (modelType === 'gda') {
+            infoTitle.innerText = "Gaussian Discriminant Analysis";
+            infoContent.innerHTML = `
+                <p><strong>Independent Covariances:</strong> Each class models its own shape and spread.</p>
+                <p>Because the covariance matrices $\\Sigma_0$ and $\\Sigma_1$ are different, the term $x^T\\Sigma^{-1}x$ in the Gaussian probability density does not cancel out when we compare the two classes.</p>
+                <p><strong>Result:</strong> The boundary where $P(Y=0|X) = P(Y=1|X)$ forms a <strong>quadratic curve</strong> (parabola, hyperbola, or ellipse).</p>
+            `;
+        } else {
+            infoTitle.innerText = "Linear Discriminant Analysis";
+            infoContent.innerHTML = `
+                <p><strong>Shared Covariance:</strong> We force both classes to share the exact same 'pooled' covariance matrix $\\Sigma$.</p>
+                <p>Because they share $\\Sigma$, the quadratic $x^T\\Sigma^{-1}x$ term cancels out algebraically when comparing the probabilities.</p>
+                <p><strong>Result:</strong> The probability ratio becomes a purely linear function of $x$. The boundary is a strict <strong>straight line</strong>.</p>
+            `;
+        }
+    }
+
+    // Event Listeners
+    canvas.addEventListener('mousedown', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        // Adjust for internal canvas scaling
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const x = (e.clientX - rect.left) * scaleX;
+        const y = (e.clientY - rect.top) * scaleY;
+        
+        points[activeClass].push([x, y]);
+        draw();
+    });
+
+    document.querySelectorAll('input[name="classType"]').forEach(radio => {
+        radio.addEventListener('change', (e) => {
+            activeClass = parseInt(e.target.value);
+        });
+    });
+
+    document.querySelectorAll('input[name="modelType"]').forEach(radio => {
+        radio.addEventListener('change', (e) => {
+            modelType = e.target.value;
+            updateInfoText();
+            draw();
+        });
+    });
+
+    btnClear.addEventListener('click', () => {
+        points = { 0: [], 1: [] };
+        draw();
+    });
+
+    // Initialize initial random points for demonstration
+    function initDemo() {
+        // Class A points
+        points[0] = [
+            [250, 200], [270, 180], [230, 220], [280, 210], [260, 230], [220, 190]
+        ];
+        // Class B points
+        points[1] = [
+            [550, 300], [520, 310], [580, 290], [560, 330], [540, 280], [570, 320]
+        ];
+        updateInfoText();
+        draw();
+    }
+
+    initDemo();
+
+</script>
+</body>
+</html>
