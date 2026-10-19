@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ranking Loss Visualizer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        canvas { touch-action: none; /* Prevents scrolling while dragging on mobile */ }
+        .math-block { font-family: monospace; background: #e2e8f0; padding: 0.2rem 0.4rem; border-radius: 0.25rem; font-size: 0.9em; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col md:flex-row p-4 gap-6">
+
+    <!-- Left Column: Context, Theory, and Controls -->
+    <div class="w-full md:w-1/3 flex flex-col gap-6 overflow-y-auto max-h-[95vh] pr-2">
+        
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+            <h1 class="text-2xl font-bold text-slate-800 mb-2">Ranking Loss Visualizer</h1>
+            <p class="text-sm text-slate-600 mb-4">
+                This interactive artifact helps you understand how Siamese and Triplet networks learn to group similar items and push apart dissimilar ones.
+            </p>
+            
+            <h2 class="text-lg font-semibold text-slate-800 border-b pb-1 mb-2">1. The Intuition</h2>
+            <p class="text-sm text-slate-600 mb-4">
+                Imagine a facial recognition system. It doesn't classify identities; it measures <strong>similarity</strong>. We penalize the model (apply a "loss") if it thinks two photos of you are very different, or if it thinks a photo of you and a stranger are very similar.
+            </p>
+
+            <h2 class="text-lg font-semibold text-slate-800 border-b pb-1 mb-2">2. Network Architectures</h2>
+            <ul class="text-sm text-slate-600 list-disc pl-5 mb-4">
+                <li><strong>Siamese (Pairwise):</strong> Looks at 2 examples at a time. Forces "positive pairs" to be close and "negative pairs" to be pushed apart by a minimum margin.</li>
+                <li><strong>Triplet:</strong> Looks at 3 examples (Anchor, Positive, Negative). Adjusts so the Anchor is always closer to the Positive than the Negative by a margin.</li>
+            </ul>
+
+            <h2 class="text-lg font-semibold text-slate-800 border-b pb-1 mb-2">3. The Math & Interaction</h2>
+            <p class="text-sm text-slate-600 mb-2">
+                <strong>How to use:</strong> Select a mode below and drag the points on the canvas (representing the "embedding space"). Watch the loss update. 
+            </p>
+            <p class="text-sm text-slate-600 mb-2">
+                <span class="font-semibold">Siamese Mode:</span> Notice how pulling a positive pair apart increases loss, while pulling a negative pair apart reduces loss until it hits the margin <span class="math-block">m</span>.
+            </p>
+            <p class="text-sm text-slate-600">
+                <span class="font-semibold">Triplet Mode:</span> Drag the Negative point closer to the Anchor than the Positive point. Watch the loss shoot up because the model is failing to keep the similar items closest!
+            </p>
+        </div>
+
+        <!-- Controls Section -->
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+            <h2 class="text-lg font-bold text-slate-800 mb-4">Controls</h2>
+            
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-slate-700 mb-1">Network Mode</label>
+                <div class="flex bg-slate-100 p-1 rounded-lg">
+                    <button id="btn-siamese" class="flex-1 py-1 px-3 rounded-md bg-white shadow-sm text-sm font-semibold transition-all">Siamese</button>
+                    <button id="btn-triplet" class="flex-1 py-1 px-3 rounded-md text-sm font-semibold text-slate-500 hover:text-slate-700 transition-all">Triplet</button>
+                </div>
+            </div>
+
+            <!-- Siamese Specific Controls -->
+            <div id="siamese-controls" class="mb-4">
+                <label class="block text-sm font-medium text-slate-700 mb-1">Pair Type</label>
+                <select id="pair-type" class="w-full border-slate-300 rounded-md shadow-sm text-sm p-2 border focus:ring-blue-500 focus:border-blue-500">
+                    <option value="positive">Positive Pair (Should be close)</option>
+                    <option value="negative">Negative Pair (Should be far)</option>
+                </select>
+            </div>
+
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-slate-700 mb-1 flex justify-between">
+                    <span>Margin (m)</span>
+                    <span id="margin-val" class="font-mono bg-slate-200 px-1 rounded">1.0</span>
+                </label>
+                <input type="range" id="margin-slider" min="0" max="5" step="0.1" value="1.0" class="w-full">
+            </div>
+
+            <!-- Real-time Loss Display -->
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div class="text-xs font-semibold text-blue-800 uppercase tracking-wider mb-1">Current Loss</div>
+                <div id="loss-display" class="text-4xl font-mono text-blue-600 font-bold mb-2">0.000</div>
+                <div id="formula-display" class="text-xs text-slate-600 font-mono break-words leading-relaxed">
+                    <!-- Formulas updated via JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: Interactive Canvas -->
+    <div class="w-full md:w-2/3 flex flex-col bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden relative min-h-[50vh]">
+        <div class="absolute top-4 left-4 z-10 bg-white/80 backdrop-blur px-3 py-1 rounded-full shadow-sm border border-slate-200 text-sm font-medium text-slate-700">
+            Embedding Space (Drag points)
+        </div>
+        <!-- The Canvas element -->
+        <canvas id="embeddingCanvas" class="w-full h-full flex-grow cursor-crosshair"></canvas>
+    </div>
+
+    <script>
+        /**
+         * INTERACTIVE RANKING LOSS VISUALIZER
+         * This script manages the state of the 2D canvas, handles mouse/touch dragging,
+         * calculates distances between points, and computes the active loss function.
+         */
+
+        // -- DOM Elements --
+        const canvas = document.getElementById('embeddingCanvas');
+        const ctx = canvas.getContext('2d');
+        const btnSiamese = document.getElementById('btn-siamese');
+        const btnTriplet = document.getElementById('btn-triplet');
+        const siameseControls = document.getElementById('siamese-controls');
+        const pairTypeSelect = document.getElementById('pair-type');
+        const marginSlider = document.getElementById('margin-slider');
+        const marginVal = document.getElementById('margin-val');
+        const lossDisplay = document.getElementById('loss-display');
+        const formulaDisplay = document.getElementById('formula-display');
+
+        // -- State Variables --
+        let mode = 'siamese'; // 'siamese' or 'triplet'
+        let isPositivePair = true; // For Siamese mode
+        let margin = 1.0;
+        let scaleFactor = 100; // 100 pixels = distance of 1.0
+
+        // Data points representing image embeddings in 2D space
+        const points = {
+            siamese: [
+                { id: 'x1', label: 'Image 1', x: 0, y: 0, color: '#3b82f6', radius: 12 },
+                { id: 'x2', label: 'Image 2', x: 0, y: 0, color: '#ec4899', radius: 12 }
+            ],
+            triplet: [
+                { id: 'a', label: 'Anchor', x: 0, y: 0, color: '#3b82f6', radius: 12 },
+                { id: 'p', label: 'Positive', x: 0, y: 0, color: '#10b981', radius: 12 },
+                { id: 'n', label: 'Negative', x: 0, y: 0, color: '#ef4444', radius: 12 }
+            ]
+        };
+
+        let draggingPoint = null;
+
+        // -- Initialization & Resizing --
+        function init() {
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+            
+            // Initial positioning of points based on canvas size
+            const cx = canvas.width / 2;
+            const cy = canvas.height / 2;
+            
+            points.siamese[0].x = cx - 50; points.siamese[0].y = cy;
+            points.siamese[1].x = cx + 50; points.siamese[1].y = cy;
+            
+            points.triplet[0].x = cx; points.triplet[0].y = cy; // Anchor middle
+            points.triplet[1].x = cx - 80; points.triplet[1].y = cy - 40; // Positive close
+            points.triplet[2].x = cx + 120; points.triplet[2].y = cy + 60; // Negative far
+
+            setupEventListeners();
+            updateUI();
+            draw();
+        }
+
+        function resizeCanvas() {
+            // Match internal canvas resolution to actual displayed size
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+            draw();
+        }
+
+        // -- Event Listeners --
+        function setupEventListeners() {
+            // Mode Switching
+            btnSiamese.addEventListener('click', () => {
+                mode = 'siamese';
+                btnSiamese.classList.replace('text-slate-500', 'text-slate-800');
+                btnSiamese.classList.replace('bg-transparent', 'bg-white');
+                btnSiamese.classList.add('shadow-sm');
+                
+                btnTriplet.classList.replace('text-slate-800', 'text-slate-500');
+                btnTriplet.classList.replace('bg-white', 'bg-transparent');
+                btnTriplet.classList.remove('shadow-sm');
+                
+                siameseControls.style.display = 'block';
+                updateUI();
+                draw();
+            });
+
+            btnTriplet.addEventListener('click', () => {
+                mode = 'triplet';
+                btnTriplet.classList.replace('text-slate-500', 'text-slate-800');
+                btnTriplet.classList.replace('bg-transparent', 'bg-white');
+                btnTriplet.classList.add('shadow-sm');
+                
+                btnSiamese.classList.replace('text-slate-800', 'text-slate-500');
+                btnSiamese.classList.replace('bg-white', 'bg-transparent');
+                btnSiamese.classList.remove('shadow-sm');
+                
+                siameseControls.style.display = 'none';
+                updateUI();
+                draw();
+            });
+
+            // Siamese Pair Type
+            pairTypeSelect.addEventListener('change', (e) => {
+                isPositivePair = e.target.value === 'positive';
+                updateUI();
+                draw();
+            });
+
+            // Margin Slider
+            marginSlider.addEventListener('input', (e) => {
+                margin = parseFloat(e.target.value);
+                marginVal.textContent = margin.toFixed(1);
+                updateUI();
+                draw();
+            });
+
+            // Mouse & Touch Interaction for Canvas
+            const getPointerPos = (e) => {
+                const rect = canvas.getBoundingClientRect();
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                return {
+                    x: clientX - rect.left,
+                    y: clientY - rect.top
+                };
+            };
+
+            const startDrag = (e) => {
+                e.preventDefault();
+                const pos = getPointerPos(e);
+                const activePoints = points[mode];
+                
+                // Check if clicking inside any point
+                for (let p of activePoints) {
+                    const dx = pos.x - p.x;
+                    const dy = pos.y - p.y;
+                    if (Math.sqrt(dx * dx + dy * dy) < p.radius * 2) { // Generous hit area
+                        draggingPoint = p;
+                        canvas.style.cursor = 'grabbing';
+                        break;
+                    }
+                }
+            };
+
+            const drag = (e) => {
+                if (!draggingPoint) return;
+                e.preventDefault();
+                const pos = getPointerPos(e);
+                draggingPoint.x = pos.x;
+                draggingPoint.y = pos.y;
+                updateUI(); // Recalculate and show loss
+                draw();     // Re-render canvas
+            };
+
+            const endDrag = (e) => {
+                if (draggingPoint) {
+                    draggingPoint = null;
+                    canvas.style.cursor = 'crosshair';
+                }
+            };
+
+            canvas.addEventListener('mousedown', startDrag);
+            canvas.addEventListener('mousemove', drag);
+            window.addEventListener('mouseup', endDrag); // Catch mouseup outside canvas
+
+            canvas.addEventListener('touchstart', startDrag, {passive: false});
+            canvas.addEventListener('touchmove', drag, {passive: false});
+            window.addEventListener('touchend', endDrag);
+        }
+
+        // -- Math & Calculation Logic --
+        
+        // Euclidean distance divided by scale factor
+        function getDistance(p1, p2) {
+            const dx = p1.x - p2.x;
+            const dy = p1.y - p2.y;
+            return Math.sqrt(dx * dx + dy * dy) / scaleFactor;
+        }
+
+        // Hinge loss [z]_+ = max(0, z)
+        function hinge(z) {
+            return Math.max(0, z);
+        }
+
+        function updateUI() {
+            let loss = 0;
+            let formulaHtml = '';
+
+            if (mode === 'siamese') {
+                const p1 = points.siamese[0];
+                const p2 = points.siamese[1];
+                const d = getDistance(p1, p2);
+                const dSquared = d * d;
+
+                if (isPositivePair) {
+                    // Positive pair loss: just the squared distance
+                    loss = dSquared;
+                    formulaHtml = `
+                        <div><strong>Contrastive Loss (Positive):</strong></div>
+                        <div>L = d(x1, x2)²</div>
+                        <div>L = ${d.toFixed(2)}² = <span class="font-bold text-blue-600">${loss.toFixed(3)}</span></div>
+                    `;
+                } else {
+                    // Negative pair loss: hinge loss of margin minus distance
+                    const marginDiff = margin - d;
+                    loss = Math.pow(hinge(marginDiff), 2);
+                    formulaHtml = `
+                        <div><strong>Contrastive Loss (Negative):</strong></div>
+                        <div>L = max(0, m - d(x1, x2))²</div>
+                        <div>L = max(0, ${margin.toFixed(1)} - ${d.toFixed(2)})²</div>
+                        <div>L = <span class="font-bold text-blue-600">${loss.toFixed(3)}</span></div>
+                    `;
+                }
+            } else if (mode === 'triplet') {
+                const anchor = points.triplet[0];
+                const positive = points.triplet[1];
+                const negative = points.triplet[2];
+                
+                const dPos = getDistance(anchor, positive);
+                const dNeg = getDistance(anchor, negative);
+                
+                const dPosSq = dPos * dPos;
+                const dNegSq = dNeg * dNeg;
+                
+                // Triplet loss formula: max(0, d(a,p)² - d(a,n)² + m)
+                const val = dPosSq - dNegSq + margin;
+                loss = hinge(val);
+
+                formulaHtml = `
+                    <div><strong>Triplet Loss:</strong></div>
+                    <div>L = max(0, d(a,p)² - d(a,n)² + m)</div>
+                    <div>L = max(0, ${dPosSq.toFixed(2)} - ${dNegSq.toFixed(2)} + ${margin.toFixed(1)})</div>
+                    <div>L = <span class="font-bold text-blue-600">${loss.toFixed(3)}</span></div>
+                `;
+            }
+
+            lossDisplay.textContent = loss.toFixed(3);
+            formulaDisplay.innerHTML = formulaHtml;
+        }
+
+        // -- Canvas Rendering --
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw grid background
+            ctx.strokeStyle = '#f1f5f9';
+            ctx.lineWidth = 1;
+            for(let i=0; i<canvas.width; i+=scaleFactor) {
+                ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke();
+            }
+            for(let i=0; i<canvas.height; i+=scaleFactor) {
+                ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(canvas.width, i); ctx.stroke();
+            }
+
+            const activePoints = points[mode];
+
+            if (mode === 'siamese') {
+                drawLineWithDistance(activePoints[0], activePoints[1], isPositivePair ? '#10b981' : '#ef4444');
+            } else if (mode === 'triplet') {
+                drawLineWithDistance(activePoints[0], activePoints[1], '#10b981'); // Anchor to Positive (Green)
+                drawLineWithDistance(activePoints[0], activePoints[2], '#ef4444'); // Anchor to Negative (Red)
+                
+                // Draw a faint margin circle around the anchor based on positive distance + margin?
+                // Visualizing the exact margin boundary in triplet space is tricky because it depends on BOTH distances.
+                // Instead, we just draw the lines.
+            }
+
+            // Draw points
+            for (let p of activePoints) {
+                // Outer glow
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius + 4, 0, Math.PI * 2);
+                ctx.fillStyle = p.color + '40'; // 25% opacity
+                ctx.fill();
+
+                // Point
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.fillStyle = p.color;
+                ctx.fill();
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // Label
+                ctx.font = "12px Inter, sans-serif";
+                ctx.fillStyle = "#334155";
+                ctx.textAlign = "center";
+                ctx.fillText(p.label, p.x, p.y - p.radius - 8);
+            }
+        }
+
+        // Helper to draw dashed lines between points and show the distance value
+        function drawLineWithDistance(p1, p2, color) {
+            ctx.beginPath();
+            ctx.moveTo(p1.x, p1.y);
+            ctx.lineTo(p2.x, p2.y);
+            ctx.setLineDash([5, 5]);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.setLineDash([]); // Reset
+
+            // Calculate midpoint for text
+            const mx = (p1.x + p2.x) / 2;
+            const my = (p1.y + p2.y) / 2;
+            const dist = getDistance(p1, p2);
+
+            // Draw distance text pill
+            ctx.fillStyle = '#ffffffcc';
+            ctx.beginPath();
+            ctx.roundRect(mx - 15, my - 10, 30, 20, 4);
+            ctx.fill();
+            
+            ctx.font = "bold 11px monospace";
+            ctx.fillStyle = color;
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(dist.toFixed(2), mx, my);
+        }
+
+        // Start the app
+        window.onload = init;
+
+    </script>
+</body>
+</html>
