@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kernel Density Estimation (KDE) Explorer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f8fafc;
+            color: #1e293b;
+        }
+        .area-agg {
+            fill: #6366f1;
+            fill-opacity: 0.2;
+            stroke: #4f46e5;
+            stroke-width: 3px;
+            transition: d 0.2s ease-out;
+        }
+        .line-indiv {
+            fill: none;
+            stroke: #94a3b8;
+            stroke-width: 1.5px;
+            stroke-dasharray: 4,4;
+            transition: d 0.2s ease-out;
+        }
+        .dot {
+            fill: #ef4444;
+            stroke: #fff;
+            stroke-width: 1.5px;
+            cursor: pointer;
+            transition: r 0.2s;
+        }
+        .dot:hover {
+            r: 8;
+        }
+        svg {
+            cursor: crosshair;
+        }
+        .axis-label {
+            font-size: 0.875rem;
+            fill: #64748b;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="max-w-5xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200">
+        
+        <!-- Header & Context Section -->
+        <div class="p-6 md:p-8 bg-slate-50 border-b border-slate-200">
+            <h1 class="text-3xl font-bold text-slate-800 mb-4">Kernel Density Estimation (KDE)</h1>
+            
+            <div class="space-y-4 text-slate-600 leading-relaxed">
+                <p>
+                    <strong>What is KDE?</strong> Kernel Density Estimation is a non-parametric way to estimate the probability distribution of a dataset. Unlike a histogram, which forces data points into rigid, arbitrary "buckets" (bins), KDE places a smooth mathematical function—a <em>kernel</em>—over every individual data point. These individual kernels are then added together to create a smooth, continuous curve that represents the true shape of the data.
+                </p>
+                <p>
+                    <strong>The Bandwidth (h):</strong> This is the most crucial setting. It acts as a smoothing parameter, controlling how wide the individual kernels are. 
+                    <ul class="list-disc pl-6 mt-1 space-y-1">
+                        <li><strong>Low Bandwidth:</strong> Narrow mounds. The curve becomes spiky and overfits to individual points.</li>
+                        <li><strong>High Bandwidth:</strong> Wide mounds. The curve smooths out, potentially hiding important underlying trends (underfitting).</li>
+                    </ul>
+                </p>
+                <div>
+                    <strong>Kernel Types Compared:</strong>
+                    <ul class="list-disc pl-6 mt-1 space-y-1">
+                        <li><span class="font-semibold text-slate-800">Gaussian:</span> Smooth, infinite bell curve. The default in most machine learning libraries.</li>
+                        <li><span class="font-semibold text-slate-800">Epanechnikov:</span> Bounded inverted parabola. Computationally efficient as it drops exactly to zero at its boundaries.</li>
+                        <li><span class="font-semibold text-slate-800">Tophat:</span> Flat, rectangular block. Gives equal weight to everything within the bandwidth.</li>
+                        <li><span class="font-semibold text-slate-800">Linear:</span> Sharp peak with sloping sides. Useful for distinct boundaries.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Instructions Section -->
+        <div class="p-6 bg-indigo-50 border-b border-indigo-100 flex flex-col md:flex-row gap-4 justify-between items-center text-indigo-900 text-sm">
+            <div class="flex-1">
+                <strong>How to Use:</strong>
+                <ol class="list-decimal pl-5 mt-1 space-y-0.5">
+                    <li><strong>Click</strong> anywhere on the chart area below to drop a new data point.</li>
+                    <li><strong>Adjust the Bandwidth</strong> slider to see how smoothing affects the master curve.</li>
+                    <li><strong>Switch Kernels</strong> using the dropdown to see the mathematical shape change.</li>
+                    <li>Notice how the dashed lines (individual kernels) sum together to form the solid master curve.</li>
+                </ol>
+            </div>
+            <div>
+                <button id="clear-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg shadow transition-colors">
+                    Clear Data Points
+                </button>
+            </div>
+        </div>
+
+        <!-- Interactive Controls -->
+        <div class="p-6 flex flex-col md:flex-row gap-6 items-center justify-between border-b border-slate-200">
+            <div class="w-full md:w-1/2 flex items-center gap-4">
+                <label for="bandwidth" class="font-medium text-slate-700 whitespace-nowrap">Bandwidth (<span id="bw-val">5.0</span>):</label>
+                <input type="range" id="bandwidth" min="1" max="20" step="0.5" value="5" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600">
+            </div>
+            
+            <div class="w-full md:w-1/2 flex items-center gap-4 md:justify-end">
+                <label for="kernel" class="font-medium text-slate-700 whitespace-nowrap">Kernel Type:</label>
+                <select id="kernel" class="block w-full max-w-[200px] rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-white border p-2 py-1.5 cursor-pointer">
+                    <option value="gaussian">Gaussian</option>
+                    <option value="epanechnikov">Epanechnikov</option>
+                    <option value="tophat">Tophat</option>
+                    <option value="linear">Linear</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Visualization Canvas -->
+        <div class="p-6 relative">
+            <div id="chart-container" class="w-full aspect-[21/9] min-h-[300px]"></div>
+            <div class="absolute bottom-10 right-10 text-xs text-slate-400 pointer-events-none">
+                Solid line: Master KDE | Dashed lines: Individual Kernels
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- KDE Mathematical Functions ---
+        // u = (x - xi) / bandwidth
+        const kernels = {
+            gaussian: (u) => (1 / Math.sqrt(2 * Math.PI)) * Math.exp(-0.5 * u * u),
+            epanechnikov: (u) => Math.abs(u) <= 1 ? 0.75 * (1 - u * u) : 0,
+            tophat: (u) => Math.abs(u) <= 1 ? 0.5 : 0,
+            linear: (u) => Math.abs(u) <= 1 ? (1 - Math.abs(u)) : 0
+        };
+
+        // --- Application State ---
+        // Start with some arbitrary data points between 10 and 90
+        let dataPoints = [20, 25, 30, 60, 65, 80];
+        let currentBandwidth = 5.0;
+        let currentKernel = 'gaussian';
+
+        // --- D3 Setup ---
+        const container = document.getElementById('chart-container');
+        const margin = {top: 20, right: 30, bottom: 40, left: 50};
+        
+        let width, height;
+        let svg, g, xAxisGroup, yAxisGroup, dataGroup;
+        let xScale, yScale;
+        
+        // Define paths
+        let aggPath, indivPathsGroup;
+
+        function initD3() {
+            width = container.clientWidth - margin.left - margin.right;
+            height = container.clientHeight - margin.top - margin.bottom;
+
+            d3.select('#chart-container').selectAll('*').remove();
+
+            svg = d3.select('#chart-container')
+                .append('svg')
+                .attr('width', width + margin.left + margin.right)
+                .attr('height', height + margin.top + margin.bottom)
+                // Add click listener to the SVG to add points
+                .on("click", function(event) {
+                    const [mouseX, mouseY] = d3.pointer(event);
+                    // Check if within bounds
+                    if (mouseX >= margin.left && mouseX <= margin.left + width &&
+                        mouseY >= margin.top && mouseY <= margin.top + height) {
+                        
+                        const value = xScale.invert(mouseX - margin.left);
+                        // Prevent adding points outside sensible domain
+                        if (value >= 0 && value <= 100) {
+                            dataPoints.push(value);
+                            updateChart();
+                        }
+                    }
+                });
+
+            g = svg.append('g')
+                .attr('transform', `translate(${margin.left},${margin.top})`);
+
+            // Background rectangle to catch clicks easily
+            g.append('rect')
+                .attr('width', width)
+                .attr('height', height)
+                .attr('fill', 'transparent');
+
+            // Scales
+            xScale = d3.scaleLinear()
+                .domain([0, 100])
+                .range([0, width]);
+
+            yScale = d3.scaleLinear()
+                .domain([0, 0.1]) // Will update dynamically
+                .range([height, 0]);
+
+            // Axes
+            xAxisGroup = g.append('g')
+                .attr('transform', `translate(0,${height})`)
+                .call(d3.axisBottom(xScale));
+
+            xAxisGroup.append('text')
+                .attr('class', 'axis-label')
+                .attr('x', width / 2)
+                .attr('y', 35)
+                .style('text-anchor', 'middle')
+                .text('Data Value (X)');
+
+            yAxisGroup = g.append('g')
+                .call(d3.axisLeft(yScale).ticks(5));
+
+            yAxisGroup.append('text')
+                .attr('class', 'axis-label')
+                .attr('transform', 'rotate(-90)')
+                .attr('y', -40)
+                .attr('x', -height / 2)
+                .style('text-anchor', 'middle')
+                .text('Density');
+
+            // Groups for paths and dots
+            indivPathsGroup = g.append('g').attr('class', 'indiv-paths');
+            aggPath = g.append('path').attr('class', 'area-agg');
+            dataGroup = g.append('g').attr('class', 'data-points');
+
+            updateChart();
+        }
+
+        // --- KDE Calculation Logic ---
+        function calculateKDE() {
+            const rangeX = d3.range(0, 100.5, 0.5); // Sample points for drawing the curve
+            const n = dataPoints.length;
+            const h = currentBandwidth;
+            const kernelFn = kernels[currentKernel];
+
+            // If no points, return flat lines
+            if (n === 0) {
+                return {
+                    aggData: rangeX.map(x => ({x: x, y: 0})),
+                    indivData: [],
+                    maxY: 0.1
+                };
+            }
+
+            let aggData = [];
+            let indivData = dataPoints.map(pt => ({
+                pt: pt,
+                curve: []
+            }));
+
+            let maxY = 0;
+
+            for (let x of rangeX) {
+                let sumY = 0;
+                
+                // Calculate individual kernel heights at this X
+                for (let i = 0; i < n; i++) {
+                    const xi = dataPoints[i];
+                    const u = (x - xi) / h;
+                    // Standard KDE formula: (1 / (n*h)) * K((x-xi)/h)
+                    const y = (1 / (n * h)) * kernelFn(u);
+                    
+                    indivData[i].curve.push({x: x, y: y});
+                    sumY += y;
+                }
+
+                aggData.push({x: x, y: sumY});
+                if (sumY > maxY) maxY = sumY;
+            }
+
+            // Ensure Y axis has some height even if density is super low
+            maxY = Math.max(maxY * 1.2, 0.05); 
+
+            return { aggData, indivData, maxY };
+        }
+
+        // --- Drawing/Updating Routine ---
+        function updateChart() {
+            const { aggData, indivData, maxY } = calculateKDE();
+
+            // Update Y scale
+            yScale.domain([0, maxY]);
+            yAxisGroup.transition().duration(200).call(d3.axisLeft(yScale).ticks(5));
+
+            // Line generator
+            const line = d3.line()
+                .x(d => xScale(d.x))
+                .y(d => yScale(d.y))
+                .curve(currentKernel === 'tophat' || currentKernel === 'linear' ? d3.curveLinear : d3.curveBasis);
+
+            // Area generator for the master curve
+            const area = d3.area()
+                .x(d => xScale(d.x))
+                .y0(height)
+                .y1(d => yScale(d.y))
+                .curve(currentKernel === 'tophat' || currentKernel === 'linear' ? d3.curveLinear : d3.curveBasis);
+
+            // Update Aggregated Path
+            aggPath
+                .datum(aggData)
+                .attr('d', area);
+
+            // Update Individual Paths
+            const indiv = indivPathsGroup.selectAll('.line-indiv')
+                .data(indivData);
+
+            indiv.enter()
+                .append('path')
+                .attr('class', 'line-indiv')
+                .merge(indiv)
+                .attr('d', d => line(d.curve));
+
+            indiv.exit().remove();
+
+            // Update Data Points (Dots on X axis)
+            const dots = dataGroup.selectAll('.dot')
+                .data(dataPoints);
+
+            dots.enter()
+                .append('circle')
+                .attr('class', 'dot')
+                .attr('r', 5)
+                .attr('cy', height)
+                .merge(dots)
+                .attr('cx', d => xScale(d))
+                .attr('cy', height); // Keep them on the bottom axis
+
+            dots.exit().remove();
+        }
+
+        // --- Event Listeners ---
+        document.getElementById('bandwidth').addEventListener('input', (e) => {
+            currentBandwidth = parseFloat(e.target.value);
+            document.getElementById('bw-val').innerText = currentBandwidth.toFixed(1);
+            updateChart();
+        });
+
+        document.getElementById('kernel').addEventListener('change', (e) => {
+            currentKernel = e.target.value;
+            updateChart();
+        });
+
+        document.getElementById('clear-btn').addEventListener('click', () => {
+            dataPoints = [];
+            updateChart();
+        });
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            initD3();
+        });
+
+        // Initialize
+        initD3();
+
+    </script>
+</body>
+</html>
