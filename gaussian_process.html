@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Gaussian Process Explorer</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- D3.js for visualization -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <!-- Math.js for matrix computations -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.8.0/math.min.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        .axis text { font-size: 12px; fill: #64748b; }
+        .axis path, .axis line { stroke: #cbd5e1; }
+        .domain { stroke: #e2e8f0; }
+        /* Custom range slider styling */
+        input[type=range] {
+            accent-color: #4f46e5;
+        }
+    </style>
+</head>
+<body class="text-slate-800 p-4 md:p-8 h-screen flex flex-col">
+
+    <header class="mb-6 flex items-center justify-between">
+        <div>
+            <h1 class="text-3xl font-bold text-slate-900 tracking-tight">Gaussian Process Explorer</h1>
+            <p class="text-slate-500 mt-1 text-sm md:text-base">Interactive Bayesian Non-Parametric Regression</p>
+        </div>
+        <button id="clearBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg shadow-sm transition-colors text-sm">
+            Clear Observations
+        </button>
+    </header>
+
+    <main class="flex-grow flex flex-col lg:flex-row gap-6">
+        
+        <!-- Left Column: Interactive Plot & Controls -->
+        <div class="lg:w-2/3 flex flex-col gap-6">
+            
+            <!-- Plot Container -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex-grow relative" id="plot-container" style="min-height: 400px;">
+                <!-- D3 SVG will be appended here -->
+            </div>
+
+            <!-- Hyperparameter Controls -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Length Scale -->
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2 flex justify-between">
+                        <span>Length Scale ($l$)</span>
+                        <span id="lenVal" class="text-indigo-600 font-mono">1.00</span>
+                    </label>
+                    <input type="range" id="lengthScale" min="0.1" max="3" step="0.1" value="1" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer">
+                    <p class="text-xs text-slate-500 mt-2">Controls how quickly functions wiggle.</p>
+                </div>
+                <!-- Kernel Variance -->
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2 flex justify-between">
+                        <span>Kernel Variance ($\sigma_f^2$)</span>
+                        <span id="varVal" class="text-indigo-600 font-mono">1.00</span>
+                    </label>
+                    <input type="range" id="kernelVar" min="0.1" max="5" step="0.1" value="1" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer">
+                    <p class="text-xs text-slate-500 mt-2">Controls vertical amplitude of functions.</p>
+                </div>
+                <!-- Noise Variance -->
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2 flex justify-between">
+                        <span>Noise Variance ($\sigma_n^2$)</span>
+                        <span id="noiseVal" class="text-indigo-600 font-mono">0.05</span>
+                    </label>
+                    <input type="range" id="noiseVar" min="0.00" max="1" step="0.01" value="0.05" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer">
+                    <p class="text-xs text-slate-500 mt-2">Observation noise. 0 = Perfect interpolation.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Educational Content -->
+        <div class="lg:w-1/3 flex flex-col gap-6 overflow-y-auto">
+            
+            <!-- How to Use -->
+            <div class="bg-indigo-50 border border-indigo-100 rounded-xl p-6">
+                <h2 class="text-lg font-bold text-indigo-900 mb-3">How to Use</h2>
+                <ul class="list-disc pl-5 space-y-2 text-indigo-800 text-sm">
+                    <li><strong>Click anywhere</strong> on the plot to add an observation point (a "training data" point).</li>
+                    <li>Observe how the <strong>solid blue line</strong> (posterior mean) updates to fit the data.</li>
+                    <li>The <strong>shaded blue region</strong> represents predictive uncertainty ($\pm 2$ standard deviations). Notice it pinches near data points and expands far away.</li>
+                    <li>Set <strong>Noise Variance</strong> to `0` to force the curve to pass <em>exactly</em> through every point (Interpolation). Increase it to allow the curve to smooth over noisy points.</li>
+                    <li>Adjust <strong>Length Scale</strong> to change the model's assumption of smoothness. Smaller values = rigid/rapidly changing. Larger = smooth/slowly changing.</li>
+                </ul>
+            </div>
+
+            <!-- Key Concepts -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex-grow">
+                <h2 class="text-lg font-bold text-slate-900 mb-4 border-b pb-2">Gaussian Process Key Points</h2>
+                
+                <div class="space-y-4 text-sm text-slate-700">
+                    <div>
+                        <h3 class="font-semibold text-slate-900">1. Non-Parametric Bayesian Regression</h3>
+                        <p class="mt-1">Instead of assuming a fixed function form (like $y = mx+b$), GPs define a probability distribution over <em>all possible functions</em>. We start with a prior, and update to a posterior upon seeing data.</p>
+                    </div>
+
+                    <div>
+                        <h3 class="font-semibold text-slate-900">2. The Covariance Function (Kernel)</h3>
+                        <p class="mt-1">The heart of a GP. This artifact uses the Squared Exponential (RBF) Kernel: <br>
+                        <code class="block mt-1 bg-slate-100 p-1 rounded text-xs">k(x,x') = σ_f² * exp(-(x-x')² / (2l²))</code>
+                        It dictates that inputs $x$ and $x'$ which are close together will have highly correlated outputs.</p>
+                    </div>
+
+                    <div>
+                        <h3 class="font-semibold text-slate-900">3. Noise-Free vs Noisy Observations</h3>
+                        <p class="mt-1">When observations are assumed to be perfect (Noise Variance = 0), the GP acts as an exact <strong>interpolator</strong>. With noise, the model assumes $y = f(x) + \epsilon$ where $\epsilon \sim \mathcal{N}(0, \sigma_n^2)$, smoothing the curve instead of strictly passing through every point.</p>
+                    </div>
+
+                    <div>
+                        <h3 class="font-semibold text-slate-900">4. Computational Complexity</h3>
+                        <p class="mt-1">To compute the posterior, we must invert the $N \times N$ covariance matrix $\mathbf{K}_{XX}$. Matrix inversion has a complexity of <strong>$\mathcal{O}(N^3)$</strong>, making standard GPs slow for large datasets ($>10,000$ points).</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        // --- 1. State Variables ---
+        let observations = []; // Array of {x, y}
+        const resolution = 100; // Number of points to predict along x-axis
+        let x_star = []; // Test inputs
+        
+        // --- 2. D3 Setup ---
+        const container = document.getElementById('plot-container');
+        let width = container.clientWidth - 40; // padding
+        let height = container.clientHeight - 40;
+        
+        const svg = d3.select('#plot-container')
+            .append('svg')
+            .attr('width', width + 40)
+            .attr('height', height + 40)
+            .append('g')
+            .attr('transform', `translate(30, 20)`);
+
+        // Scales
+        const xScale = d3.scaleLinear().domain([-5, 5]).range([0, width]);
+        const yScale = d3.scaleLinear().domain([-3, 3]).range([height, 0]);
+
+        // Generate test points
+        for(let i=0; i<=resolution; i++) {
+            x_star.push(xScale.invert((i/resolution) * width));
+        }
+
+        // Axes
+        const xAxis = d3.axisBottom(xScale).ticks(10);
+        const yAxis = d3.axisLeft(yScale).ticks(7);
+
+        svg.append('g')
+            .attr('class', 'axis x-axis')
+            .attr('transform', `translate(0, ${height / 2})`)
+            .call(xAxis);
+
+        svg.append('g')
+            .attr('class', 'axis y-axis')
+            .call(yAxis);
+
+        // Grid lines (horizontal)
+        svg.append("g")			
+            .attr("class", "grid")
+            .attr('opacity', 0.1)
+            .call(d3.axisLeft(yScale)
+                .tickSize(-width)
+                .tickFormat("")
+            );
+
+        // Background rect to catch clicks
+        svg.append('rect')
+            .attr('width', width)
+            .attr('height', height)
+            .attr('fill', 'transparent')
+            .style('cursor', 'crosshair')
+            .on('click', function(event) {
+                const [coordsX, coordsY] = d3.pointer(event);
+                const dataX = xScale.invert(coordsX);
+                const dataY = yScale.invert(coordsY);
+                observations.push({x: dataX, y: dataY});
+                updatePlot();
+            });
+
+        // Paths for GP (Uncertainty area and Mean line)
+        const areaPath = svg.append("path")
+            .attr("fill", "rgba(79, 70, 229, 0.15)") // Indigo transparent
+            .attr("stroke", "none");
+
+        const meanPath = svg.append("path")
+            .attr("fill", "none")
+            .attr("stroke", "#4f46e5") // Indigo-600
+            .attr("stroke-width", 2.5);
+
+        // Group for points
+        const pointsGroup = svg.append('g');
+
+        // Area Generator
+        const areaGen = d3.area()
+            .x(d => xScale(d.x))
+            .y0(d => yScale(Math.max(-3, d.mean - 2 * d.std)))
+            .y1(d => yScale(Math.min(3, d.mean + 2 * d.std)));
+
+        // Line Generator
+        const lineGen = d3.line()
+            .x(d => xScale(d.x))
+            .y(d => yScale(d.mean))
+            .curve(d3.curveBasis);
+
+        // --- 3. GP Math Logic ---
+
+        // RBF Kernel Function
+        function rbfKernel(x1, x2, l, sigma_f) {
+            return (sigma_f * sigma_f) * Math.exp(-Math.pow(x1 - x2, 2) / (2 * l * l));
+        }
+
+        function calculateGP() {
+            // Get hyperparams
+            const l = parseFloat(document.getElementById('lengthScale').value);
+            const sigma_f = Math.sqrt(parseFloat(document.getElementById('kernelVar').value));
+            const sigma_n_sq = parseFloat(document.getElementById('noiseVar').value);
+
+            let gpData = [];
+            const N = observations.length;
+
+            if (N === 0) {
+                // Prior: mean 0, variance = sigma_f^2
+                for(let i=0; i<x_star.length; i++) {
+                    gpData.push({
+                        x: x_star[i],
+                        mean: 0,
+                        std: sigma_f
+                    });
+                }
+                return gpData;
+            }
+
+            // Extract X and Y arrays
+            const X = observations.map(d => d.x);
+            const Y = observations.map(d => d.y);
+
+            // 1. Compute K(X, X) + sigma_n^2 * I
+            let K_xx = math.zeros(N, N);
+            for(let i=0; i<N; i++) {
+                for(let j=0; j<N; j++) {
+                    let val = rbfKernel(X[i], X[j], l, sigma_f);
+                    if (i === j) {
+                        // Add noise variance and a tiny jitter for numerical stability
+                        val += sigma_n_sq + 1e-6; 
+                    }
+                    K_xx.set([i, j], val);
+                }
+            }
+
+            // 2. Invert K_xx
+            let K_xx_inv;
+            try {
+                K_xx_inv = math.inv(K_xx);
+            } catch(e) {
+                console.error("Matrix inversion failed, likely due to singular matrix (points too close). Adding jitter.");
+                // Add more jitter and retry
+                for(let i=0; i<N; i++) K_xx.set([i, i], K_xx.get([i,i]) + 1e-3);
+                K_xx_inv = math.inv(K_xx);
+            }
+
+            // 3. Compute weights: alpha = K_xx_inv * Y
+            const Y_matrix = math.matrix(Y.map(y => [y]));
+            const alpha = math.multiply(K_xx_inv, Y_matrix);
+
+            // 4. Compute posterior for each test point x*
+            for(let i=0; i<x_star.length; i++) {
+                const xs = x_star[i];
+                
+                // K(x*, X)
+                let K_s_x = math.zeros(1, N);
+                for(let j=0; j<N; j++) {
+                    K_s_x.set([0, j], rbfKernel(xs, X[j], l, sigma_f));
+                }
+
+                // Mean = K(x*, X) * alpha
+                const mean = math.multiply(K_s_x, alpha).get([0, 0]);
+
+                // Variance = K(x*, x*) - K(x*, X) * K_xx_inv * K(X, x*)
+                const K_s_s = rbfKernel(xs, xs, l, sigma_f);
+                const K_x_s = math.transpose(K_s_x); // Same as K(X, x*) since kernel is symmetric
+                
+                const variance_reduction = math.multiply(math.multiply(K_s_x, K_xx_inv), K_x_s).get([0,0]);
+                let variance = K_s_s - variance_reduction;
+                
+                // Floor variance at 0 to avoid NaN from floating point inaccuracies
+                variance = Math.max(0, variance);
+
+                gpData.push({
+                    x: xs,
+                    mean: mean,
+                    std: Math.sqrt(variance)
+                });
+            }
+
+            return gpData;
+        }
+
+        // --- 4. Render Updates ---
+        function updatePlot() {
+            // Update labels
+            document.getElementById('lenVal').innerText = parseFloat(document.getElementById('lengthScale').value).toFixed(2);
+            document.getElementById('varVal').innerText = parseFloat(document.getElementById('kernelVar').value).toFixed(2);
+            document.getElementById('noiseVal').innerText = parseFloat(document.getElementById('noiseVar').value).toFixed(2);
+
+            // Get new calculations
+            const gpData = calculateGP();
+
+            // Update Area and Line
+            areaPath.datum(gpData)
+                .transition().duration(200)
+                .attr("d", areaGen);
+
+            meanPath.datum(gpData)
+                .transition().duration(200)
+                .attr("d", lineGen);
+
+            // Update Points
+            const circles = pointsGroup.selectAll('circle').data(observations);
+            
+            circles.enter()
+                .append('circle')
+                .attr('cx', d => xScale(d.x))
+                .attr('cy', d => yScale(d.y))
+                .attr('r', 0)
+                .attr('fill', '#1e293b')
+                .attr('stroke', 'white')
+                .attr('stroke-width', 2)
+                .merge(circles)
+                .transition().duration(300)
+                .attr('cx', d => xScale(d.x))
+                .attr('cy', d => yScale(d.y))
+                .attr('r', 5);
+
+            circles.exit().remove();
+        }
+
+        // --- 5. Event Listeners ---
+        document.getElementById('lengthScale').addEventListener('input', updatePlot);
+        document.getElementById('kernelVar').addEventListener('input', updatePlot);
+        document.getElementById('noiseVar').addEventListener('input', updatePlot);
+        
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            observations = [];
+            updatePlot();
+        });
+
+        // Handle window resize cleanly
+        window.addEventListener('resize', () => {
+            width = container.clientWidth - 40;
+            xScale.range([0, width]);
+            
+            svg.attr('width', width + 40);
+            svg.select('.x-axis').call(xAxis);
+            svg.select('.grid').call(d3.axisLeft(yScale).tickSize(-width).tickFormat(""));
+            svg.select('rect').attr('width', width);
+            
+            // Recompute test points
+            x_star = [];
+            for(let i=0; i<=resolution; i++) {
+                x_star.push(xScale.invert((i/resolution) * width));
+            }
+            updatePlot();
+        });
+
+        // Initialize Plot
+        updatePlot();
+    </script>
+</body>
+</html>
