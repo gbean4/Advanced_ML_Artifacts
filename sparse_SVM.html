@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sparse SVM & Regularization Geometry Visualizer</title>
+    <style>
+        :root {
+            --bg-color: #f8fafc;
+            --text-main: #0f172a;
+            --accent: #2563eb;
+            --accent-hover: #1d4ed8;
+            --panel-bg: #ffffff;
+            --border: #e2e8f0;
+            --l1-color: #ef4444;
+            --l2-color: #3b82f6;
+            --loss-color: #10b981;
+        }
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 2rem;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 2rem;
+        }
+        @media (max-width: 900px) {
+            .container { grid-template-columns: 1fr; }
+        }
+        .panel {
+            background: var(--panel-bg);
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            border: 1px solid var(--border);
+        }
+        h1, h2, h3 { margin-top: 0; color: var(--text-main); }
+        h1 { font-size: 1.8rem; border-bottom: 2px solid var(--accent); padding-bottom: 0.5rem; }
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            margin: 1.5rem 0;
+            background: #f1f5f9;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            padding: 1rem;
+        }
+        canvas {
+            background: white;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+        }
+        .controls {
+            display: flex;
+            gap: 1.5rem;
+            margin-bottom: 1rem;
+            align-items: center;
+            padding: 1rem;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+        button, select {
+            padding: 0.5rem 1rem;
+            font-size: 1rem;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            cursor: pointer;
+            background: white;
+            transition: all 0.2s;
+        }
+        button.active-l1 { background: var(--l1-color); color: white; border-color: var(--l1-color); }
+        button.active-l2 { background: var(--l2-color); color: white; border-color: var(--l2-color); }
+        .slider-container { display: flex; align-items: center; gap: 1rem; flex-grow: 1; }
+        input[type="range"] { flex-grow: 1; }
+        .guide-section { margin-bottom: 1.5rem; }
+        code { background: #f1f5f9; padding: 0.2rem 0.4rem; border-radius: 4px; font-family: monospace; font-size: 0.9em; }
+        .summary-box { font-size: 0.95rem; }
+        .summary-box ul { padding-left: 1.5rem; }
+        .summary-box li { margin-bottom: 0.5rem; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="main-content">
+        <div class="panel">
+            <h1>Sparse SVM: Regularization Geometry</h1>
+            
+            <div class="controls">
+                <button id="btnL1" class="active-l1" onclick="setMode('L1')">L1 Penalty (Sparse)</button>
+                <button id="btnL2" onclick="setMode('L2')">L2 Penalty (Dense)</button>
+                <div class="slider-container">
+                    <label for="regSlider">Constraint Budget (C):</label>
+                    <input type="range" id="regSlider" min="20" max="180" value="100" oninput="updateVisualization()">
+                </div>
+            </div>
+
+            <div class="canvas-container">
+                <canvas id="vizCanvas" width="600" height="400"></canvas>
+            </div>
+
+            <div class="guide-section">
+                <h2>How to Use This Artifact</h2>
+                <p>Toggle between the <strong>L1 Penalty</strong> and <strong>L2 Penalty</strong> to observe the constraint regions in the primal weight space ($w_1, w_2$). Adjust the <strong>Constraint Budget (C)</strong> slider to expand or shrink the allowed parameter space.</p>
+                <ul>
+                    <li><strong>Red/Blue Region:</strong> The geometric constraint imposed by the regularization term (Diamond for L1, Circle for L2).</li>
+                    <li><strong>Green Ellipses:</strong> The empirical loss contours. The center is the unregularized optimal weight vector.</li>
+                    <li><strong>Black Dot:</strong> The optimized weight vector $w^*$. Notice where the lowest possible loss contour intersects the constraint region.</li>
+                </ul>
+            </div>
+
+            <div class="guide-section">
+                <h2>Why This is Helpful</h2>
+                <p>This visualization bridges the gap between the algebraic KKT conditions and geometric intuition. It visually proves why $L_1$ regularization forces primal sparsity (feature selection):</p>
+                <p>Because the $L_1$ hyper-diamond has sharp vertices resting exactly on the axes, an expanding elliptical loss contour will almost always intersect it at a corner. At this corner, $w_2 = 0$, meaning Feature 2 is completely removed from the model. The $L_2$ hypersphere has no sharp corners, so the tangent point usually falls somewhere off-axis, keeping all features active with small, non-zero weights.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="sidebar">
+        <div class="panel summary-box">
+            <h3>Study Summary: SVM & Sparsity</h3>
+            
+            <strong>1. Core Distinctions</strong>
+            <ul>
+                <li><strong>Standard SVM:</strong> Maximizes the margin. Achieves <em>dual sparsity</em> (ignores most data points; retains support vectors). Uses $L_2$ norm.</li>
+                <li><strong>Sparse SVM:</strong> Focuses on feature selection. Achieves <em>primal sparsity</em> (ignores irrelevant features; weights go to exactly 0). Uses $L_1$ norm.</li>
+            </ul>
+
+            <strong>2. Textbook & Literature Extensions</strong>
+            <ul>
+                <li><strong>L2VM vs L1VM:</strong> Parametric models using kernel basis functions. L2VM yields dense weights dependent on all $N$ exemplars. L1VM promotes sparsity but sometimes isn't sparse enough.</li>
+                <li><strong>Relevance Vector Machines (RVM):</strong> A Bayesian alternative using Automatic Relevancy Determination (ARD). It yields the highest sparsity, provides calibrated probabilistic outputs, and doesn't require Mercer (positive-definite) kernels.</li>
+                <li><strong>Tradeoffs:</strong> L1VM, RVM, and SVMs are fast at test time due to sparsity. However, L1VM and SVMs require cross-validation (slower), while RVMs can use gradient-based marginal likelihood optimization (though the RVM objective is non-convex).</li>
+            </ul>
+
+            <strong>3. Exam / Conceptual Prep</strong>
+            <ul>
+                <li><em>Geometry:</em> $L_1$ forms a convex polytope (diamond); tangency occurs at vertices (axes). $L_2$ forms a smooth hypersphere.</li>
+                <li><em>KKT Proofs:</em> In standard SVMs, complementary slackness $\alpha_i [y_i(...) - 1 + \xi_i] = 0$ forces multipliers to zero for non-margin points (Dual Space).</li>
+                <li><em>Kernel Trick Limits:</em> $L_1$ is non-differentiable at zero, preventing a clean dual formulation dependent solely on dot products, making kernelized L1 computationally difficult compared to standard $L_2$ kernel SVMs.</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('vizCanvas');
+    const ctx = canvas.getContext('2d');
+    const slider = document.getElementById('regSlider');
+    const btnL1 = document.getElementById('btnL1');
+    const btnL2 = document.getElementById('btnL2');
+
+    let currentMode = 'L1';
+    const centerX = 300;
+    const centerY = 200;
+    const unregW1 = 180; // Unregularized optimal w1 (relative to center)
+    const unregW2 = -120; // Unregularized optimal w2 (relative to center)
+
+    function setMode(mode) {
+        currentMode = mode;
+        if (mode === 'L1') {
+            btnL1.classList.add('active-l1');
+            btnL2.classList.remove('active-l2');
+        } else {
+            btnL2.classList.add('active-l2');
+            btnL1.classList.remove('active-l1');
+        }
+        updateVisualization();
+    }
+
+    function drawAxes() {
+        ctx.beginPath();
+        ctx.strokeStyle = '#94a3b8';
+        ctx.lineWidth = 1;
+        // X axis
+        ctx.moveTo(50, centerY);
+        ctx.lineTo(550, centerY);
+        // Y axis
+        ctx.moveTo(centerX, 50);
+        ctx.lineTo(centerX, 350);
+        ctx.stroke();
+
+        ctx.fillStyle = '#64748b';
+        ctx.font = '14px sans-serif';
+        ctx.fillText('w1 (Feature 1 Weight)', 420, centerY - 10);
+        ctx.fillText('w2 (Feature 2 Weight)', centerX + 10, 60);
+    }
+
+    function drawL1Constraint(radius) {
+        ctx.beginPath();
+        ctx.fillStyle = 'rgba(239, 68, 68, 0.2)';
+        ctx.strokeStyle = '#ef4444';
+        ctx.lineWidth = 2;
+        ctx.moveTo(centerX + radius, centerY);
+        ctx.lineTo(centerX, centerY - radius);
+        ctx.lineTo(centerX - radius, centerY);
+        ctx.lineTo(centerX, centerY + radius);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+    }
+
+    function drawL2Constraint(radius) {
+        ctx.beginPath();
+        ctx.fillStyle = 'rgba(59, 130, 246, 0.2)';
+        ctx.strokeStyle = '#3b82f6';
+        ctx.lineWidth = 2;
+        ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.stroke();
+    }
+
+    function drawLossContours(optX, optY, constraintRadius, mode) {
+        // Draw unregularized optimum
+        ctx.beginPath();
+        ctx.fillStyle = '#10b981';
+        ctx.arc(centerX + optX, centerY + optY, 4, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.fillText('Unregularized Minimum', centerX + optX + 10, centerY + optY);
+
+        // Calculate intersection point based on mode
+        let intersectX = 0;
+        let intersectY = 0;
+
+        if (mode === 'L1') {
+            // Simulate corner hitting: if the loss ellipse is wide enough, it hits the w1 axis
+            if (constraintRadius < Math.abs(optX) + 20) {
+                intersectX = constraintRadius; // Snaps to w1 axis
+                intersectY = 0; // Sparsity achieved!
+            } else {
+                // If budget is huge, it just finds the minimum (simplified for visualizer)
+                intersectX = optX;
+                intersectY = optY;
+            }
+        } else {
+            // L2 intersection lies on the line connecting origin to unreg minimum
+            const dist = Math.sqrt(optX*optX + optY*optY);
+            if (constraintRadius < dist) {
+                const ratio = constraintRadius / dist;
+                intersectX = optX * ratio;
+                intersectY = optY * ratio;
+            } else {
+                intersectX = optX;
+                intersectY = optY;
+            }
+        }
+
+        // Draw loss ellipse touching the intersection
+        const dx = (centerX + optX) - (centerX + intersectX);
+        const dy = (centerY + optY) - (centerY + intersectY);
+        // Simplified ellipse radius calculation for pedagogical rendering
+        const ellipseRadius = Math.sqrt(dx*dx + dy*dy * 2.5); // Elongate to show off-axis tangent
+
+        ctx.beginPath();
+        ctx.strokeStyle = 'rgba(16, 185, 129, 0.5)';
+        ctx.lineWidth = 1;
+        
+        // Draw a few concentric contours
+        for(let i=1; i<=3; i++) {
+            ctx.beginPath();
+            ctx.ellipse(centerX + optX, centerY + optY, ellipseRadius + (i*15), ellipseRadius/1.5 + (i*15), Math.PI/6, 0, 2 * Math.PI);
+            ctx.stroke();
+        }
+
+        // Tangent contour
+        ctx.beginPath();
+        ctx.strokeStyle = '#10b981';
+        ctx.lineWidth = 2;
+        ctx.ellipse(centerX + optX, centerY + optY, ellipseRadius, ellipseRadius/1.5, Math.PI/6, 0, 2 * Math.PI);
+        ctx.stroke();
+
+        // Draw optimal regularized weight vector point
+        ctx.beginPath();
+        ctx.fillStyle = '#0f172a';
+        ctx.arc(centerX + intersectX, centerY + intersectY, 5, 0, 2 * Math.PI);
+        ctx.fill();
+        
+        ctx.fillStyle = '#0f172a';
+        ctx.font = 'bold 13px sans-serif';
+        if (mode === 'L1' && intersectY === 0 && intersectX < optX) {
+            ctx.fillText('w* (w2=0, Sparsity!)', centerX + intersectX - 40, centerY + intersectY - 15);
+        } else {
+            ctx.fillText('w* (Dense)', centerX + intersectX + 10, centerY + intersectY - 10);
+        }
+    }
+
+    function updateVisualization() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        drawAxes();
+        
+        const radius = parseInt(slider.value);
+
+        if (currentMode === 'L1') {
+            drawL1Constraint(radius);
+        } else {
+            drawL2Constraint(radius);
+        }
+
+        drawLossContours(unregW1, unregW2, radius, currentMode);
+    }
+
+    // Initial draw
+    updateVisualization();
+</script>
+
+</body>
+</html>
