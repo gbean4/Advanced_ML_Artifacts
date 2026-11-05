@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CART: Classification and Regression Trees</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- MathJax for rendering LaTeX equations -->
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .math-block { overflow-x: auto; }
+        
+        /* 1D Scatter Plot Styles */
+        #plot-container {
+            position: relative;
+            width: 100%;
+            height: 100px;
+            background-color: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            margin-bottom: 10px;
+            overflow: hidden;
+        }
+        #axis-line {
+            position: absolute;
+            top: 50%;
+            left: 5%;
+            right: 5%;
+            height: 2px;
+            background-color: #d1d5db;
+            transform: translateY(-50%);
+        }
+        .data-point {
+            position: absolute;
+            top: 50%;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            border: 2px solid white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+            transition: all 0.2s ease;
+        }
+        .point-red { background-color: #ef4444; }
+        .point-blue { background-color: #3b82f6; }
+        
+        #threshold-line {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background-color: #10b981;
+            z-index: 10;
+        }
+        #threshold-label {
+            position: absolute;
+            top: 10px;
+            transform: translateX(-50%);
+            background: #10b981;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+
+        /* Slider positioning */
+        .slider-wrapper {
+            position: relative;
+            width: 90%;
+            margin: 0 auto; /* Align with the 5% left/right of the axis line */
+        }
+        input[type=range] {
+            width: 100%;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 p-4 md:p-8">
+
+    <div class="max-w-5xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden">
+        <!-- Header -->
+        <header class="bg-indigo-600 text-white p-6">
+            <h1 class="text-3xl font-bold">Understanding CART</h1>
+            <p class="mt-2 opacity-90">Classification and Regression Trees: Mathematical Foundations & Interactive Simulator</p>
+        </header>
+
+        <div class="p-6 grid grid-cols-1 lg:grid-cols-2 gap-8">
+            
+            <!-- Left Column: Summary -->
+            <section class="space-y-6">
+                <div>
+                    <h2 class="text-2xl font-bold border-b pb-2 mb-4 text-indigo-700">Conversation Summary</h2>
+                    <p class="mb-4">Here is a recap of the key mathematical and conceptual elements of CART discussed previously:</p>
+                    
+                    <ul class="space-y-4">
+                        <li>
+                            <strong class="text-gray-900">1. Model Definition:</strong> A decision tree models a function \( f(x) \) as the sum of constant predictions \( c_m \) across partitioned regions \( R_m \):
+                            <div class="math-block">\[ f(x) = \sum_{m=1}^{M} c_m I(x \in R_m) \]</div>
+                        </li>
+                        <li>
+                            <strong class="text-gray-900">2. Recursive Binary Splitting:</strong> Trees are built using a top-down, greedy approach. At each node, the algorithm searches for the feature \( j \) and threshold \( t \) that minimizes the total cost (impurity).
+                        </li>
+                        <li>
+                            <strong class="text-gray-900">3. Regularization:</strong> To prevent over-fitting (where every leaf has 1 sample), CART uses <em>Cost-Complexity Pruning</em>, minimizing \( R_\alpha(T) = R(T) + \alpha |T| \), where \( \alpha \) penalizes tree size \( |T| \).
+                        </li>
+                        <li>
+                            <strong class="text-gray-900">4. Missing Features:</strong> CART handles missing data natively via <em>surrogate splits</em>, finding alternative features that mimic the primary split's distribution as closely as possible.
+                        </li>
+                        <li>
+                            <strong class="text-gray-900">5. High Variance (The Iris Example):</strong> CART models are unstable. As seen in the Iris dataset textbook figure, removing a single data point can drastically alter the chosen splits and decision boundaries. 
+                        </li>
+                        <li>
+                            <strong class="text-gray-900">6. Ensembles:</strong> Algorithms like Random Forests average many high-variance trees to create a stable model, smoothing out CART's strict axis-aligned boundaries into flexible contours.
+                        </li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Right Column: Interactive Simulator -->
+            <section class="bg-indigo-50 border border-indigo-100 rounded-lg p-6 flex flex-col h-full">
+                <h2 class="text-2xl font-bold border-b border-indigo-200 pb-2 mb-4 text-indigo-700">Interactive Split Simulator</h2>
+                
+                <div class="bg-white p-4 rounded text-sm text-gray-700 mb-6 shadow-sm">
+                    <strong>Instructions:</strong> We have a 1D dataset with 20 points (Red = Class 0, Blue = Class 1). 
+                    Move the slider to adjust the split threshold \( t \). Watch how the Gini Impurity changes for the Left and Right nodes, and observe how the algorithm seeks the threshold that minimizes the Total Weighted Cost \( J(\theta) \).
+                </div>
+
+                <!-- Visualization -->
+                <div id="plot-container">
+                    <div id="axis-line"></div>
+                    <!-- Data points injected via JS -->
+                    <div id="threshold-line" style="left: 50%;"></div>
+                    <div id="threshold-label" style="left: 50%;">t = 50</div>
+                </div>
+                
+                <div class="slider-wrapper mb-6">
+                    <input type="range" id="split-slider" min="0" max="100" value="50">
+                </div>
+
+                <!-- Live Math Output -->
+                <div class="bg-white rounded-lg p-4 shadow-inner border flex-grow">
+                    <h3 class="font-bold text-gray-800 mb-3 border-b pb-1">Real-Time Cost Calculation</h3>
+                    
+                    <div class="grid grid-cols-2 gap-4 text-sm mb-4">
+                        <div class="p-3 bg-red-50 rounded border border-red-100">
+                            <h4 class="font-semibold text-red-700">Left Node \( Q_{left} \)</h4>
+                            <p>Total: <span id="left-total" class="font-mono">0</span></p>
+                            <p>Red: <span id="left-red" class="font-mono">0</span> | Blue: <span id="left-blue" class="font-mono">0</span></p>
+                        </div>
+                        <div class="p-3 bg-blue-50 rounded border border-blue-100">
+                            <h4 class="font-semibold text-blue-700">Right Node \( Q_{right} \)</h4>
+                            <p>Total: <span id="right-total" class="font-mono">0</span></p>
+                            <p>Red: <span id="right-red" class="font-mono">0</span> | Blue: <span id="right-blue" class="font-mono">0</span></p>
+                        </div>
+                    </div>
+
+                    <div id="math-equations" class="text-sm overflow-x-auto text-gray-800">
+                        <!-- MathJax will render inside here -->
+                        <div id="eq-left"></div>
+                        <div id="eq-right"></div>
+                        <div id="eq-total" class="font-bold bg-indigo-100 p-2 rounded mt-2"></div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <script>
+        // 1D Dataset (x-coordinate from 0 to 100, class 0=red, 1=blue)
+        // Designed to have overlap in the middle to make the Gini split interesting.
+        const dataset = [
+            { x: 10, cls: 0 }, { x: 15, cls: 0 }, { x: 22, cls: 0 }, { x: 28, cls: 0 }, { x: 35, cls: 0 },
+            { x: 38, cls: 0 }, { x: 45, cls: 0 }, { x: 50, cls: 0 }, { x: 55, cls: 0 }, { x: 62, cls: 0 },
+            { x: 42, cls: 1 }, { x: 48, cls: 1 }, { x: 58, cls: 1 }, { x: 65, cls: 1 }, { x: 72, cls: 1 },
+            { x: 78, cls: 1 }, { x: 82, cls: 1 }, { x: 88, cls: 1 }, { x: 92, cls: 1 }, { x: 98, cls: 1 }
+        ];
+
+        const N = dataset.length;
+        const plotContainer = document.getElementById('plot-container');
+        const slider = document.getElementById('split-slider');
+        const thresholdLine = document.getElementById('threshold-line');
+        const thresholdLabel = document.getElementById('threshold-label');
+
+        // Draw points
+        dataset.forEach(pt => {
+            const el = document.createElement('div');
+            el.className = `data-point ${pt.cls === 0 ? 'point-red' : 'point-blue'}`;
+            // Map 0-100 to 5%-95% of container to align with slider and axis
+            const leftPos = 5 + (pt.x * 0.9);
+            el.style.left = `${leftPos}%`;
+            plotContainer.appendChild(el);
+        });
+
+        function calculateGini(total, count0, count1) {
+            if (total === 0) return 0;
+            const p0 = count0 / total;
+            const p1 = count1 / total;
+            return 1 - (p0 * p0) - (p1 * p1);
+        }
+
+        function updateSimulation() {
+            const t = parseFloat(slider.value);
+            
+            // Visual Update
+            const visualPos = 5 + (t * 0.9);
+            thresholdLine.style.left = `${visualPos}%`;
+            thresholdLabel.style.left = `${visualPos}%`;
+            thresholdLabel.innerText = `t = ${t}`;
+
+            // Math Update
+            let leftRed = 0, leftBlue = 0, rightRed = 0, rightBlue = 0;
+            dataset.forEach(pt => {
+                if (pt.x <= t) {
+                    if (pt.cls === 0) leftRed++; else leftBlue++;
+                } else {
+                    if (pt.cls === 0) rightRed++; else rightBlue++;
+                }
+            });
+
+            const leftTotal = leftRed + leftBlue;
+            const rightTotal = rightRed + rightBlue;
+
+            document.getElementById('left-total').innerText = leftTotal;
+            document.getElementById('left-red').innerText = leftRed;
+            document.getElementById('left-blue').innerText = leftBlue;
+            
+            document.getElementById('right-total').innerText = rightTotal;
+            document.getElementById('right-red').innerText = rightRed;
+            document.getElementById('right-blue').innerText = rightBlue;
+
+            const giniLeft = calculateGini(leftTotal, leftRed, leftBlue);
+            const giniRight = calculateGini(rightTotal, rightRed, rightBlue);
+            
+            const cost = (leftTotal / N) * giniLeft + (rightTotal / N) * giniRight;
+
+            // Generate LaTeX strings (Double backslashes required for JS strings)
+            let p0_L = leftTotal === 0 ? 0 : leftRed / leftTotal;
+            let p1_L = leftTotal === 0 ? 0 : leftBlue / leftTotal;
+            let p0_R = rightTotal === 0 ? 0 : rightRed / rightTotal;
+            let p1_R = rightTotal === 0 ? 0 : rightBlue / rightTotal;
+
+            const eqLeftStr = `\\[ H(Q_{left}) = 1 - (${p0_L.toFixed(2)})^2 - (${p1_L.toFixed(2)})^2 = ${giniLeft.toFixed(3)} \\]`;
+            const eqRightStr = `\\[ H(Q_{right}) = 1 - (${p0_R.toFixed(2)})^2 - (${p1_R.toFixed(2)})^2 = ${giniRight.toFixed(3)} \\]`;
+            const eqTotalStr = `\\[ J(\\theta) = \\frac{${leftTotal}}{${N}}(${giniLeft.toFixed(3)}) + \\frac{${rightTotal}}{${N}}(${giniRight.toFixed(3)}) = ${cost.toFixed(4)} \\]`;
+
+            document.getElementById('eq-left').innerText = eqLeftStr;
+            document.getElementById('eq-right').innerText = eqRightStr;
+            document.getElementById('eq-total').innerText = eqTotalStr;
+
+            // Trigger MathJax re-render if loaded
+            if (window.MathJax && MathJax.typesetPromise) {
+                MathJax.typesetPromise([
+                    document.getElementById('math-equations')
+                ]).catch((err) => console.log('MathJax error: ', err.message));
+            }
+        }
+
+        slider.addEventListener('input', updateSimulation);
+        
+        // Initial setup
+        window.addEventListener('load', () => {
+            updateSimulation();
+        });
+
+    </script>
+</body>
+</html>
