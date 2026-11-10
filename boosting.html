@@ -47,27 +47,16 @@
         ::-webkit-scrollbar-thumb:hover {
             background: #94a3b8; 
         }
-        .tab-content {
-            display: none;
-            animation: fadeIn 0.3s ease-in-out;
-        }
-        .tab-content.active {
-            display: block;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(5px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
     </style>
 </head>
 <body class="text-slate-800 antialiased h-screen flex flex-col overflow-hidden">
 
     <!-- Header -->
     <header class="bg-indigo-700 text-white shadow-md z-10 shrink-0">
-        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
             <div>
                 <h1 class="text-2xl font-bold tracking-tight">Boosting Architectures</h1>
-                <p class="text-indigo-200 text-sm font-medium mt-1">AdaBoost vs LogitBoost &mdash; Final Exam Quick Reference</p>
+                <p class="text-indigo-200 text-sm font-medium mt-1">AdaBoost vs LogitBoost &mdash; Final Exam Study Guide</p>
             </div>
             <div class="hidden sm:block">
                 <span class="bg-indigo-800 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider text-indigo-100 border border-indigo-600">Machine Learning</span>
@@ -76,215 +65,170 @@
     </header>
 
     <!-- Main Application Area -->
-    <main class="flex-grow flex flex-col overflow-hidden max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6">
+    <main class="flex-grow flex flex-col overflow-hidden max-w-5xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6">
         
         <!-- Tab Navigation -->
         <nav class="flex space-x-1 border-b border-slate-200 shrink-0" aria-label="Tabs">
-            <button onclick="switchTab('usage')" id="tab-usage" class="tab-btn active relative w-1/4 min-w-[120px] py-3 px-4 text-center text-sm font-medium text-indigo-600 border-b-2 border-indigo-600 bg-white rounded-t-lg shadow-sm hover:bg-slate-50 transition-colors">
-                <span class="block truncate">1. Usage Guide</span>
+            <button onclick="switchTab('summary')" id="nav-summary" class="tab-btn relative w-1/3 py-3 px-4 text-center text-sm font-medium text-indigo-600 border-b-2 border-indigo-600 bg-white rounded-t-lg shadow-sm hover:bg-slate-50 transition-colors">
+                <span class="block truncate">1. Summary</span>
             </button>
-            <button onclick="switchTab('concept')" id="tab-concept" class="tab-btn relative w-1/4 min-w-[120px] py-3 px-4 text-center text-sm font-medium text-slate-500 border-b-2 border-transparent hover:text-slate-700 hover:border-slate-300 hover:bg-slate-50 rounded-t-lg transition-colors">
-                <span class="block truncate">2. Concepts</span>
+            <button onclick="switchTab('math')" id="nav-math" class="tab-btn relative w-1/3 py-3 px-4 text-center text-sm font-medium text-slate-500 border-b-2 border-transparent hover:text-slate-700 hover:border-slate-300 hover:bg-slate-50 rounded-t-lg transition-colors">
+                <span class="block truncate">2. Math & Technicals</span>
             </button>
-            <button onclick="switchTab('math')" id="tab-math" class="tab-btn relative w-1/4 min-w-[120px] py-3 px-4 text-center text-sm font-medium text-slate-500 border-b-2 border-transparent hover:text-slate-700 hover:border-slate-300 hover:bg-slate-50 rounded-t-lg transition-colors">
-                <span class="block truncate">3. Formulation</span>
-            </button>
-            <button onclick="switchTab('visualizer')" id="tab-visualizer" class="tab-btn relative w-1/4 min-w-[120px] py-3 px-4 text-center text-sm font-medium text-slate-500 border-b-2 border-transparent hover:text-slate-700 hover:border-slate-300 hover:bg-slate-50 rounded-t-lg transition-colors">
-                <span class="block truncate">4. Visualizer</span>
+            <button onclick="switchTab('visualizer')" id="nav-visualizer" class="tab-btn relative w-1/3 py-3 px-4 text-center text-sm font-medium text-slate-500 border-b-2 border-transparent hover:text-slate-700 hover:border-slate-300 hover:bg-slate-50 rounded-t-lg transition-colors">
+                <span class="block truncate">3. Visualizer</span>
             </button>
         </nav>
 
         <!-- Tab Content Area -->
         <div class="bg-white border border-t-0 border-slate-200 rounded-b-lg shadow-sm flex-grow overflow-y-auto p-6 md:p-8">
             
-            <!-- 1. Usage Guide -->
-            <div id="content-usage" class="tab-content active h-full flex flex-col justify-center max-w-3xl mx-auto">
-                <div class="text-center mb-8">
-                    <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-indigo-100 text-indigo-600 mb-4">
-                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    </div>
-                    <h2 class="text-3xl font-bold text-slate-800">How to use this Dashboard</h2>
-                    <p class="mt-2 text-slate-600">Maximize your efficiency during the final exam with this interactive reference tool.</p>
-                </div>
+            <!-- 1. Summary Tab -->
+            <div id="tab-summary" class="tab-content flex flex-col h-full animate-[fadeIn_0.3s_ease-in-out]">
+                <h2 class="text-2xl font-bold text-slate-800 mb-6 border-b pb-2">Conceptual Summary</h2>
                 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="bg-slate-50 p-5 rounded-lg border border-slate-100">
-                        <h3 class="font-semibold text-indigo-700 mb-2 flex items-center">
-                            <span class="bg-indigo-200 text-indigo-800 text-xs px-2 py-0.5 rounded mr-2">Q</span>
-                            Answering Concept Questions
-                        </h3>
-                        <p class="text-sm text-slate-600">Jump to the <strong>Concepts</strong> tab when asked to describe the qualitative difference between algorithms, specifically regarding their robustness to noise and outliers.</p>
-                    </div>
-                    <div class="bg-slate-50 p-5 rounded-lg border border-slate-100">
-                        <h3 class="font-semibold text-indigo-700 mb-2 flex items-center">
-                            <span class="bg-indigo-200 text-indigo-800 text-xs px-2 py-0.5 rounded mr-2">Q</span>
-                            Writing Proofs / Formulas
-                        </h3>
-                        <p class="text-sm text-slate-600">Use the <strong>Formulation</strong> tab to quickly copy or reference the exact loss functions, working responses ($z_i$), and observation weights ($w_i$) for mathematical derivations.</p>
-                    </div>
-                    <div class="bg-slate-50 p-5 rounded-lg border border-slate-100 md:col-span-2">
-                        <h3 class="font-semibold text-indigo-700 mb-2 flex items-center">
-                            <span class="bg-indigo-200 text-indigo-800 text-xs px-2 py-0.5 rounded mr-2">Tip</span>
-                            Visualizing the "Why"
-                        </h3>
-                        <p class="text-sm text-slate-600">If an exam question asks <em>why</em> AdaBoost fails on noisy data, open the <strong>Visualizer</strong>. Hover over the left side of the chart (negative margins) to see the exact numerical explosion of the Exponential Loss compared to the linear asymptote of Logistic Loss.</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 2. Conceptual Summary -->
-            <div id="content-concept" class="tab-content h-full">
-                <h2 class="text-2xl font-bold text-slate-800 mb-6 border-b pb-2">The High-Level Differences</h2>
-                
-                <p class="text-slate-600 mb-8 max-w-4xl leading-relaxed">
-                    Both algorithms operate by sequentially training weak learners (usually shallow decision trees) on the mistakes of the previous trees. The fundamental difference is how they penalize those mistakes, which can be understood through the analogy of two different teaching styles.
+                <p class="text-slate-600 mb-8 leading-relaxed">
+                    Both AdaBoost and LogitBoost build highly accurate models by sequentially training weak learners (like shallow decision trees) on the mistakes of the previous trees. The primary difference is how heavily they penalize those mistakes.
                 </p>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <!-- AdaBoost Card -->
-                    <div class="bg-white rounded-xl shadow-md overflow-hidden border border-red-100 transition hover:shadow-lg">
-                        <div class="bg-gradient-to-r from-red-500 to-rose-600 px-6 py-4">
-                            <h3 class="text-xl font-bold text-white flex items-center">
-                                AdaBoost
-                                <span class="ml-2 text-xs bg-white/20 px-2 py-1 rounded-full">The Strict Teacher</span>
-                            </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 flex-grow">
+                    <!-- AdaBoost -->
+                    <div class="bg-white rounded-xl shadow-sm border border-red-200 overflow-hidden flex flex-col">
+                        <div class="bg-red-50 px-6 py-4 border-b border-red-100">
+                            <h3 class="text-xl font-bold text-red-700">AdaBoost</h3>
+                            <p class="text-sm font-medium text-red-500 mt-1">"The Strict Teacher"</p>
                         </div>
-                        <div class="p-6">
-                            <ul class="space-y-4 text-sm text-slate-700">
-                                <li class="flex items-start">
-                                    <svg class="w-5 h-5 text-red-500 mr-2 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-                                    <div>
-                                        <strong class="block text-slate-900">Highly sensitive to outliers.</strong>
-                                        If it finds a noisy/mislabeled data point (a "trick question"), it will exponentially increase its weight until the model forces itself to memorize it.
-                                    </div>
-                                </li>
-                                <li class="flex items-start">
-                                    <svg class="w-5 h-5 text-red-500 mr-2 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                                    <div>
-                                        <strong class="block text-slate-900">Fast, closed-form updates.</strong>
-                                        Because of its specific loss function, the weights for the next tree can be calculated in a simple, elegant step without complex optimization algorithms.
-                                    </div>
-                                </li>
-                            </ul>
+                        <div class="p-6 flex-grow">
+                            <p class="text-slate-700 mb-4">
+                                AdaBoost is highly sensitive to outliers. If it encounters a mislabeled or extremely noisy data point, it will exponentially increase the weight of that point. 
+                            </p>
+                            <p class="text-slate-700">
+                                Like a strict teacher obsessing over a trick question, it forces the entire model to focus on getting that one impossible point correct, often ruining overall generalization.
+                            </p>
                         </div>
                     </div>
 
-                    <!-- LogitBoost Card -->
-                    <div class="bg-white rounded-xl shadow-md overflow-hidden border border-emerald-100 transition hover:shadow-lg">
-                        <div class="bg-gradient-to-r from-emerald-500 to-teal-600 px-6 py-4">
-                            <h3 class="text-xl font-bold text-white flex items-center">
-                                LogitBoost
-                                <span class="ml-2 text-xs bg-white/20 px-2 py-1 rounded-full">The Pragmatic Teacher</span>
-                            </h3>
+                    <!-- LogitBoost -->
+                    <div class="bg-white rounded-xl shadow-sm border border-emerald-200 overflow-hidden flex flex-col">
+                        <div class="bg-emerald-50 px-6 py-4 border-b border-emerald-100">
+                            <h3 class="text-xl font-bold text-emerald-700">LogitBoost</h3>
+                            <p class="text-sm font-medium text-emerald-500 mt-1">"The Pragmatic Teacher"</p>
                         </div>
-                        <div class="p-6">
-                            <ul class="space-y-4 text-sm text-slate-700">
-                                <li class="flex items-start">
-                                    <svg class="w-5 h-5 text-emerald-500 mr-2 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                    <div>
-                                        <strong class="block text-slate-900">Robust against noise.</strong>
-                                        Evaluates on a curve. If a data point is absurdly difficult (a massive outlier), it accepts the loss and moves on, rather than warping the entire model.
-                                    </div>
-                                </li>
-                                <li class="flex items-start">
-                                    <svg class="w-5 h-5 text-emerald-500 mr-2 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
-                                    <div>
-                                        <strong class="block text-slate-900">Newton-Raphson optimization.</strong>
-                                        Requires a second-order Taylor expansion to iteratively solve for the next tree, fitting continuous pseudo-residuals instead of simple classes.
-                                    </div>
-                                </li>
-                            </ul>
+                        <div class="p-6 flex-grow">
+                            <p class="text-slate-700 mb-4">
+                                LogitBoost evaluates mistakes on a curve. It is much more robust against noise and outliers. 
+                            </p>
+                            <p class="text-slate-700">
+                                Like a pragmatic teacher, if a data point is absurdly difficult to classify, it accepts the loss and moves on. The penalty grows linearly rather than exponentially, protecting the model from warping its decision boundary for a single error.
+                            </p>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- 3. Mathematical Formulation -->
-            <div id="content-math" class="tab-content h-full">
-                <div class="max-w-4xl mx-auto">
-                    <h2 class="text-2xl font-bold text-slate-800 mb-6 border-b pb-2">Mathematical Formulation</h2>
-                    
-                    <div class="mb-8">
-                        <h3 class="text-lg font-semibold text-slate-700 mb-2">1. Forward Stagewise Additive Modeling (FSAM)</h3>
-                        <p class="text-sm text-slate-600 mb-4">Both algorithms build an additive function $F(x)$ by adding weak learners $h_m(x)$ with weights $\alpha_m$. Positive margins $y_i F(x_i)$ indicate correct classifications.</p>
-                        <div class="bg-slate-100 rounded-lg p-4 text-center overflow-x-auto">
-                            $$ F_m(x) = F_{m-1}(x) + \alpha_m h_m(x) $$
+            <!-- 2. Math & Technicals Tab -->
+            <div id="tab-math" class="tab-content hidden h-full animate-[fadeIn_0.3s_ease-in-out]">
+                <h2 class="text-2xl font-bold text-slate-800 mb-6 border-b pb-2">Math & Technicals</h2>
+                
+                <div class="space-y-8 max-w-4xl mx-auto">
+                    <!-- AdaBoost Math -->
+                    <div class="bg-slate-50 rounded-lg p-6 border border-slate-200">
+                        <h3 class="text-xl font-bold text-red-600 mb-4 flex items-center">
+                            AdaBoost: Exponential Loss & Closed-Form Updates
+                        </h3>
+                        <p class="text-slate-600 mb-4">
+                            AdaBoost minimizes the exponential loss function. Because of its mathematical properties, the algorithm can find the optimal weights for the next weak learner using a simple <strong>closed-form equation</strong>.
+                        </p>
+                        <div class="bg-white p-4 rounded border border-slate-200 text-center overflow-x-auto">
+                            $$ L(y, F(x)) = e^{-y F(x)} $$
                         </div>
+                        <p class="text-sm text-slate-500 mt-3">
+                            <em>Note: A negative margin $yF(x) < 0$ means the prediction was incorrect. Because it's $e^{-yF(x)}$, negative margins result in exponential growth of the penalty.</em>
+                        </p>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <!-- AdaBoost Math -->
-                        <div>
-                            <h3 class="text-lg font-semibold text-red-600 mb-2">2a. AdaBoost (Exponential Loss)</h3>
-                            <p class="text-sm text-slate-600 mb-4">Minimizes the exponential loss function, which causes rapid weight explosion for deeply misclassified points (negative margin).</p>
-                            <div class="bg-red-50 rounded-lg p-4 text-center border border-red-100 overflow-x-auto">
-                                $$ L(y, F(x)) = e^{-y F(x)} $$
-                            </div>
-                            <div class="mt-4 p-4 border-l-4 border-red-300 bg-red-50/50 text-sm text-slate-700">
-                                <strong>Weight Update:</strong> <br>
-                                The weight of the $i$-th observation at step $m$ becomes:<br>
-                                $$ w_i^{(m)} = e^{-y_i F_{m-1}(x_i)} $$
-                            </div>
+                    <!-- LogitBoost Math -->
+                    <div class="bg-slate-50 rounded-lg p-6 border border-slate-200">
+                        <h3 class="text-xl font-bold text-emerald-600 mb-4 flex items-center">
+                            LogitBoost: Logistic Loss & Newton-Raphson
+                        </h3>
+                        <p class="text-slate-600 mb-4">
+                            LogitBoost minimizes the logistic loss (binomial deviance). This loss cannot be minimized with a simple closed-form update. Instead, it uses a <strong>Newton-Raphson optimization</strong> step (a second-order Taylor approximation).
+                        </p>
+                        <div class="bg-white p-4 rounded border border-slate-200 text-center overflow-x-auto">
+                            $$ L(y, F(x)) = \log(1 + e^{-2 y F(x)}) $$
                         </div>
-
-                        <!-- LogitBoost Math -->
-                        <div>
-                            <h3 class="text-lg font-semibold text-emerald-600 mb-2">2b. LogitBoost (Logistic Loss)</h3>
-                            <p class="text-sm text-slate-600 mb-4">Minimizes logistic loss (binomial deviance). Approaches a linear asymptote for negative margins.</p>
-                            <div class="bg-emerald-50 rounded-lg p-4 text-center border border-emerald-100 overflow-x-auto">
-                                $$ L(y, F(x)) = \log(1 + e^{-2 y F(x)}) $$
-                            </div>
-                            <div class="mt-4 p-4 border-l-4 border-emerald-300 bg-emerald-50/50 text-sm text-slate-700">
-                                <strong>Newton Step Updates:</strong><br>
-                                With probabilities $p(x_i) = \frac{e^{F(x_i)}}{e^{F(x_i)} + e^{-F(x_i)}}$:<br>
-                                <strong>Responses ($z_i$):</strong> $$ z_i = \frac{y_i^* - p(x_i)}{p(x_i)(1 - p(x_i))} $$
-                                <strong>Weights ($w_i$):</strong> $$ w_i = p(x_i)(1 - p(x_i)) $$
-                            </div>
-                        </div>
+                        <p class="text-sm text-slate-600 mt-4 font-medium mb-2">
+                            Newton-Raphson calculates continuous targets (pseudo-residuals) for the next tree:
+                        </p>
+                        <ul class="list-disc pl-5 text-sm text-slate-600 space-y-2">
+                            <li><strong>Working Responses ($z$):</strong> Fits the gradient direction.</li>
+                            <li><strong>Observation Weights ($w$):</strong> Based on the 2nd derivative, reduces influence of points where probability is near 0 or 1.</li>
+                        </ul>
                     </div>
                 </div>
             </div>
 
-            <!-- 4. Loss Function Visualizer -->
-            <div id="content-visualizer" class="tab-content h-full flex flex-col">
-                <div class="flex justify-between items-end mb-4 border-b pb-2 shrink-0">
-                    <div>
+            <!-- 3. Visualizer Tab -->
+            <div id="tab-visualizer" class="tab-content hidden h-full animate-[fadeIn_0.3s_ease-in-out]">
+                <div class="flex flex-col h-full">
+                    <div class="mb-4 border-b pb-2 shrink-0">
                         <h2 class="text-2xl font-bold text-slate-800">Loss Function Visualizer</h2>
-                        <p class="text-sm text-slate-600 mt-1">Comparing Exponential Loss vs. Logistic Loss</p>
+                        <p class="text-sm text-slate-600 mt-1">Comparing Exponential Loss vs. Logistic Loss against Classification Margin</p>
                     </div>
-                </div>
-                
-                <div class="flex-grow bg-white p-4 rounded-lg border border-slate-200 shadow-sm relative min-h-[400px]">
-                    <canvas id="lossChart"></canvas>
-                </div>
-                
-                <div class="mt-4 text-sm text-slate-600 bg-slate-50 p-4 rounded-lg border border-slate-200 shrink-0">
-                    <strong>Interpretation for Exam:</strong> Look at the left side of the graph (Margin &lt; 0, meaning incorrect classification). Notice how the red line (AdaBoost) curves sharply upwards to infinity, creating massive penalties for outliers. The green line (LogitBoost) becomes linear, protecting the model from over-fixating on noise.
+                    
+                    <!-- Canvas Container -->
+                    <div class="flex-grow bg-white p-4 rounded-lg border border-slate-200 shadow-sm relative min-h-[400px]">
+                        <canvas id="lossChart"></canvas>
+                    </div>
+                    
+                    <div class="mt-4 text-sm text-slate-700 bg-blue-50 p-4 rounded-lg border border-blue-100 shrink-0">
+                        <strong>Key Takeaway:</strong> Look at the left side of the chart where the margin is negative (incorrect predictions). The <strong>Red Line (AdaBoost)</strong> shoots up exponentially, causing the model to overreact to outliers. The <strong>Green Line (LogitBoost)</strong> grows linearly, acting as a buffer against extreme noise.
+                    </div>
                 </div>
             </div>
 
         </div>
     </main>
 
+    <style>
+        /* Define the fade-in animation used by Tailwind JIT */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+
     <script>
-        // --- Tab Logic ---
+        // --- Explicit Tab Visibility Logic ---
         function switchTab(tabId) {
-            // Update buttons
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.classList.remove('active', 'border-indigo-600', 'text-indigo-600', 'bg-white');
-                btn.classList.add('border-transparent', 'text-slate-500', 'bg-transparent');
-            });
-            const activeBtn = document.getElementById('tab-' + tabId);
-            activeBtn.classList.remove('border-transparent', 'text-slate-500', 'bg-transparent');
-            activeBtn.classList.add('active', 'border-indigo-600', 'text-indigo-600', 'bg-white');
+            const tabs = ['summary', 'math', 'visualizer'];
+            
+            tabs.forEach(id => {
+                // Handle Nav Buttons
+                const btn = document.getElementById('nav-' + id);
+                if (id === tabId) {
+                    btn.classList.add('border-indigo-600', 'text-indigo-600', 'bg-white');
+                    btn.classList.remove('border-transparent', 'text-slate-500', 'bg-transparent');
+                } else {
+                    btn.classList.remove('border-indigo-600', 'text-indigo-600', 'bg-white');
+                    btn.classList.add('border-transparent', 'text-slate-500', 'bg-transparent');
+                }
 
-            // Update content
-            document.querySelectorAll('.tab-content').forEach(content => {
-                content.classList.remove('active');
+                // Handle Content Containers (CRITICAL FIX)
+                const content = document.getElementById('tab-' + id);
+                if (id === tabId) {
+                    // Show active tab
+                    content.classList.remove('hidden');
+                    content.classList.add('flex', 'flex-col'); 
+                } else {
+                    // Completely hide inactive tabs
+                    content.classList.add('hidden');
+                    content.classList.remove('flex', 'flex-col');
+                }
             });
-            document.getElementById('content-' + tabId).classList.add('active');
 
-            // Handle special cases per tab
+            // Initialize Chart.js only when the Visualizer tab is first opened
             if (tabId === 'visualizer' && !window.chartInitialized) {
                 initChart();
                 window.chartInitialized = true;
@@ -297,7 +241,6 @@
         function initChart() {
             const ctx = document.getElementById('lossChart').getContext('2d');
             
-            // Generate Data
             const labels = [];
             const adaBoostData = [];
             const logitBoostData = [];
@@ -310,9 +253,8 @@
                 // AdaBoost Exponential Loss: exp(-x)
                 adaBoostData.push(Math.exp(-margin));
                 
-                // LogitBoost Logistic Loss: log2(1 + exp(-2x))
-                // Note: Scaled slightly (log base 2) for standard visualization comparability 
-                // so it intersects the y-axis at a comparable scale to exp(0)=1.
+                // LogitBoost Logistic Loss: log(1 + exp(-2x))
+                // Scaled using log2 so it visually intersects near exp(0)=1 for clear comparison
                 logitBoostData.push(Math.log2(1 + Math.exp(-2 * margin)));
             }
 
@@ -324,7 +266,7 @@
                         {
                             label: 'AdaBoost (Exponential Loss)',
                             data: adaBoostData,
-                            borderColor: '#ef4444', // Tailwind red-500
+                            borderColor: '#ef4444', // red-500
                             backgroundColor: 'rgba(239, 68, 68, 0.1)',
                             borderWidth: 3,
                             tension: 0.4,
@@ -334,7 +276,7 @@
                         {
                             label: 'LogitBoost (Logistic Loss)',
                             data: logitBoostData,
-                            borderColor: '#10b981', // Tailwind emerald-500
+                            borderColor: '#10b981', // emerald-500
                             backgroundColor: 'rgba(16, 185, 129, 0.1)',
                             borderWidth: 3,
                             tension: 0.4,
@@ -388,7 +330,7 @@
                         x: {
                             title: {
                                 display: true,
-                                text: 'Margin: yF(x) [Positive = Correct, Negative = Incorrect]',
+                                text: 'Margin (Negative = Error, Positive = Correct)',
                                 font: { family: "'Inter', sans-serif", size: 14, weight: '600' }
                             },
                             grid: {
