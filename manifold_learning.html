@@ -1,1 +1,1976 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Manifold Learning &amp; Swiss Roll Unfolding Studio</title>
 
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+        },
+      },
+    };
+  </script>
+
+  <!-- KaTeX CDN for reliable inline ($...$) and display ($$...$$) LaTeX rendering -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" />
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+
+  <style>
+    /* Custom subtle range slider styling */
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      background: transparent;
+      cursor: pointer;
+    }
+    input[type="range"]::-webkit-slider-runnable-track {
+      height: 6px;
+      border-radius: 9999px;
+      background: #cbd5e1;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 9999px;
+      background: #4f46e5;
+      border: 2px solid #ffffff;
+      box-shadow: 0 1px 4px rgba(15, 23, 42, 0.3);
+      margin-top: -5px;
+      transition: transform 0.12s ease;
+    }
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.15);
+    }
+    .canvas-dark-range::-webkit-slider-runnable-track {
+      background: #334155;
+    }
+    .canvas-dark-range::-webkit-slider-thumb {
+      background: #38bdf8;
+      border: 2px solid #0f172a;
+    }
+    /* Ensure KaTeX display math scrolls gracefully on narrow screens */
+    .katex-display {
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding: 0.25rem 0;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased selection:bg-indigo-100 selection:text-indigo-900">
+
+  <!-- Sticky Top Navigation Bar -->
+  <header class="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+      <div class="flex items-center gap-3 min-w-0">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-600 to-cyan-500 flex items-center justify-center text-white font-bold shadow-sm shrink-0">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3c4.97 0 9 3.582 9 8 0 3.866-3.134 7-7 7-3.038 0-5.5-2.015-5.5-4.5S10.291 9 12.5 9c1.657 0 3 1.119 3 2.5S14.605 14 13.5 14" />
+          </svg>
+        </div>
+        <div class="truncate">
+          <h1 class="text-base sm:text-lg font-bold tracking-tight text-slate-900 truncate">
+            Manifold Learning &amp; Swiss Roll Studio
+          </h1>
+          <p class="text-xs text-slate-500 hidden sm:block">Interactive Visualizer &amp; Final Exam Study Reference</p>
+        </div>
+      </div>
+
+      <nav class="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm font-medium shrink-0">
+        <a href="#visualizer" class="px-3 py-1.5 rounded-lg text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 transition">Visualizer</a>
+        <a href="#how-to-use" class="px-3 py-1.5 rounded-lg text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 transition">How to Use</a>
+        <a href="#study-guide" class="px-3 py-1.5 rounded-lg text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 transition">Study Guide</a>
+        <a href="#exam-pitfalls" class="hidden md:inline-block px-3 py-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm transition">Exam Check</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-12">
+
+    <!-- ===================================================================== -->
+    <!-- SECTION 1: INTERACTIVE SWISS ROLL UNFOLDING VISUALIZER                -->
+    <!-- ===================================================================== -->
+    <section id="visualizer" class="scroll-mt-20 space-y-4">
+      <div class="flex flex-col md:flex-row md:items-end justify-between gap-3">
+        <div>
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-800 mb-2">
+            Interactive Lab
+          </span>
+          <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
+            Swiss Roll Unfolding &amp; Geodesic Path Visualizer
+          </h2>
+          <p class="text-sm text-slate-600 mt-1">
+            Compare Euclidean shortcuts against real Dijkstra geodesic paths on a $k$-NN manifold graph, and contrast Isomap unfolding with linear PCA.
+          </p>
+        </div>
+
+        <!-- Study Presets -->
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="text-xs font-semibold uppercase tracking-wider text-slate-400 mr-1">Presets:</span>
+          <button id="preset-classic" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:border-indigo-400 hover:text-indigo-700 shadow-sm transition">
+            1. Classic Swiss Roll
+          </button>
+          <button id="preset-shortcircuit" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:border-rose-400 hover:text-rose-700 shadow-sm transition">
+            2. Short-Circuit Trap
+          </button>
+          <button id="preset-disconnected" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:border-amber-400 hover:text-amber-700 shadow-sm transition">
+            3. Disconnected Graph
+          </button>
+        </div>
+      </div>
+
+      <!-- Live Telemetry Bar -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <!-- Euclidean Distance -->
+        <div class="bg-white rounded-xl border border-slate-200 p-3.5 shadow-sm flex items-center justify-between">
+          <div>
+            <div class="text-xs font-medium text-slate-500 flex items-center gap-1.5">
+              <span class="w-3 h-0.5 bg-rose-500 inline-block border-b border-dashed border-rose-500"></span>
+              Euclidean Distance $d_E(A, B)$
+            </div>
+            <div id="metric-euclidean" class="text-xl font-bold font-mono text-rose-600 mt-0.5">--</div>
+          </div>
+          <span class="text-[11px] px-2 py-0.5 rounded-md bg-rose-50 text-rose-700 font-medium">3D Shortcut</span>
+        </div>
+
+        <!-- Geodesic Distance -->
+        <div class="bg-white rounded-xl border border-slate-200 p-3.5 shadow-sm flex items-center justify-between">
+          <div>
+            <div class="text-xs font-medium text-slate-500 flex items-center gap-1.5">
+              <span class="w-3 h-1 bg-cyan-500 rounded-full inline-block"></span>
+              Geodesic Distance $d_G(A, B)$
+            </div>
+            <div id="metric-geodesic" class="text-xl font-bold font-mono text-cyan-600 mt-0.5">--</div>
+          </div>
+          <span class="text-[11px] px-2 py-0.5 rounded-md bg-cyan-50 text-cyan-700 font-medium">Dijkstra $k$-NN</span>
+        </div>
+
+        <!-- Distortion Ratio -->
+        <div class="bg-white rounded-xl border border-slate-200 p-3.5 shadow-sm flex items-center justify-between">
+          <div>
+            <div class="text-xs font-medium text-slate-500">Distortion Ratio $d_G / d_E$</div>
+            <div id="metric-ratio" class="text-xl font-bold font-mono text-indigo-600 mt-0.5">--</div>
+          </div>
+          <span class="text-[11px] px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 font-medium">Curvature</span>
+        </div>
+
+        <!-- Graph Health Status -->
+        <div class="bg-white rounded-xl border border-slate-200 p-3.5 shadow-sm flex flex-col justify-center">
+          <div class="text-xs font-medium text-slate-500 mb-1">Graph Topology Status</div>
+          <div id="graph-status-badge" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 w-fit">
+            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+            Healthy Manifold Graph
+          </div>
+        </div>
+      </div>
+
+      <!-- Dual-Panel Interactive Canvases -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+        <!-- LEFT PANEL: 3D Ambient Space Canvas -->
+        <div class="bg-slate-900 rounded-2xl border border-slate-800 shadow-lg overflow-hidden flex flex-col">
+          <!-- Panel Header -->
+          <div class="px-4 py-3 bg-slate-900/95 border-b border-slate-800 flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-cyan-400"></span>
+                3D Ambient Space ($\mathbb{R}^3$)
+              </h3>
+              <p class="text-[11px] text-slate-400">Drag to rotate &bull; Scroll to zoom &bull; Click points to set A / B</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <label class="inline-flex items-center gap-1.5 text-xs text-slate-300 cursor-pointer select-none bg-slate-800 hover:bg-slate-700 px-2.5 py-1.5 rounded-lg transition">
+                <input id="toggle-knn" type="checkbox" checked class="rounded border-slate-600 text-cyan-500 focus:ring-0" />
+                <span>$k$-NN Graph</span>
+              </label>
+              <button id="btn-reset-view" class="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-800 text-slate-200 hover:bg-slate-700 border border-slate-700 transition">
+                Reset View
+              </button>
+            </div>
+          </div>
+
+          <!-- 3D Canvas Container -->
+          <div class="relative w-full h-[360px] sm:h-[420px] select-none">
+            <canvas id="canvas-3d" class="w-full h-full block cursor-grab active:cursor-grabbing"></canvas>
+
+            <!-- Active Selection Pill Overlay -->
+            <div class="absolute top-3 left-3 flex items-center gap-2 pointer-events-none">
+              <div class="bg-slate-950/75 backdrop-blur-sm border border-slate-700/80 rounded-lg px-2.5 py-1 text-[11px] text-slate-200 flex items-center gap-2">
+                <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block"></span> A</span>
+                <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-fuchsia-400 inline-block"></span> B</span>
+                <span class="text-slate-400">|</span>
+                <span id="next-pick-label" class="text-amber-300 font-medium">Next click: Point A</span>
+              </div>
+            </div>
+
+            <!-- Legend Overlay -->
+            <div class="absolute bottom-3 left-3 pointer-events-none flex flex-wrap gap-2">
+              <span class="bg-slate-950/75 backdrop-blur-sm border border-slate-800 rounded-md px-2 py-0.5 text-[10px] text-rose-300 flex items-center gap-1">
+                <span class="w-3 border-t-2 border-dashed border-rose-400 inline-block"></span> Euclidean
+              </span>
+              <span class="bg-slate-950/75 backdrop-blur-sm border border-slate-800 rounded-md px-2 py-0.5 text-[10px] text-cyan-300 flex items-center gap-1">
+                <span class="w-3 border-t-2 border-cyan-400 inline-block"></span> Geodesic
+              </span>
+              <span id="legend-shortcircuit" class="hidden bg-slate-950/75 backdrop-blur-sm border border-rose-800/80 rounded-md px-2 py-0.5 text-[10px] text-orange-300 flex items-center gap-1">
+                <span class="w-3 border-t-2 border-orange-400 inline-block"></span> Short-Circuit Edge
+              </span>
+            </div>
+          </div>
+
+          <!-- Smooth Unfolding Animation Footer -->
+          <div class="px-4 py-3 bg-slate-950/80 border-t border-slate-800 flex items-center gap-3">
+            <button id="btn-play-unfold" class="px-3 py-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-semibold text-xs flex items-center gap-1.5 transition shrink-0">
+              <svg id="icon-play" class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+              <svg id="icon-pause" class="w-3.5 h-3.5 hidden" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+              <span id="label-play">Unfold</span>
+            </button>
+            <div class="flex-1 flex flex-col gap-1">
+              <div class="flex justify-between text-[11px] font-medium">
+                <span class="text-slate-300">Unfold Progress (3D Roll &rarr; Flat 2D Sheet)</span>
+                <span id="val-unfold" class="font-mono text-cyan-400">0%</span>
+              </div>
+              <input id="slider-unfold" type="range" min="0" max="100" step="1" value="0" class="w-full canvas-dark-range" />
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT PANEL: 2D Embedding Space Canvas -->
+        <div class="bg-slate-900 rounded-2xl border border-slate-800 shadow-lg overflow-hidden flex flex-col">
+          <!-- Panel Header & Mode Switcher -->
+          <div class="px-4 py-3 bg-slate-900/95 border-b border-slate-800 flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-indigo-400"></span>
+                2D Embedding Space ($\mathbb{R}^2$)
+              </h3>
+              <p class="text-[11px] text-slate-400">Click any point to select A / B &bull; Compare non-linear vs. linear</p>
+            </div>
+            <div class="inline-flex rounded-lg bg-slate-800 p-0.5 border border-slate-700 text-xs font-medium">
+              <button data-mode="isomap" class="mode-btn px-2.5 py-1 rounded-md bg-indigo-600 text-white transition">Isomap</button>
+              <button data-mode="pca" class="mode-btn px-2.5 py-1 rounded-md text-slate-300 hover:text-white transition">Linear PCA</button>
+              <button data-mode="both" class="mode-btn px-2.5 py-1 rounded-md text-slate-300 hover:text-white transition">Side-by-Side</button>
+            </div>
+          </div>
+
+          <!-- 2D Canvas Container -->
+          <div class="relative w-full h-[360px] sm:h-[420px] select-none">
+            <canvas id="canvas-2d" class="w-full h-full block cursor-pointer"></canvas>
+
+            <!-- Disconnected Isomap Notice -->
+            <div id="isomap-warning" class="hidden absolute bottom-3 left-3 right-3 bg-amber-950/90 border border-amber-600/60 text-amber-200 text-xs rounded-lg px-3 py-2 backdrop-blur-sm">
+              <strong>Graph Disconnected:</strong> Some pairwise geodesic distances are $\infty$. Isomap can only embed the largest connected component; increase $k$ to connect the manifold.
+            </div>
+          </div>
+
+          <!-- Embedding Explanation Footer -->
+          <div class="px-4 py-3 bg-slate-950/80 border-t border-slate-800 flex items-center justify-between gap-3 text-xs">
+            <p id="embedding-caption" class="text-slate-300 leading-snug">
+              <strong class="text-cyan-400">Isomap (Geodesic Unfolding):</strong> Preserves pairwise shortest-path graph distances via Classical MDS, cleanly separating the color layers.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Controls Panel -->
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5 space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-100">
+          <div class="text-sm font-bold text-slate-800">Manifold &amp; Graph Hyperparameters</div>
+          <div class="flex flex-wrap items-center gap-2">
+            <button id="btn-pick-adjacent" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 transition">
+              Pick Adjacent-Layer Pair (A &amp; B)
+            </button>
+            <button id="btn-pick-random" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 transition">
+              Pick Random Pair
+            </button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          <!-- N Points -->
+          <div>
+            <div class="flex justify-between text-xs font-semibold mb-1.5">
+              <label for="slider-n" class="text-slate-700">Points ($N$)</label>
+              <span id="val-n" class="font-mono text-indigo-600">300</span>
+            </div>
+            <input id="slider-n" type="range" min="150" max="450" step="10" value="300" class="w-full" />
+            <div class="flex justify-between text-[10px] text-slate-400 mt-1"><span>150</span><span>450</span></div>
+          </div>
+
+          <!-- k-Nearest Neighbors -->
+          <div>
+            <div class="flex justify-between text-xs font-semibold mb-1.5">
+              <label for="slider-k" class="text-slate-700">Neighbors ($k$)</label>
+              <span id="val-k" class="font-mono text-indigo-600">8</span>
+            </div>
+            <input id="slider-k" type="range" min="3" max="20" step="1" value="8" class="w-full" />
+            <div class="flex justify-between text-[10px] text-slate-400 mt-1"><span>3 (Sparse)</span><span>20 (Dense)</span></div>
+          </div>
+
+          <!-- Noise Sigma -->
+          <div>
+            <div class="flex justify-between text-xs font-semibold mb-1.5">
+              <label for="slider-noise" class="text-slate-700">Noise ($\sigma$)</label>
+              <span id="val-noise" class="font-mono text-indigo-600">0.15</span>
+            </div>
+            <input id="slider-noise" type="range" min="0" max="1.5" step="0.05" value="0.15" class="w-full" />
+            <div class="flex justify-between text-[10px] text-slate-400 mt-1"><span>0.00 (Clean)</span><span>1.50 (Noisy)</span></div>
+          </div>
+
+          <!-- Spiral Turns -->
+          <div>
+            <div class="flex justify-between text-xs font-semibold mb-1.5">
+              <label for="slider-turns" class="text-slate-700">Spiral Turns</label>
+              <span id="val-turns" class="font-mono text-indigo-600">1.50</span>
+            </div>
+            <input id="slider-turns" type="range" min="1.0" max="2.5" step="0.1" value="1.5" class="w-full" />
+            <div class="flex justify-between text-[10px] text-slate-400 mt-1"><span>1.0</span><span>2.5</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- SECTION 2: HOW TO USE THIS VISUALIZER                                 -->
+    <!-- ===================================================================== -->
+    <section id="how-to-use" class="scroll-mt-20 space-y-5">
+      <div>
+        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-cyan-100 text-cyan-800 mb-2">
+          Quick Guide
+        </span>
+        <h2 class="text-2xl font-extrabold tracking-tight text-slate-900">How to Use This Visualizer</h2>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+          <div class="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-700 font-bold text-sm flex items-center justify-center mb-3">1</div>
+          <h3 class="font-bold text-slate-900 text-sm mb-1.5">Navigate 3D Ambient Space</h3>
+          <p class="text-xs text-slate-600 leading-relaxed">
+            <strong>Click and drag</strong> on the left 3D canvas to orbit around the Swiss Roll, and <strong>scroll</strong> to zoom in or out. Notice how the roll looks curved globally, yet any tiny zoomed-in patch resembles a flat 2D sheet. Use <em>Reset View</em> anytime.
+          </p>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+          <div class="w-8 h-8 rounded-lg bg-cyan-100 text-cyan-700 font-bold text-sm flex items-center justify-center mb-3">2</div>
+          <h3 class="font-bold text-slate-900 text-sm mb-1.5">Compare Euclidean vs. Geodesic</h3>
+          <p class="text-xs text-slate-600 leading-relaxed">
+            Click <strong>Pick Adjacent-Layer Pair</strong> (or click any two points directly) to place <span class="font-semibold text-amber-600">A</span> and <span class="font-semibold text-fuchsia-600">B</span>. Watch the <span class="text-rose-600 font-semibold">red dashed Euclidean shortcut</span> cut through empty space while the <span class="text-cyan-600 font-semibold">cyan geodesic path</span> winds along the surface, inflating $d_G / d_E$.
+          </p>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+          <div class="w-8 h-8 rounded-lg bg-rose-100 text-rose-700 font-bold text-sm flex items-center justify-center mb-3">3</div>
+          <h3 class="font-bold text-slate-900 text-sm mb-1.5">Test $k$-NN Failure Modes</h3>
+          <p class="text-xs text-slate-600 leading-relaxed">
+            Try <strong>Preset 3 (Low $k$)</strong> to see the neighborhood graph break into disconnected islands ($d_G = \infty$). Then try <strong>Preset 2 (High $k$ / Noise)</strong> to trigger <em>short-circuit edges</em> that jump across spiral layers and warp Isomap!
+          </p>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+          <div class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 font-bold text-sm flex items-center justify-center mb-3">4</div>
+          <h3 class="font-bold text-slate-900 text-sm mb-1.5">Watch PCA vs. Unfolding</h3>
+          <p class="text-xs text-slate-600 leading-relaxed">
+            Press <strong>Unfold</strong> (or drag the Unfold slider) to watch the 3D spiral physically unroll into $\mathbb{R}^2$. Switch the right panel to <strong>Side-by-Side</strong> to see how <em>Linear PCA</em> crushes the layers like a pancake while <em>Isomap</em> preserves the color spectrum.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- SECTION 3: MANIFOLD LEARNING STUDY GUIDE (FINAL EXAM REFERENCE)       -->
+    <!-- ===================================================================== -->
+    <section id="study-guide" class="scroll-mt-20 space-y-8">
+      <div class="border-b border-slate-200 pb-4">
+        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-800 text-white mb-2">
+          Conversation Summary &amp; Final Exam Reference
+        </span>
+        <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
+          Manifold Learning Study Guide
+        </h2>
+        <p class="text-sm text-slate-600 mt-1">
+          A layered breakdown from geometric intuition to formal definitions, core algorithm objectives, and real-world applications.
+        </p>
+      </div>
+
+      <!-- LEVEL 1 & LEVEL 2 Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Level 1: Core Intuition -->
+        <article class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
+          <div class="flex items-center gap-2.5">
+            <span class="px-2.5 py-1 rounded-lg bg-indigo-600 text-white text-xs font-bold">Level 1</span>
+            <h3 class="text-lg font-bold text-slate-900">Core Intuition: Zooming In &amp; Unfolding</h3>
+          </div>
+          <p class="text-sm text-slate-600 leading-relaxed">
+            A <strong>manifold</strong> is a geometric space that may be curved or tangled globally, yet looks flat and Euclidean if you zoom in close enough on any single point. <strong>Manifold learning</strong> is a family of non-linear dimensionality reduction techniques that discover and unfold these hidden low-dimensional surfaces inside high-dimensional data.
+          </p>
+          <ul class="space-y-2.5 text-sm text-slate-700">
+            <li class="flex gap-2.5">
+              <span class="text-indigo-500 font-bold">&bull;</span>
+              <span><strong>The Earth Analogy:</strong> Globally, Earth is a 3D sphere, but locally your neighborhood behaves like a flat 2D plane. Because it is locally flat everywhere, Earth's surface is a <strong>2D manifold</strong> embedded in 3D space.</span>
+            </li>
+            <li class="flex gap-2.5">
+              <span class="text-indigo-500 font-bold">&bull;</span>
+              <span><strong>Swiss Roll Distances:</strong> For two points $A$ and $B$ on adjacent spiral layers, the straight-line <em>Euclidean distance</em> cuts through empty 3D space and falsely makes them look close. The true <em>geodesic distance</em> travels strictly along the curved surface.</span>
+            </li>
+            <li class="flex gap-2.5">
+              <span class="text-indigo-500 font-bold">&bull;</span>
+              <span><strong>Why Linear PCA Fails:</strong> Principal Component Analysis finds orthogonal linear axes of maximum global variance. On a Swiss Roll, PCA can only project linearly—crushing the spiral flat like a pancake and smashing distinct layers right on top of each other.</span>
+            </li>
+          </ul>
+        </article>
+
+        <!-- Level 2: Formal Math & Manifold Hypothesis -->
+        <article class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
+          <div class="flex items-center gap-2.5">
+            <span class="px-2.5 py-1 rounded-lg bg-cyan-600 text-white text-xs font-bold">Level 2</span>
+            <h3 class="text-lg font-bold text-slate-900">Formal Math &amp; The Manifold Hypothesis</h3>
+          </div>
+          <p class="text-sm text-slate-600 leading-relaxed">
+            Formally, a $d$-dimensional <strong>topological manifold</strong> $\mathcal{M}$ is a space where every point has a local neighborhood that is <strong>homeomorphic</strong> (continuously deformable without tearing or gluing) to Euclidean space $\mathbb{R}^d$.
+          </p>
+          <div class="grid grid-cols-2 gap-3 text-xs">
+            <div class="bg-slate-50 border border-slate-200 rounded-xl p-3">
+              <div class="font-bold text-slate-900 mb-1">Ambient Dimension ($D$)</div>
+              <p class="text-slate-600">Number of raw observed features/coordinates in $\mathbb{R}^D$ (e.g., $D = 3$ for the Swiss Roll).</p>
+            </div>
+            <div class="bg-slate-50 border border-slate-200 rounded-xl p-3">
+              <div class="font-bold text-slate-900 mb-1">Intrinsic Dimension ($d$)</div>
+              <p class="text-slate-600">True degrees of freedom on the manifold (e.g., $d = 2$ for the Swiss Roll sheet).</p>
+            </div>
+          </div>
+
+          <!-- Parametric Swiss Roll Box -->
+          <div class="bg-slate-900 text-slate-100 rounded-xl p-3.5 text-center">
+            <div class="text-[11px] uppercase tracking-wider text-cyan-400 font-semibold mb-1">Parametric Swiss Roll ($\mathbb{R}^2 \to \mathbb{R}^3$)</div>
+            <div class="text-sm">
+              $$x = t \cos(t), \qquad y = h, \qquad z = t \sin(t)$$
+            </div>
+          </div>
+
+          <p class="text-sm text-slate-600 leading-relaxed">
+            <strong>The Manifold Hypothesis ($d \ll D$):</strong> Real-world high-dimensional data concentrates near a low-dimensional manifold. For example, a $64 \times 64$ grayscale head-pose photo lives in ambient space $D = 4{,}096$ pixels, yet valid head poses lie on a $d = 2$ intrinsic manifold parameterized by <em>yaw</em> and <em>pitch</em>. Manifold learning seeks a mapping $f: \mathbb{R}^D \to \mathbb{R}^d$ that recovers those latent coordinates.
+          </p>
+        </article>
+      </div>
+
+      <!-- LEVEL 3: Algorithms & Key Objectives -->
+      <article class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div class="flex items-center gap-2.5">
+            <span class="px-2.5 py-1 rounded-lg bg-violet-600 text-white text-xs font-bold">Level 3</span>
+            <h3 class="text-lg font-bold text-slate-900">Algorithms &amp; Mathematical Objectives</h3>
+          </div>
+          <span class="text-xs font-medium text-slate-500">Two-Step Blueprint: (1) Local $k$-NN Geometry &rarr; (2) Global Embedding Optimization</span>
+        </div>
+
+        <p class="text-sm text-slate-600 leading-relaxed">
+          Because Euclidean distance is unreliable globally on a curved surface, manifold learning algorithms follow a universal two-step blueprint: <strong>(1) Capture local geometry</strong> by assuming Euclidean distance is accurate within small $k$-nearest neighborhoods, and <strong>(2) Optimize a global low-dimensional embedding</strong> in $\mathbb{R}^d$ that preserves those local patches or global graph paths.
+        </p>
+
+        <!-- Comparison Table -->
+        <div class="overflow-x-auto rounded-xl border border-slate-200">
+          <table class="w-full text-left border-collapse text-xs sm:text-sm">
+            <thead>
+              <tr class="bg-slate-100 text-slate-800 border-b border-slate-200">
+                <th class="py-3 px-4 font-bold">Algorithm</th>
+                <th class="py-3 px-4 font-bold">Core Mechanism</th>
+                <th class="py-3 px-4 font-bold">What It Preserves</th>
+                <th class="py-3 px-4 font-bold">Best Used For</th>
+                <th class="py-3 px-4 font-bold">Key Pitfalls</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200 text-slate-600">
+              <tr class="hover:bg-slate-50/70">
+                <td class="py-3 px-4 font-bold text-slate-900">Isomap</td>
+                <td class="py-3 px-4">Builds $k$-NN graph, computes shortest-path geodesic distances (Dijkstra / Floyd-Warshall), then applies Classical MDS.</td>
+                <td class="py-3 px-4"><span class="font-semibold text-cyan-700">Global</span> geodesic distances</td>
+                <td class="py-3 px-4">Smooth, convex manifolds without holes (e.g., Swiss Roll).</td>
+                <td class="py-3 px-4">Topological short-circuits (large $k$/noise), disconnected graphs (small $k$), $O(N^3)$ MDS cost.</td>
+              </tr>
+              <tr class="hover:bg-slate-50/70">
+                <td class="py-3 px-4 font-bold text-slate-900">LLE</td>
+                <td class="py-3 px-4">Reconstructs each point as a weighted linear combination of its $k$-NN, then finds low-D coordinates preserving those exact weights.</td>
+                <td class="py-3 px-4"><span class="font-semibold text-indigo-700">Local</span> linear patch geometry</td>
+                <td class="py-3 px-4">Fast unfolding of locally smooth surfaces via sparse eigenproblems.</td>
+                <td class="py-3 px-4">Sensitive to noise, non-uniform sampling density, and poor $k$ choice.</td>
+              </tr>
+              <tr class="hover:bg-slate-50/70">
+                <td class="py-3 px-4 font-bold text-slate-900">t-SNE</td>
+                <td class="py-3 px-4">Converts pairwise distances to probabilities (Gaussian in $\mathbb{R}^D$, heavy-tailed Student-$t$ in $\mathbb{R}^d$) and minimizes KL divergence.</td>
+                <td class="py-3 px-4"><span class="font-semibold text-fuchsia-700">Local</span> cluster neighborhoods</td>
+                <td class="py-3 px-4">2D/3D cluster visualization of high-D embeddings.</td>
+                <td class="py-3 px-4">Distorts global inter-cluster distances &amp; cluster sizes; non-parametric; slow on huge $N$.</td>
+              </tr>
+              <tr class="hover:bg-slate-50/70">
+                <td class="py-3 px-4 font-bold text-slate-900">UMAP</td>
+                <td class="py-3 px-4">Models data as a fuzzy topological simplicial graph and optimizes a low-D layout via fuzzy cross-entropy.</td>
+                <td class="py-3 px-4"><span class="font-semibold text-emerald-700">Local</span> structure + better <span class="font-semibold text-emerald-700">global</span> topology</td>
+                <td class="py-3 px-4">Fast, scalable visualization &amp; general feature extraction.</td>
+                <td class="py-3 px-4">Sensitive to <code>n_neighbors</code> &amp; <code>min_dist</code>; stochastic initialization.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- LaTeX Equation Reference Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+          <!-- Card 1: Isomap Geodesic -->
+          <div class="bg-slate-50 rounded-xl border border-slate-200 p-4 flex flex-col justify-between">
+            <div>
+              <div class="text-xs font-bold uppercase tracking-wider text-cyan-700 mb-2">1. Isomap Geodesic Graph Distance</div>
+              <div class="text-xs text-slate-800">
+                $$d_G(i, j) = \min_{P \in \mathcal{P}(i, j)} \sum_{(u, v) \in P} \| \mathbf{x}_u - \mathbf{x}_v \|_2$$
+              </div>
+            </div>
+            <p class="text-[11px] text-slate-500 mt-2">
+              Shortest path over all paths $\mathcal{P}(i, j)$ in the $k$-NN graph, followed by Classical MDS on $D_G^{(2)}$.
+            </p>
+          </div>
+
+          <!-- Card 2: LLE Objective -->
+          <div class="bg-slate-50 rounded-xl border border-slate-200 p-4 flex flex-col justify-between">
+            <div>
+              <div class="text-xs font-bold uppercase tracking-wider text-indigo-700 mb-2">2. LLE Reconstruction &amp; Embedding</div>
+              <div class="text-xs text-slate-800">
+                $$\min_{W} \sum_{i=1}^{N} \left\| \mathbf{x}_i - \sum_{j \in \mathcal{N}(i)} W_{ij} \mathbf{x}_j \right\|_2^2$$
+                $$\min_{Y} \sum_{i=1}^{N} \left\| \mathbf{y}_i - \sum_{j \in \mathcal{N}(i)} W_{ij} \mathbf{y}_j \right\|_2^2$$
+              </div>
+            </div>
+            <p class="text-[11px] text-slate-500 mt-2">
+              Weights satisfy $\sum_j W_{ij} = 1$ (translation invariance); embedding $Y$ fixes $W$ and solves an eigenvector problem.
+            </p>
+          </div>
+
+          <!-- Card 3: t-SNE KL Objective -->
+          <div class="bg-slate-50 rounded-xl border border-slate-200 p-4 flex flex-col justify-between">
+            <div>
+              <div class="text-xs font-bold uppercase tracking-wider text-fuchsia-700 mb-2">3. t-SNE KL Divergence Objective</div>
+              <div class="text-xs text-slate-800">
+                $$C = \mathrm{KL}(P \,\|\, Q) = \sum_{i \neq j} p_{ij} \log \frac{p_{ij}}{q_{ij}}$$
+                $$q_{ij} = \frac{(1 + \|\mathbf{y}_i - \mathbf{y}_j\|_2^2)^{-1}}{\sum_{k \neq l} (1 + \|\mathbf{y}_k - \mathbf{y}_l\|_2^2)^{-1}}$$
+              </div>
+            </div>
+            <p class="text-[11px] text-slate-500 mt-2">
+              Heavy-tailed Student-$t$ kernel ($q_{ij}$) solves the crowding problem by letting moderately distant points spread out.
+            </p>
+          </div>
+        </div>
+      </article>
+
+      <!-- LEVEL 4: Real-World Applications -->
+      <article class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
+        <div class="flex items-center gap-2.5">
+          <span class="px-2.5 py-1 rounded-lg bg-emerald-600 text-white text-xs font-bold">Level 4</span>
+          <h3 class="text-lg font-bold text-slate-900">Real-World Applications</h3>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="rounded-xl border border-slate-200 p-4 bg-slate-50/50">
+            <h4 class="font-bold text-slate-900 text-sm mb-1">Single-Cell Genomics (scRNA-seq)</h4>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              Biologists measure expression levels of $D \approx 20{,}000$ genes per cell. UMAP and t-SNE project these cells onto 2D manifolds where distinct cell types form islands and stem-cell differentiation trajectories appear as continuous branching paths.
+            </p>
+          </div>
+
+          <div class="rounded-xl border border-slate-200 p-4 bg-slate-50/50">
+            <h4 class="font-bold text-slate-900 text-sm mb-1">Generative AI &amp; Latent Manifolds</h4>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              Autoencoders, VAEs, and diffusion models implicitly learn data manifolds. Encoding high-D images into a smooth low-D latent space enables straight-line latent interpolation that produces realistic visual transitions rather than blurry pixel averages.
+            </p>
+          </div>
+
+          <div class="rounded-xl border border-slate-200 p-4 bg-slate-50/50">
+            <h4 class="font-bold text-slate-900 text-sm mb-1">Computer Vision &amp; Robotics</h4>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              Human body poses and robotic arm states generate high-D video or sensor streams governed by a small set of joint angles. Learning the kinematic manifold allows models to estimate valid poses and reject physically impossible configurations.
+            </p>
+          </div>
+
+          <div class="rounded-xl border border-slate-200 p-4 bg-slate-50/50">
+            <h4 class="font-bold text-slate-900 text-sm mb-1">Anomaly Detection</h4>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              Normal operating data (e.g., network traffic or turbine telemetry) concentrates on a learned low-D manifold. Any new point lying far <em>off</em> the manifold yields a high reconstruction error and can be flagged as an anomaly.
+            </p>
+          </div>
+        </div>
+      </article>
+
+      <!-- EXAM QUICK-CHECK / COMMON PITFALLS BOX -->
+      <aside id="exam-pitfalls" class="scroll-mt-20 rounded-2xl bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-300/80 p-6 shadow-sm space-y-3">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-amber-500 text-white flex items-center justify-center font-bold shrink-0">!</div>
+          <div>
+            <h3 class="text-base sm:text-lg font-extrabold text-amber-950">Final Exam Quick-Check &amp; Common Pitfalls</h3>
+            <p class="text-xs text-amber-800">High-yield conceptual traps frequently tested on machine learning exams</p>
+          </div>
+        </div>
+        <ul class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1 text-xs sm:text-sm text-amber-950">
+          <li class="bg-white/80 rounded-xl p-3.5 border border-amber-200/80">
+            <strong>PCA vs. Non-Linear Unfolding:</strong> PCA maximizes global Euclidean variance and can only perform orthogonal linear projections. If a manifold is curved (like a Swiss Roll), PCA will flatten overlapping layers together; you need geodesic or local-neighborhood methods to unroll it.
+          </li>
+          <li class="bg-white/80 rounded-xl p-3.5 border border-amber-200/80">
+            <strong>Choosing $k$ in Isomap &amp; LLE:</strong> There is a critical topological tradeoff: if $k$ is <em>too small</em>, the graph fractures into disconnected components ($d_G = \infty$). If $k$ is <em>too large</em> (or noise $\sigma$ is high), edges <em>short-circuit</em> across adjacent manifold sheets, corrupting geodesic distances.
+          </li>
+          <li class="bg-white/80 rounded-xl p-3.5 border border-amber-200/80">
+            <strong>Interpreting t-SNE Plots:</strong> Never interpret the <em>relative sizes of clusters</em> or the <em>empty distances between well-separated clusters</em> in t-SNE as meaningful global geometry—t-SNE adapts local variance via perplexity and prioritizes local neighborhood preservation.
+          </li>
+          <li class="bg-white/80 rounded-xl p-3.5 border border-amber-200/80">
+            <strong>Out-of-Sample Extension:</strong> Classical Isomap, LLE, and t-SNE are <em>non-parametric</em>—they do not produce an explicit mapping function $f(\mathbf{x}_{\text{new}})$ for unseen test points (unlike PCA's projection matrix $W$ or a neural Autoencoder's encoder).
+          </li>
+        </ul>
+      </aside>
+    </section>
+  </main>
+
+  <footer class="border-t border-slate-200 bg-white mt-12 py-6">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-500">
+      <span>Manifold Learning &amp; Swiss Roll Unfolding Studio &bull; Self-Contained Interactive Study Artifact</span>
+      <span>Built with HTML5 Canvas, Tailwind CSS &amp; KaTeX</span>
+    </div>
+  </footer>
+
+  <!-- ======================================================================= -->
+  <!-- INTERACTIVE MATH, GRAPH, ISOMAP, PCA & 3D/2D RENDERING ENGINE           -->
+  <!-- ======================================================================= -->
+  <script>
+    (function () {
+      'use strict';
+
+      /* ---------------------------------------------------------------------
+       * 1. Seeded PRNG (Mulberry32) + Box-Muller Gaussian for Reproducibility
+       * ------------------------------------------------------------------- */
+      function createRNG(seed) {
+        let a = seed >>> 0;
+        return function () {
+          a |= 0;
+          a = (a + 0x6d2b79f5) | 0;
+          let t = Math.imul(a ^ (a >>> 15), 1 | a);
+          t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+          return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+        };
+      }
+
+      function gaussianRandom(rng) {
+        let u = 0, v = 0;
+        while (u === 0) u = rng();
+        while (v === 0) v = rng();
+        return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+      }
+
+      /* ---------------------------------------------------------------------
+       * 2. Perceptual Turbo/Spectral-like Color Gradient for parameter t
+       * ------------------------------------------------------------------- */
+      function colorForNormT(u) {
+        // Smooth perceptual gradient: deep indigo -> blue -> cyan -> emerald -> yellow -> orange -> rose
+        const stops = [
+          [0.00, [79, 70, 229]],   // indigo
+          [0.20, [37, 99, 235]],   // blue
+          [0.40, [6, 182, 212]],   // cyan
+          [0.60, [16, 185, 129]],  // emerald
+          [0.80, [250, 204, 21]],  // yellow
+          [1.00, [244, 63, 94]]    // rose
+        ];
+        const clamped = Math.max(0, Math.min(1, u));
+        for (let i = 0; i < stops.length - 1; i++) {
+          const [t0, c0] = stops[i];
+          const [t1, c1] = stops[i + 1];
+          if (clamped <= t1) {
+            const f = (clamped - t0) / (t1 - t0);
+            const r = Math.round(c0[0] + f * (c1[0] - c0[0]));
+            const g = Math.round(c0[1] + f * (c1[1] - c0[1]));
+            const b = Math.round(c0[2] + f * (c1[2] - c0[2]));
+            return `rgb(${r},${g},${b})`;
+          }
+        }
+        return 'rgb(244,63,94)';
+      }
+
+      /* ---------------------------------------------------------------------
+       * 3. Exact Swiss Roll Arc-Length & Physical Unrolling Geometry
+       * ------------------------------------------------------------------- */
+      function spiralArcLength(t) {
+        return 0.5 * (t * Math.sqrt(1 + t * t) + Math.log(t + Math.sqrt(1 + t * t)));
+      }
+
+      // Computes smoothly unrolled (x, z) lookup curve for progress p in [0, 1]
+      // At p = 0: exact Archimedean spiral (t cos t, t sin t)
+      // At p = 1: flat horizontal line along x-axis with exact arc length
+      function computeUnrollCurve(tMin, tMax, progress, steps = 160) {
+        const dt = (tMax - tMin) / steps;
+        const ts = new Float64Array(steps + 1);
+        const xs = new Float64Array(steps + 1);
+        const zs = new Float64Array(steps + 1);
+
+        const tMid = 0.5 * (tMin + tMax);
+        const phiMid = tMid + Math.atan(tMid);
+
+        // Integrate tangent angle scaled by (1 - progress)
+        let cx = 0, cz = 0;
+        ts[0] = tMin;
+        xs[0] = 0;
+        zs[0] = 0;
+
+        for (let i = 0; i < steps; i++) {
+          const t0 = tMin + i * dt;
+          const t1 = t0 + dt;
+          const tm = 0.5 * (t0 + t1);
+          const ds = Math.sqrt(1 + tm * tm) * dt;
+          const phi = tm + Math.atan(tm);
+          const angle = (1 - progress) * (phi - phiMid);
+          cx += Math.cos(angle) * ds;
+          cz += Math.sin(angle) * ds;
+          ts[i + 1] = t1;
+          xs[i + 1] = cx;
+          zs[i + 1] = cz;
+        }
+
+        // Center the curve around the origin
+        let meanX = 0, meanZ = 0;
+        for (let i = 0; i <= steps; i++) {
+          meanX += xs[i];
+          meanZ += zs[i];
+        }
+        meanX /= (steps + 1);
+        meanZ /= (steps + 1);
+        for (let i = 0; i <= steps; i++) {
+          xs[i] -= meanX;
+          zs[i] -= meanZ;
+        }
+
+        // Rotate so that at p = 0 it matches canonical orientation nicely
+        const rot = (1 - progress) * phiMid;
+        const cosR = Math.cos(rot);
+        const sinR = Math.sin(rot);
+        for (let i = 0; i <= steps; i++) {
+          const rx = xs[i] * cosR - zs[i] * sinR;
+          const rz = xs[i] * sinR + zs[i] * cosR;
+          xs[i] = rx;
+          zs[i] = rz;
+        }
+
+        return { tMin, tMax, dt, steps, xs, zs };
+      }
+
+      function sampleUnrollCurve(curve, t) {
+        const f = Math.max(0, Math.min(curve.steps, (t - curve.tMin) / curve.dt));
+        const idx = Math.min(curve.steps - 1, Math.floor(f));
+        const frac = f - idx;
+        return {
+          x: curve.xs[idx] + frac * (curve.xs[idx + 1] - curve.xs[idx]),
+          z: curve.zs[idx] + frac * (curve.zs[idx + 1] - curve.zs[idx])
+        };
+      }
+
+      /* ---------------------------------------------------------------------
+       * 4. Application State
+       * ------------------------------------------------------------------- */
+      const state = {
+        N: 300,
+        k: 8,
+        noise: 0.15,
+        turns: 1.5,
+        seed: 42,
+        unfold: 0, // 0 to 1
+        isPlaying: false,
+        playDir: 1,
+        showKNN: true,
+        embedMode: 'isomap', // 'isomap' | 'pca' | 'both'
+
+        // Camera state for 3D canvas
+        yaw: -0.62,
+        pitch: 0.42,
+        zoom: 1.0,
+        isDragging: false,
+        dragMoved: false,
+        lastMouseX: 0,
+        lastMouseY: 0,
+
+        // Data structures
+        points: [],       // { id, t, h, normT, color, x, y, z, nx, ny, nz, s, pcaX, pcaY, isoX, isoY, inMainComp }
+        edges: [],        // { u, v, w, isShortCircuit }
+        adj: [],          // adjacency list: [{ to, w, isShortCircuit }]
+        shortCircuitCount: 0,
+        numComponents: 1,
+        pointA: 0,
+        pointB: 1,
+        nextPick: 'A',    // alternates 'A' -> 'B' -> 'A'
+        path: [],         // array of point indices from A to B
+        pathHasShortCircuit: false,
+        euclidDist: 0,
+        geoDist: Infinity,
+
+        // Projected screen positions for hit-testing clicks
+        screen3D: [],     // { id, sx, sy, depth }
+        screen2D: []      // { id, sx, sy }
+      };
+
+      /* ---------------------------------------------------------------------
+       * 5. Generate Swiss Roll Dataset
+       * ------------------------------------------------------------------- */
+      function generateData() {
+        const rng = createRNG(state.seed);
+        const tMin = 1.5 * Math.PI;
+        const tMax = tMin + state.turns * 2 * Math.PI;
+        const heightSpan = 26; // wide enough so PC1 = height, PC2 = spiral axis (pancake crush!)
+
+        const sMin = spiralArcLength(tMin);
+        const sMax = spiralArcLength(tMax);
+        const sMid = 0.5 * (sMin + sMax);
+
+        const pts = [];
+        for (let i = 0; i < state.N; i++) {
+          // Slightly stratified t for even visual coverage + organic randomness
+          const normT = Math.min(1, Math.max(0, (i + 0.15 + 0.7 * rng()) / state.N));
+          const t = tMin + normT * (tMax - tMin);
+          const h = (rng() - 0.5) * heightSpan;
+
+          const nx = gaussianRandom(rng) * state.noise;
+          const ny = gaussianRandom(rng) * state.noise;
+          const nz = gaussianRandom(rng) * state.noise;
+
+          const x = t * Math.cos(t) + nx;
+          const y = h + ny;
+          const z = t * Math.sin(t) + nz;
+
+          pts.push({
+            id: i,
+            t,
+            h,
+            normT,
+            s: spiralArcLength(t) - sMid,
+            color: colorForNormT(normT),
+            x, y, z,
+            nx, ny, nz,
+            pcaX: 0, pcaY: 0,
+            isoX: 0, isoY: 0,
+            inMainComp: true
+          });
+        }
+
+        // Center 3D coordinates
+        let mx = 0, my = 0, mz = 0;
+        for (const p of pts) { mx += p.x; my += p.y; mz += p.z; }
+        mx /= pts.length; my /= pts.length; mz /= pts.length;
+        for (const p of pts) { p.x -= mx; p.y -= my; p.z -= mz; }
+
+        state.points = pts;
+        state.tMin = tMin;
+        state.tMax = tMax;
+      }
+
+      /* ---------------------------------------------------------------------
+       * 6. Build Symmetric k-NN Graph & Detect Components / Short-Circuits
+       * ------------------------------------------------------------------- */
+      function buildKNNGraph() {
+        const pts = state.points;
+        const N = pts.length;
+        const k = Math.min(state.k, N - 1);
+
+        const adjMap = Array.from({ length: N }, () => new Map());
+
+        // Compute k nearest neighbors for each point
+        const dists = new Float64Array(N);
+        const indices = new Int32Array(N);
+
+        for (let i = 0; i < N; i++) {
+          const pi = pts[i];
+          for (let j = 0; j < N; j++) {
+            const dx = pi.x - pts[j].x;
+            const dy = pi.y - pts[j].y;
+            const dz = pi.z - pts[j].z;
+            dists[j] = Math.sqrt(dx * dx + dy * dy + dz * dz);
+            indices[j] = j;
+          }
+          dists[i] = Infinity;
+
+          // Partial selection of k smallest distances
+          for (let m = 0; m < k; m++) {
+            let minIdx = m;
+            let minVal = dists[indices[m]];
+            for (let j = m + 1; j < N; j++) {
+              const val = dists[indices[j]];
+              if (val < minVal) {
+                minVal = val;
+                minIdx = j;
+              }
+            }
+            const tmp = indices[m];
+            indices[m] = indices[minIdx];
+            indices[minIdx] = tmp;
+
+            const nb = indices[m];
+            const w = dists[nb];
+            // Short-circuit heuristic: jumping > 3.2 rad (~half turn) along spiral parameter t
+            const isSC = Math.abs(pi.t - pts[nb].t) > 3.2;
+            if (!adjMap[i].has(nb)) {
+              adjMap[i].set(nb, { to: nb, w, isShortCircuit: isSC });
+            }
+            if (!adjMap[nb].has(i)) {
+              adjMap[nb].set(i, { to: i, w, isShortCircuit: isSC });
+            }
+          }
+        }
+
+        const adj = Array.from({ length: N }, (_, i) => Array.from(adjMap[i].values()));
+        const edges = [];
+        let scCount = 0;
+        for (let i = 0; i < N; i++) {
+          for (const e of adj[i]) {
+            if (i < e.to) {
+              edges.push({ u: i, v: e.to, w: e.w, isShortCircuit: e.isShortCircuit });
+              if (e.isShortCircuit) scCount++;
+            }
+          }
+        }
+
+        state.adj = adj;
+        state.edges = edges;
+        state.shortCircuitCount = scCount;
+
+        // Connected components via BFS
+        const visited = new Int32Array(N).fill(-1);
+        const compSizes = [];
+        let compId = 0;
+        for (let i = 0; i < N; i++) {
+          if (visited[i] !== -1) continue;
+          const queue = [i];
+          visited[i] = compId;
+          let head = 0;
+          while (head < queue.length) {
+            const u = queue[head++];
+            for (const e of adj[u]) {
+              if (visited[e.to] === -1) {
+                visited[e.to] = compId;
+                queue.push(e.to);
+              }
+            }
+          }
+          compSizes.push(queue.length);
+          compId++;
+        }
+
+        state.numComponents = compId;
+        let largestComp = 0;
+        for (let c = 1; c < compSizes.length; c++) {
+          if (compSizes[c] > compSizes[largestComp]) largestComp = c;
+        }
+        for (let i = 0; i < N; i++) {
+          pts[i].inMainComp = (visited[i] === largestComp);
+        }
+      }
+
+      /* ---------------------------------------------------------------------
+       * 7. Min-Heap Dijkstra Shortest Path (Single Source & All-Pairs)
+       * ------------------------------------------------------------------- */
+      function dijkstra(start, adj) {
+        const N = adj.length;
+        const dist = new Float64Array(N).fill(Infinity);
+        const prev = new Int32Array(N).fill(-1);
+        dist[start] = 0;
+
+        // Binary min-heap storing [node, dist]
+        const heapNode = [];
+        const heapDist = [];
+
+        function push(node, d) {
+          heapNode.push(node);
+          heapDist.push(d);
+          let i = heapNode.length - 1;
+          while (i > 0) {
+            const p = (i - 1) >> 1;
+            if (heapDist[p] <= heapDist[i]) break;
+            [heapNode[p], heapNode[i]] = [heapNode[i], heapNode[p]];
+            [heapDist[p], heapDist[i]] = [heapDist[i], heapDist[p]];
+            i = p;
+          }
+        }
+
+        function pop() {
+          const topNode = heapNode[0];
+          const topDist = heapDist[0];
+          const lastNode = heapNode.pop();
+          const lastDist = heapDist.pop();
+          if (heapNode.length > 0) {
+            heapNode[0] = lastNode;
+            heapDist[0] = lastDist;
+            let i = 0;
+            const len = heapNode.length;
+            while (true) {
+              let smallest = i;
+              const l = 2 * i + 1;
+              const r = 2 * i + 2;
+              if (l < len && heapDist[l] < heapDist[smallest]) smallest = l;
+              if (r < len && heapDist[r] < heapDist[smallest]) smallest = r;
+              if (smallest === i) break;
+              [heapNode[i], heapNode[smallest]] = [heapNode[smallest], heapNode[i]];
+              [heapDist[i], heapDist[smallest]] = [heapDist[smallest], heapDist[i]];
+              i = smallest;
+            }
+          }
+          return [topNode, topDist];
+        }
+
+        push(start, 0);
+        while (heapNode.length > 0) {
+          const [u, d] = pop();
+          if (d > dist[u]) continue;
+          const neighbors = adj[u];
+          for (let j = 0; j < neighbors.length; j++) {
+            const e = neighbors[j];
+            const nd = d + e.w;
+            if (nd < dist[e.to]) {
+              dist[e.to] = nd;
+              prev[e.to] = u;
+              push(e.to, nd);
+            }
+          }
+        }
+        return { dist, prev };
+      }
+
+      /* ---------------------------------------------------------------------
+       * 8. Exact Linear PCA (3x3 Symmetric Jacobi Eigen-Decomposition)
+       * ------------------------------------------------------------------- */
+      function computePCA() {
+        const pts = state.points;
+        const N = pts.length;
+        // 3x3 covariance matrix
+        const C = [
+          [0, 0, 0],
+          [0, 0, 0],
+          [0, 0, 0]
+        ];
+        for (const p of pts) {
+          C[0][0] += p.x * p.x; C[0][1] += p.x * p.y; C[0][2] += p.x * p.z;
+          C[1][1] += p.y * p.y; C[1][2] += p.y * p.z;
+          C[2][2] += p.z * p.z;
+        }
+        C[1][0] = C[0][1]; C[2][0] = C[0][2]; C[2][1] = C[1][2];
+        for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) C[i][j] /= N;
+
+        // Jacobi rotation for 3x3 symmetric matrix
+        const V = [
+          [1, 0, 0],
+          [0, 1, 0],
+          [0, 0, 1]
+        ];
+        for (let iter = 0; iter < 24; iter++) {
+          let p = 0, q = 1, maxOff = Math.abs(C[0][1]);
+          if (Math.abs(C[0][2]) > maxOff) { p = 0; q = 2; maxOff = Math.abs(C[0][2]); }
+          if (Math.abs(C[1][2]) > maxOff) { p = 1; q = 2; maxOff = Math.abs(C[1][2]); }
+          if (maxOff < 1e-10) break;
+
+          const tau = (C[q][q] - C[p][p]) / (2 * C[p][q]);
+          const t = tau >= 0 ? 1 / (tau + Math.sqrt(1 + tau * tau)) : -1 / (-tau + Math.sqrt(1 + tau * tau));
+          const c = 1 / Math.sqrt(1 + t * t);
+          const s = t * c;
+
+          const app = C[p][p], aqq = C[q][q], apq = C[p][q];
+          C[p][p] = c * c * app - 2 * s * c * apq + s * s * aqq;
+          C[q][q] = s * s * app + 2 * s * c * apq + c * c * aqq;
+          C[p][q] = C[q][p] = 0;
+
+          for (let r = 0; r < 3; r++) {
+            if (r !== p && r !== q) {
+              const arp = C[r][p], arq = C[r][q];
+              C[r][p] = C[p][r] = c * arp - s * arq;
+              C[r][q] = C[q][r] = s * arp + c * arq;
+            }
+          }
+          for (let r = 0; r < 3; r++) {
+            const vrp = V[r][p], vrq = V[r][q];
+            V[r][p] = c * vrp - s * vrq;
+            V[r][q] = s * vrp + c * vrq;
+          }
+        }
+
+        // Sort eigenvectors by descending eigenvalue
+        const order = [0, 1, 2].sort((a, b) => C[b][b] - C[a][a]);
+        const e1 = [V[0][order[0]], V[1][order[0]], V[2][order[0]]];
+        const e2 = [V[0][order[1]], V[1][order[1]], V[2][order[1]]];
+
+        // Consistent sign orientation for visual stability
+        if (e1[1] < 0) { e1[0] = -e1[0]; e1[1] = -e1[1]; e1[2] = -e1[2]; }
+        if (e2[0] < 0) { e2[0] = -e2[0]; e2[1] = -e2[1]; e2[2] = -e2[2]; }
+
+        for (const p of pts) {
+          p.pcaX = p.x * e2[0] + p.y * e2[1] + p.z * e2[2];
+          p.pcaY = p.x * e1[0] + p.y * e1[1] + p.z * e1[2];
+        }
+      }
+
+      /* ---------------------------------------------------------------------
+       * 9. Real Isomap Embedding (All-Pairs Dijkstra + Classical MDS)
+       * ------------------------------------------------------------------- */
+      function computeIsomap() {
+        const pts = state.points;
+        const adj = state.adj;
+        // Extract indices of the largest connected component
+        const compIdx = [];
+        for (let i = 0; i < pts.length; i++) {
+          if (pts[i].inMainComp) compIdx.push(i);
+        }
+        const M = compIdx.length;
+        if (M < 3) {
+          for (const p of pts) { p.isoX = p.s; p.isoY = p.h; }
+          return;
+        }
+
+        // Compute M x M squared geodesic distance matrix on main component
+        const D2 = new Float64Array(M * M);
+        const rowMean = new Float64Array(M);
+        let grandMean = 0;
+
+        for (let i = 0; i < M; i++) {
+          const { dist } = dijkstra(compIdx[i], adj);
+          let rSum = 0;
+          const offset = i * M;
+          for (let j = 0; j < M; j++) {
+            const d = dist[compIdx[j]];
+            const d2 = isFinite(d) ? d * d : 0;
+            D2[offset + j] = d2;
+            rSum += d2;
+          }
+          rowMean[i] = rSum / M;
+          grandMean += rowMean[i];
+        }
+        grandMean /= M;
+
+        // Double centering: B = -0.5 * H * D2 * H
+        const B = new Float64Array(M * M);
+        for (let i = 0; i < M; i++) {
+          const off = i * M;
+          const rmi = rowMean[i];
+          for (let j = 0; j < M; j++) {
+            B[off + j] = -0.5 * (D2[off + j] - rmi - rowMean[j] + grandMean);
+          }
+        }
+
+        // Power iteration for top 2 eigenvectors of symmetric B
+        function powerIter(mat, n, orthoVec) {
+          const v = new Float64Array(n);
+          const next = new Float64Array(n);
+          // Deterministic initial vector
+          for (let i = 0; i < n; i++) v[i] = Math.sin(i * 1.7 + (orthoVec ? 2.3 : 0.5));
+
+          let lambda = 0;
+          for (let iter = 0; iter < 35; iter++) {
+            if (orthoVec) {
+              let dot = 0;
+              for (let i = 0; i < n; i++) dot += v[i] * orthoVec[i];
+              for (let i = 0; i < n; i++) v[i] -= dot * orthoVec[i];
+            }
+            let norm = 0;
+            for (let i = 0; i < n; i++) norm += v[i] * v[i];
+            norm = Math.sqrt(norm) || 1;
+            for (let i = 0; i < n; i++) v[i] /= norm;
+
+            for (let i = 0; i < n; i++) {
+              let sum = 0;
+              const off = i * n;
+              for (let j = 0; j < n; j++) sum += mat[off + j] * v[j];
+              next[i] = sum;
+            }
+            if (orthoVec) {
+              let dot = 0;
+              for (let i = 0; i < n; i++) dot += next[i] * orthoVec[i];
+              for (let i = 0; i < n; i++) next[i] -= dot * orthoVec[i];
+            }
+            lambda = 0;
+            for (let i = 0; i < n; i++) lambda += v[i] * next[i];
+            let nNorm = 0;
+            for (let i = 0; i < n; i++) nNorm += next[i] * next[i];
+            nNorm = Math.sqrt(nNorm) || 1;
+            for (let i = 0; i < n; i++) v[i] = next[i] / nNorm;
+          }
+          return { vec: v, val: Math.max(0, lambda) };
+        }
+
+        const eig1 = powerIter(B, M, null);
+        const eig2 = powerIter(B, M, eig1.vec);
+
+        const s1 = Math.sqrt(eig1.val);
+        const s2 = Math.sqrt(eig2.val);
+
+        // Assign coordinates and align axes consistently with (s, h) for intuitive viewing
+        let corr1s = 0, corr2s = 0, corr1h = 0, corr2h = 0;
+        for (let i = 0; i < M; i++) {
+          const p = pts[compIdx[i]];
+          const c1 = eig1.vec[i] * s1;
+          const c2 = eig2.vec[i] * s2;
+          corr1s += c1 * p.s;
+          corr2s += c2 * p.s;
+          corr1h += c1 * p.h;
+          corr2h += c2 * p.h;
+        }
+
+        const swapAxes = Math.abs(corr2s) > Math.abs(corr1s);
+        const signX = (swapAxes ? corr2s : corr1s) >= 0 ? 1 : -1;
+        const signY = (swapAxes ? corr1h : corr2h) >= 0 ? 1 : -1;
+
+        for (const p of pts) {
+          p.isoX = NaN;
+          p.isoY = NaN;
+        }
+        for (let i = 0; i < M; i++) {
+          const p = pts[compIdx[i]];
+          const c1 = eig1.vec[i] * s1;
+          const c2 = eig2.vec[i] * s2;
+          p.isoX = signX * (swapAxes ? c2 : c1);
+          p.isoY = signY * (swapAxes ? c1 : c2);
+        }
+      }
+
+      /* ---------------------------------------------------------------------
+       * 10. Compute Shortest Path & Telemetry between Point A and Point B
+       * ------------------------------------------------------------------- */
+      function updatePathAndMetrics() {
+        const pts = state.points;
+        const a = pts[state.pointA];
+        const b = pts[state.pointB];
+        if (!a || !b) return;
+
+        const dx = a.x - b.x;
+        const dy = a.y - b.y;
+        const dz = a.z - b.z;
+        state.euclidDist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+        const { dist, prev } = dijkstra(state.pointA, state.adj);
+        state.geoDist = dist[state.pointB];
+
+        const path = [];
+        let pathSC = false;
+        if (isFinite(state.geoDist)) {
+          let curr = state.pointB;
+          while (curr !== -1) {
+            path.push(curr);
+            const p = prev[curr];
+            if (p !== -1 && Math.abs(pts[curr].t - pts[p].t) > 3.2) {
+              pathSC = true;
+            }
+            curr = p;
+          }
+          path.reverse();
+        }
+        state.path = path;
+        state.pathHasShortCircuit = pathSC;
+
+        // Update Telemetry DOM
+        document.getElementById('metric-euclidean').textContent = state.euclidDist.toFixed(2);
+        if (isFinite(state.geoDist)) {
+          document.getElementById('metric-geodesic').textContent = state.geoDist.toFixed(2);
+          const ratio = state.euclidDist > 1e-6 ? (state.geoDist / state.euclidDist) : 1;
+          document.getElementById('metric-ratio').textContent = ratio.toFixed(2) + '×';
+        } else {
+          document.getElementById('metric-geodesic').textContent = '∞ (Disconnected)';
+          document.getElementById('metric-ratio').textContent = '∞';
+        }
+
+        // Update Graph Status Badge
+        const badge = document.getElementById('graph-status-badge');
+        const scLegend = document.getElementById('legend-shortcircuit');
+        const isoWarn = document.getElementById('isomap-warning');
+
+        scLegend.classList.toggle('hidden', state.shortCircuitCount === 0);
+        isoWarn.classList.toggle('hidden', state.numComponents === 1 || state.embedMode === 'pca');
+
+        if (!isFinite(state.geoDist) || state.numComponents > 1) {
+          badge.className = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200 w-fit';
+          badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-500"></span> Disconnected (${state.numComponents} components)`;
+        } else if (state.shortCircuitCount > 0) {
+          badge.className = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-rose-50 text-rose-800 border border-rose-200 w-fit';
+          badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-rose-500"></span> Short-Circuit (${state.shortCircuitCount} bridged edges)`;
+        } else {
+          badge.className = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 w-fit';
+          badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500"></span> Healthy Manifold Graph`;
+        }
+      }
+
+      /* ---------------------------------------------------------------------
+       * 11. Smart Pair Pickers (Adjacent-Layer Pair & Random Pair)
+       * ------------------------------------------------------------------- */
+      function pickAdjacentLayerPair() {
+        const pts = state.points;
+        let bestA = 0, bestB = Math.min(1, pts.length - 1);
+        let bestScore = Infinity;
+
+        // Look for a pair on adjacent spiral turns (~2*pi apart in t) with tiny Euclidean distance
+        for (let i = 0; i < pts.length; i++) {
+          if (!pts[i].inMainComp && state.numComponents === 1) continue;
+          for (let j = i + 1; j < pts.length; j++) {
+            const dt = Math.abs(pts[i].t - pts[j].t);
+            if (dt > 5.0 && dt < 7.6) {
+              const dx = pts[i].x - pts[j].x;
+              const dy = pts[i].y - pts[j].y;
+              const dz = pts[i].z - pts[j].z;
+              const dE = Math.sqrt(dx * dx + dy * dy + dz * dz);
+              if (dE < bestScore) {
+                bestScore = dE;
+                bestA = i;
+                bestB = j;
+              }
+            }
+          }
+        }
+        state.pointA = bestA;
+        state.pointB = bestB;
+        updatePathAndMetrics();
+        renderAll();
+      }
+
+      function pickRandomPair() {
+        const N = state.points.length;
+        const a = Math.floor(Math.random() * N);
+        let b = Math.floor(Math.random() * N);
+        while (b === a) b = Math.floor(Math.random() * N);
+        state.pointA = a;
+        state.pointB = b;
+        updatePathAndMetrics();
+        renderAll();
+      }
+
+      /* ---------------------------------------------------------------------
+       * 12. 3D Canvas Renderer (with Smooth Physical Unrolling)
+       * ------------------------------------------------------------------- */
+      const canvas3D = document.getElementById('canvas-3d');
+      const ctx3D = canvas3D.getContext('2d');
+
+      function project3D(x, y, z, width, height) {
+        const cosY = Math.cos(state.yaw), sinY = Math.sin(state.yaw);
+        const cosP = Math.cos(state.pitch), sinP = Math.sin(state.pitch);
+
+        // Rotate around Y (yaw)
+        const x1 = x * cosY - z * sinY;
+        const z1 = x * sinY + z * cosY;
+        // Rotate around X (pitch)
+        const y2 = y * cosP - z1 * sinP;
+        const z2 = y * sinP + z1 * cosP;
+
+        const fov = 72;
+        const camDist = 66 / state.zoom;
+        const scale = (Math.min(width, height) * 0.92 * fov) / (camDist + z2 + 45);
+        return {
+          sx: width * 0.5 + x1 * scale,
+          sy: height * 0.5 - y2 * scale,
+          depth: z2,
+          scale
+        };
+      }
+
+      function render3D() {
+        const dpr = window.devicePixelRatio || 1;
+        const rect = canvas3D.getBoundingClientRect();
+        const w = Math.max(1, Math.floor(rect.width));
+        const h = Math.max(1, Math.floor(rect.height));
+        if (canvas3D.width !== w * dpr || canvas3D.height !== h * dpr) {
+          canvas3D.width = w * dpr;
+          canvas3D.height = h * dpr;
+        }
+        ctx3D.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+        // Background gradient
+        const bg = ctx3D.createRadialGradient(w * 0.5, h * 0.45, 20, w * 0.5, h * 0.5, Math.max(w, h) * 0.75);
+        bg.addColorStop(0, '#1e293b');
+        bg.addColorStop(1, '#090d16');
+        ctx3D.fillStyle = bg;
+        ctx3D.fillRect(0, 0, w, h);
+
+        const pts = state.points;
+        const N = pts.length;
+        const pUnfold = state.unfold;
+
+        // Compute current 3D positions (interpolating smoothly along physical unroll curve)
+        const curve = pUnfold > 0 ? computeUnrollCurve(state.tMin, state.tMax, pUnfold, 140) : null;
+        const curPos = new Array(N);
+        const projected = new Array(N);
+
+        for (let i = 0; i < N; i++) {
+          const p = pts[i];
+          let cx = p.x, cy = p.y, cz = p.z;
+          if (curve) {
+            const sample = sampleUnrollCurve(curve, p.t);
+            // Smoothly damp out-of-plane noise as sheet flattens to 2D
+            const noiseScale = 1 - 0.85 * pUnfold;
+            cx = sample.x + p.nx * noiseScale;
+            cy = p.h + p.ny * noiseScale;
+            cz = sample.z + p.nz * noiseScale;
+          }
+          curPos[i] = { x: cx, y: cy, z: cz };
+          const pr = project3D(cx, cy, cz, w, h);
+          projected[i] = { id: i, sx: pr.sx, sy: pr.sy, depth: pr.depth, scale: pr.scale };
+        }
+        state.screen3D = projected;
+
+        // Subtle 3D axes gizmo in bottom-right corner
+        drawAxesGizmo(ctx3D, w - 42, h - 42);
+
+        // Draw k-NN Graph Edges
+        if (state.showKNN) {
+          ctx3D.lineWidth = 0.85;
+          for (const e of state.edges) {
+            const pu = projected[e.u];
+            const pv = projected[e.v];
+            if (e.isShortCircuit) {
+              ctx3D.strokeStyle = 'rgba(251, 146, 60, 0.55)';
+              ctx3D.lineWidth = 1.25;
+            } else {
+              ctx3D.strokeStyle = 'rgba(148, 163, 184, 0.17)';
+              ctx3D.lineWidth = 0.8;
+            }
+            ctx3D.beginPath();
+            ctx3D.moveTo(pu.sx, pu.sy);
+            ctx3D.lineTo(pv.sx, pv.sy);
+            ctx3D.stroke();
+          }
+        }
+
+        // Draw Points sorted back-to-front (painter's algorithm)
+        const drawOrder = projected.slice().sort((a, b) => b.depth - a.depth);
+        for (let i = 0; i < drawOrder.length; i++) {
+          const pr = drawOrder[i];
+          const p = pts[pr.id];
+          const r = Math.max(2.2, Math.min(5.2, pr.scale * 0.045));
+          ctx3D.beginPath();
+          ctx3D.arc(pr.sx, pr.sy, r, 0, Math.PI * 2);
+          ctx3D.fillStyle = p.color;
+          ctx3D.fill();
+        }
+
+        // Draw Euclidean Shortcut Line (Red Dashed)
+        const pA = projected[state.pointA];
+        const pB = projected[state.pointB];
+        if (pA && pB) {
+          ctx3D.save();
+          ctx3D.strokeStyle = '#fb7185';
+          ctx3D.lineWidth = 2.4;
+          ctx3D.setLineDash([6, 5]);
+          ctx3D.beginPath();
+          ctx3D.moveTo(pA.sx, pA.sy);
+          ctx3D.lineTo(pB.sx, pB.sy);
+          ctx3D.stroke();
+          ctx3D.restore();
+        }
+
+        // Draw Geodesic Path (Bright Cyan Solid)
+        if (state.path.length > 1) {
+          ctx3D.save();
+          ctx3D.strokeStyle = state.pathHasShortCircuit ? '#fb923c' : '#22d3ee';
+          ctx3D.lineWidth = 3.2;
+          ctx3D.lineJoin = 'round';
+          ctx3D.lineCap = 'round';
+          ctx3D.shadowColor = state.pathHasShortCircuit ? 'rgba(251,146,60,0.6)' : 'rgba(34,211,238,0.65)';
+          ctx3D.shadowBlur = 8;
+          ctx3D.beginPath();
+          const first = projected[state.path[0]];
+          ctx3D.moveTo(first.sx, first.sy);
+          for (let i = 1; i < state.path.length; i++) {
+            const pt = projected[state.path[i]];
+            ctx3D.lineTo(pt.sx, pt.sy);
+          }
+          ctx3D.stroke();
+          ctx3D.restore();
+        }
+
+        // Highlight Point A & Point B Markers
+        if (pA) drawMarker(ctx3D, pA.sx, pA.sy, 'A', '#f59e0b', '#fef3c7');
+        if (pB) drawMarker(ctx3D, pB.sx, pB.sy, 'B', '#e879f9', '#fae8ff');
+      }
+
+      function drawAxesGizmo(ctx, cx, cy) {
+        const axes = [
+          { v: [1, 0, 0], label: 'x', color: '#f87171' },
+          { v: [0, 1, 0], label: 'y', color: '#4ade80' },
+          { v: [0, 0, 1], label: 'z', color: '#60a5fa' }
+        ];
+        const cosY = Math.cos(state.yaw), sinY = Math.sin(state.yaw);
+        const cosP = Math.cos(state.pitch), sinP = Math.sin(state.pitch);
+        const len = 20;
+
+        ctx.save();
+        ctx.font = '600 10px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        for (const ax of axes) {
+          const [x, y, z] = ax.v;
+          const x1 = x * cosY - z * sinY;
+          const z1 = x * sinY + z * cosY;
+          const y2 = y * cosP - z1 * sinP;
+
+          ctx.strokeStyle = ax.color;
+          ctx.lineWidth = 1.6;
+          ctx.beginPath();
+          ctx.moveTo(cx, cy);
+          ctx.lineTo(cx + x1 * len, cy - y2 * len);
+          ctx.stroke();
+
+          ctx.fillStyle = ax.color;
+          ctx.fillText(ax.label, cx + x1 * (len + 8), cy - y2 * (len + 8));
+        }
+        ctx.restore();
+      }
+
+      function drawMarker(ctx, x, y, label, fill, stroke) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(x, y, 9.5, 0, Math.PI * 2);
+        ctx.fillStyle = fill;
+        ctx.fill();
+        ctx.lineWidth = 2.2;
+        ctx.strokeStyle = stroke;
+        ctx.stroke();
+
+        ctx.fillStyle = '#0f172a';
+        ctx.font = '800 10px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(label, x, y + 0.5);
+        ctx.restore();
+      }
+
+      /* ---------------------------------------------------------------------
+       * 13. 2D Embedding Canvas Renderer (Isomap / PCA / Side-by-Side)
+       * ------------------------------------------------------------------- */
+      const canvas2D = document.getElementById('canvas-2d');
+      const ctx2D = canvas2D.getContext('2d');
+
+      function draw2DPlot(ctx, pts, xKey, yKey, rect, title, subtitle) {
+        const { x, y, w, h } = rect;
+        const pad = 34;
+
+        // Subtle grid
+        ctx.save();
+        ctx.strokeStyle = 'rgba(148, 163, 184, 0.1)';
+        ctx.lineWidth = 1;
+        const gx = 4, gy = 4;
+        for (let i = 0; i <= gx; i++) {
+          const px = x + pad + ((w - 2 * pad) * i) / gx;
+          ctx.beginPath(); ctx.moveTo(px, y + pad); ctx.lineTo(px, y + h - pad); ctx.stroke();
+        }
+        for (let j = 0; j <= gy; j++) {
+          const py = y + pad + ((h - 2 * pad) * j) / gy;
+          ctx.beginPath(); ctx.moveTo(x + pad, py); ctx.lineTo(x + w - pad, py); ctx.stroke();
+        }
+
+        // Title inside plot
+        ctx.fillStyle = '#e2e8f0';
+        ctx.font = '700 12px Inter, sans-serif';
+        ctx.fillText(title, x + 14, y + 20);
+        if (subtitle) {
+          ctx.fillStyle = '#94a3b8';
+          ctx.font = '500 10px Inter, sans-serif';
+          ctx.fillText(subtitle, x + 14, y + h - 10);
+        }
+
+        // Compute bounds
+        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+        for (const p of pts) {
+          const vx = p[xKey], vy = p[yKey];
+          if (!isFinite(vx) || !isFinite(vy)) continue;
+          if (vx < minX) minX = vx;
+          if (vx > maxX) maxX = vx;
+          if (vy < minY) minY = vy;
+          if (vy > maxY) maxY = vy;
+        }
+        if (!isFinite(minX)) { ctx.restore(); return []; }
+
+        const spanX = Math.max(1e-5, maxX - minX);
+        const spanY = Math.max(1e-5, maxY - minY);
+
+        // Map to canvas coordinates with slight padding
+        const mapX = (val) => x + pad + ((val - minX) / spanX) * (w - 2 * pad);
+        const mapY = (val) => y + h - pad - ((val - minY) / spanY) * (h - 2 * pad);
+
+        const screenPts = new Array(pts.length);
+        for (let i = 0; i < pts.length; i++) {
+          const vx = pts[i][xKey], vy = pts[i][yKey];
+          if (isFinite(vx) && isFinite(vy)) {
+            screenPts[i] = { id: i, sx: mapX(vx), sy: mapY(vy) };
+          } else {
+            screenPts[i] = null;
+          }
+        }
+
+        // Draw points
+        for (let i = 0; i < pts.length; i++) {
+          const sp = screenPts[i];
+          if (!sp) continue;
+          ctx.beginPath();
+          ctx.arc(sp.sx, sp.sy, 3.4, 0, Math.PI * 2);
+          ctx.fillStyle = pts[i].color;
+          ctx.fill();
+        }
+
+        // Draw Euclidean line in 2D embedding
+        const spA = screenPts[state.pointA];
+        const spB = screenPts[state.pointB];
+        if (spA && spB) {
+          ctx.save();
+          ctx.strokeStyle = 'rgba(251, 113, 133, 0.85)';
+          ctx.lineWidth = 2;
+          ctx.setLineDash([5, 4]);
+          ctx.beginPath();
+          ctx.moveTo(spA.sx, spA.sy);
+          ctx.lineTo(spB.sx, spB.sy);
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        // Draw Geodesic path in 2D embedding
+        if (state.path.length > 1) {
+          ctx.save();
+          ctx.strokeStyle = state.pathHasShortCircuit ? '#fb923c' : '#22d3ee';
+          ctx.lineWidth = 2.6;
+          ctx.lineJoin = 'round';
+          ctx.beginPath();
+          let started = false;
+          for (const idx of state.path) {
+            const sp = screenPts[idx];
+            if (!sp) continue;
+            if (!started) { ctx.moveTo(sp.sx, sp.sy); started = true; }
+            else ctx.lineTo(sp.sx, sp.sy);
+          }
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        // Markers A & B
+        if (spA) drawMarker(ctx, spA.sx, spA.sy, 'A', '#f59e0b', '#fef3c7');
+        if (spB) drawMarker(ctx, spB.sx, spB.sy, 'B', '#e879f9', '#fae8ff');
+
+        ctx.restore();
+        return screenPts;
+      }
+
+      function render2D() {
+        const dpr = window.devicePixelRatio || 1;
+        const rect = canvas2D.getBoundingClientRect();
+        const w = Math.max(1, Math.floor(rect.width));
+        const h = Math.max(1, Math.floor(rect.height));
+        if (canvas2D.width !== w * dpr || canvas2D.height !== h * dpr) {
+          canvas2D.width = w * dpr;
+          canvas2D.height = h * dpr;
+        }
+        ctx2D.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+        ctx2D.fillStyle = '#0f172a';
+        ctx2D.fillRect(0, 0, w, h);
+
+        const hitTargets = [];
+        if (state.embedMode === 'isomap') {
+          const pts2d = draw2DPlot(ctx2D, state.points, 'isoX', 'isoY', { x: 0, y: 0, w, h },
+            'Manifold Unfolding (Isomap)', 'Intrinsic 2D geodesic coordinates (layers cleanly separated)');
+          pts2d.forEach(p => { if (p) hitTargets.push(p); });
+        } else if (state.embedMode === 'pca') {
+          const pts2d = draw2DPlot(ctx2D, state.points, 'pcaX', 'pcaY', { x: 0, y: 0, w, h },
+            'Linear PCA Projection (PC1 vs PC2)', 'Linear projection crushes spiral layers on top of each other');
+          pts2d.forEach(p => { if (p) hitTargets.push(p); });
+        } else {
+          // Side-by-side
+          const half = Math.floor(w / 2);
+          const leftPts = draw2DPlot(ctx2D, state.points, 'isoX', 'isoY', { x: 0, y: 0, w: half, h },
+            'Isomap Unfolding', 'Preserves geodesic paths');
+          // Divider line
+          ctx2D.strokeStyle = '#334155';
+          ctx2D.lineWidth = 1;
+          ctx2D.beginPath(); ctx2D.moveTo(half, 0); ctx2D.lineTo(half, h); ctx2D.stroke();
+
+          const rightPts = draw2DPlot(ctx2D, state.points, 'pcaX', 'pcaY', { x: half, y: 0, w: w - half, h },
+            'Linear PCA', 'Overlaps distinct layers');
+          leftPts.forEach(p => { if (p) hitTargets.push(p); });
+          rightPts.forEach(p => { if (p) hitTargets.push(p); });
+        }
+        state.screen2D = hitTargets;
+      }
+
+      function renderAll() {
+        render3D();
+        render2D();
+      }
+
+      /* ---------------------------------------------------------------------
+       * 14. Full Rebuild Pipeline
+       * ------------------------------------------------------------------- */
+      function rebuildAll(keepPair = false) {
+        generateData();
+        buildKNNGraph();
+        computePCA();
+        computeIsomap();
+        if (!keepPair || state.pointA >= state.N || state.pointB >= state.N) {
+          pickAdjacentLayerPair();
+        } else {
+          updatePathAndMetrics();
+          renderAll();
+        }
+      }
+
+      /* ---------------------------------------------------------------------
+       * 15. Interactive Mouse, Touch & Click Handlers
+       * ------------------------------------------------------------------- */
+      function selectNearestPoint(clickX, clickY, screenList) {
+        let bestId = -1;
+        let bestDist = 20; // 20px hit radius
+        for (let i = 0; i < screenList.length; i++) {
+          const sp = screenList[i];
+          if (!sp) continue;
+          const d = Math.hypot(sp.sx - clickX, sp.sy - clickY);
+          if (d < bestDist) {
+            bestDist = d;
+            bestId = sp.id;
+          }
+        }
+        if (bestId !== -1) {
+          if (state.nextPick === 'A') {
+            state.pointA = bestId;
+            state.nextPick = 'B';
+            document.getElementById('next-pick-label').textContent = 'Next click: Point B';
+            document.getElementById('next-pick-label').className = 'text-fuchsia-300 font-medium';
+          } else {
+            state.pointB = bestId;
+            state.nextPick = 'A';
+            document.getElementById('next-pick-label').textContent = 'Next click: Point A';
+            document.getElementById('next-pick-label').className = 'text-amber-300 font-medium';
+          }
+          updatePathAndMetrics();
+          renderAll();
+        }
+      }
+
+      // 3D Canvas Drag & Click
+      canvas3D.addEventListener('pointerdown', (e) => {
+        state.isDragging = true;
+        state.dragMoved = false;
+        state.lastMouseX = e.clientX;
+        state.lastMouseY = e.clientY;
+        canvas3D.setPointerCapture(e.pointerId);
+      });
+
+      canvas3D.addEventListener('pointermove', (e) => {
+        if (!state.isDragging) return;
+        const dx = e.clientX - state.lastMouseX;
+        const dy = e.clientY - state.lastMouseY;
+        if (Math.hypot(dx, dy) > 3) state.dragMoved = true;
+        state.yaw += dx * 0.008;
+        state.pitch = Math.max(-1.45, Math.min(1.45, state.pitch + dy * 0.008));
+        state.lastMouseX = e.clientX;
+        state.lastMouseY = e.clientY;
+        render3D();
+      });
+
+      canvas3D.addEventListener('pointerup', (e) => {
+        if (!state.isDragging) return;
+        state.isDragging = false;
+        if (!state.dragMoved) {
+          const rect = canvas3D.getBoundingClientRect();
+          selectNearestPoint(e.clientX - rect.left, e.clientY - rect.top, state.screen3D);
+        }
+      });
+
+      canvas3D.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const factor = e.deltaY > 0 ? 0.92 : 1.08;
+        state.zoom = Math.max(0.45, Math.min(2.6, state.zoom * factor));
+        render3D();
+      }, { passive: false });
+
+      // 2D Canvas Click
+      canvas2D.addEventListener('click', (e) => {
+        const rect = canvas2D.getBoundingClientRect();
+        selectNearestPoint(e.clientX - rect.left, e.clientY - rect.top, state.screen2D);
+      });
+
+      /* ---------------------------------------------------------------------
+       * 16. UI Controls, Presets & Animation Loop
+       * ------------------------------------------------------------------- */
+      const sliderN = document.getElementById('slider-n');
+      const sliderK = document.getElementById('slider-k');
+      const sliderNoise = document.getElementById('slider-noise');
+      const sliderTurns = document.getElementById('slider-turns');
+      const sliderUnfold = document.getElementById('slider-unfold');
+
+      function syncSlidersToUI() {
+        sliderN.value = state.N;
+        document.getElementById('val-n').textContent = state.N;
+        sliderK.value = state.k;
+        document.getElementById('val-k').textContent = state.k;
+        sliderNoise.value = state.noise;
+        document.getElementById('val-noise').textContent = state.noise.toFixed(2);
+        sliderTurns.value = state.turns;
+        document.getElementById('val-turns').textContent = state.turns.toFixed(2);
+      }
+
+      sliderN.addEventListener('input', () => {
+        state.N = parseInt(sliderN.value, 10);
+        document.getElementById('val-n').textContent = state.N;
+        rebuildAll(false);
+      });
+
+      sliderK.addEventListener('input', () => {
+        state.k = parseInt(sliderK.value, 10);
+        document.getElementById('val-k').textContent = state.k;
+        buildKNNGraph();
+        computeIsomap();
+        updatePathAndMetrics();
+        renderAll();
+      });
+
+      sliderNoise.addEventListener('input', () => {
+        state.noise = parseFloat(sliderNoise.value);
+        document.getElementById('val-noise').textContent = state.noise.toFixed(2);
+        rebuildAll(true);
+      });
+
+      sliderTurns.addEventListener('input', () => {
+        state.turns = parseFloat(sliderTurns.value);
+        document.getElementById('val-turns').textContent = state.turns.toFixed(2);
+        rebuildAll(false);
+      });
+
+      sliderUnfold.addEventListener('input', () => {
+        state.unfold = parseInt(sliderUnfold.value, 10) / 100;
+        document.getElementById('val-unfold').textContent = `${Math.round(state.unfold * 100)}%`;
+        render3D();
+      });
+
+      document.getElementById('toggle-knn').addEventListener('change', (e) => {
+        state.showKNN = e.target.checked;
+        render3D();
+      });
+
+      document.getElementById('btn-reset-view').addEventListener('click', () => {
+        state.yaw = -0.62;
+        state.pitch = 0.42;
+        state.zoom = 1.0;
+        render3D();
+      });
+
+      document.getElementById('btn-pick-adjacent').addEventListener('click', pickAdjacentLayerPair);
+      document.getElementById('btn-pick-random').addEventListener('click', pickRandomPair);
+
+      // Embedding mode buttons
+      const captions = {
+        isomap: '<strong class="text-cyan-400">Isomap (Geodesic Unfolding):</strong> Preserves pairwise shortest-path graph distances via Classical MDS, cleanly separating the color layers.',
+        pca: '<strong class="text-rose-400">Linear PCA Projection:</strong> Projects onto the top 2 global variance axes, crushing the 3D spiral flat like a pancake so distinct layers overlap.',
+        both: '<strong class="text-indigo-400">Side-by-Side Comparison:</strong> Contrast how Isomap (left) unrolls the manifold faithfully while Linear PCA (right) collapses adjacent layers together.'
+      };
+      document.querySelectorAll('.mode-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          state.embedMode = btn.dataset.mode;
+          document.querySelectorAll('.mode-btn').forEach((b) => {
+            b.className = 'mode-btn px-2.5 py-1 rounded-md text-slate-300 hover:text-white transition';
+          });
+          btn.className = 'mode-btn px-2.5 py-1 rounded-md bg-indigo-600 text-white transition';
+          document.getElementById('embedding-caption').innerHTML = captions[state.embedMode];
+          document.getElementById('isomap-warning').classList.toggle('hidden', state.numComponents === 1 || state.embedMode === 'pca');
+          render2D();
+        });
+      });
+
+      // Study Presets
+      document.getElementById('preset-classic').addEventListener('click', () => {
+        state.N = 300; state.k = 8; state.noise = 0.15; state.turns = 1.5;
+        state.unfold = 0; sliderUnfold.value = 0; document.getElementById('val-unfold').textContent = '0%';
+        syncSlidersToUI();
+        rebuildAll(false);
+      });
+
+      document.getElementById('preset-shortcircuit').addEventListener('click', () => {
+        state.N = 300; state.k = 17; state.noise = 1.15; state.turns = 1.7;
+        state.showKNN = true; document.getElementById('toggle-knn').checked = true;
+        syncSlidersToUI();
+        rebuildAll(false);
+      });
+
+      document.getElementById('preset-disconnected').addEventListener('click', () => {
+        state.N = 220; state.k = 3; state.noise = 0.10; state.turns = 1.5;
+        state.showKNN = true; document.getElementById('toggle-knn').checked = true;
+        syncSlidersToUI();
+        rebuildAll(false);
+      });
+
+      // Play/Pause Smooth Unfolding Animation
+      const btnPlay = document.getElementById('btn-play-unfold');
+      const iconPlay = document.getElementById('icon-play');
+      const iconPause = document.getElementById('icon-pause');
+      const labelPlay = document.getElementById('label-play');
+
+      function setPlayUI(playing) {
+        state.isPlaying = playing;
+        iconPlay.classList.toggle('hidden', playing);
+        iconPause.classList.toggle('hidden', !playing);
+        labelPlay.textContent = playing ? 'Pause' : 'Unfold';
+      }
+
+      btnPlay.addEventListener('click', () => {
+        if (!state.isPlaying) {
+          if (state.unfold >= 0.99) state.playDir = -1;
+          else if (state.unfold <= 0.01) state.playDir = 1;
+          setPlayUI(true);
+          requestAnimationFrame(animateUnfold);
+        } else {
+          setPlayUI(false);
+        }
+      });
+
+      let lastTime = 0;
+      function animateUnfold(ts) {
+        if (!state.isPlaying) { lastTime = 0; return; }
+        if (!lastTime) lastTime = ts;
+        const dt = Math.min(0.05, (ts - lastTime) / 1000);
+        lastTime = ts;
+
+        state.unfold += state.playDir * dt * 0.42;
+        if (state.unfold >= 1) {
+          state.unfold = 1;
+          setPlayUI(false);
+        } else if (state.unfold <= 0) {
+          state.unfold = 0;
+          setPlayUI(false);
+        }
+
+        const pct = Math.round(state.unfold * 100);
+        sliderUnfold.value = pct;
+        document.getElementById('val-unfold').textContent = `${pct}%`;
+        render3D();
+
+        if (state.isPlaying) requestAnimationFrame(animateUnfold);
+      }
+
+      // Responsive Resize Handling
+      window.addEventListener('resize', renderAll);
+
+      /* ---------------------------------------------------------------------
+       * 17. Boot & Guaranteed KaTeX Rendering
+       * ------------------------------------------------------------------- */
+      window.addEventListener('load', () => {
+        syncSlidersToUI();
+        rebuildAll(false);
+
+        if (typeof renderMathInElement === 'function') {
+          renderMathInElement(document.body, {
+            delimiters: [
+              { left: '$$', right: '$$', display: true },
+              { left: '$', right: '$', display: false }
+            ],
+            throwOnError: false
+          });
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
