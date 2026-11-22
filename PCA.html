@@ -1,1 +1,1455 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PCA Visual Lab &amp; Final Exam Study Guide</title>
 
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+        },
+      },
+    };
+  </script>
+
+  <!-- KaTeX CSS & JS via CDN for crisp LaTeX rendering -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" />
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+
+  <style>
+    /* Subtle custom slider styling for cross-browser polish */
+    input[type="range"] {
+      accent-color: #4f46e5;
+    }
+    .katex-display {
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding: 0.4rem 0;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased selection:bg-indigo-100 selection:text-indigo-900">
+
+  <!-- Sticky Top Navigation Bar -->
+  <header class="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-200 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between py-3 gap-2">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold text-sm shadow-sm">
+            PCA
+          </div>
+          <div>
+            <h1 class="text-base sm:text-lg font-bold text-slate-900 leading-tight">
+              Principal Component Analysis
+            </h1>
+            <p class="text-xs text-slate-500 font-medium">Interactive Visual Lab &amp; Final Exam Study Guide</p>
+          </div>
+        </div>
+        <nav class="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1 md:pb-0 text-xs sm:text-sm font-medium">
+          <a href="#sandbox" class="whitespace-nowrap px-3 py-1.5 rounded-lg text-slate-600 hover:text-indigo-700 hover:bg-indigo-50 transition">1. 2D Sandbox</a>
+          <a href="#scree-explorer" class="whitespace-nowrap px-3 py-1.5 rounded-lg text-slate-600 hover:text-indigo-700 hover:bg-indigo-50 transition">2. Scree &amp; $k$</a>
+          <a href="#intuition-math" class="whitespace-nowrap px-3 py-1.5 rounded-lg text-slate-600 hover:text-indigo-700 hover:bg-indigo-50 transition">3. Intuition &amp; Math</a>
+          <a href="#svd-compute" class="whitespace-nowrap px-3 py-1.5 rounded-lg text-slate-600 hover:text-indigo-700 hover:bg-indigo-50 transition">4. SVD &amp; Compute</a>
+          <a href="#choosing-k" class="whitespace-nowrap px-3 py-1.5 rounded-lg text-slate-600 hover:text-indigo-700 hover:bg-indigo-50 transition">5. Choosing $k$ &amp; Pitfalls</a>
+        </nav>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-14">
+
+    <!-- Hero / Quick Exam Cheat Banner -->
+    <section class="bg-gradient-to-br from-indigo-600 via-indigo-700 to-slate-900 rounded-2xl p-6 sm:p-8 text-white shadow-lg">
+      <div class="max-w-3xl">
+        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-400/20 text-indigo-100 border border-indigo-300/30 mb-3">
+          Machine Learning Final Exam Prep
+        </span>
+        <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight mb-2">
+          Master PCA from Geometric Intuition to SVD &amp; Dimensionality Selection
+        </h2>
+        <p class="text-indigo-100 text-sm sm:text-base leading-relaxed">
+          Use the interactive sandboxes below to build deep geometric intuition for variance maximization, reconstruction error, feature scaling, and outlier sensitivity—then review the complete first-principles derivations, SVD numerical tricks, and exam pitfalls.
+        </p>
+      </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- SECTION 1: INTERACTIVE 2D PCA SANDBOX                                 -->
+    <!-- ===================================================================== -->
+    <section id="sandbox" class="scroll-mt-24 space-y-5">
+      <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-2">
+        <div>
+          <span class="text-xs font-bold uppercase tracking-wider text-indigo-600">Interactive Lab 1</span>
+          <h2 class="text-2xl font-bold text-slate-900">2D PCA Sandbox</h2>
+          <p class="text-sm text-slate-600">Rotate the projection axis, inspect residuals, test scaling, and see how outliers hijack PC1.</p>
+        </div>
+        <button id="toggleHowTo1" type="button" class="self-start sm:self-auto text-xs font-semibold px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 transition shadow-sm">
+          Hide Guide
+        </button>
+      </div>
+
+      <!-- How to Use Box (Collapsible) -->
+      <div id="howToBox1" class="bg-indigo-50/70 border border-indigo-200 rounded-xl p-4 sm:p-5">
+        <h3 class="text-sm font-bold text-indigo-900 mb-2 flex items-center gap-2">
+          <svg class="w-4 h-4 text-indigo-600 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          How to Use This Interactive
+        </h3>
+        <ol class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 text-xs sm:text-sm text-slate-700 list-decimal list-inside">
+          <li><strong>Rotate Axis ($\theta$):</strong> Drag the angle slider to rotate candidate axis $w$ and watch <strong>Projected Variance</strong> ($w^T \Sigma w$) peak at the exact angle where <strong>Reconstruction Error</strong> (red lines) hits its minimum.</li>
+          <li><strong>Snap to Optimal PC1:</strong> Click the snap button to align $w$ with the true top eigenvector $v_1$ of $\Sigma$.</li>
+          <li><strong>Click to Add Points &amp; Outliers:</strong> Click/tap anywhere on the plot to add custom points, or click <strong>Add Extreme Outlier</strong> to watch squared distances let one point hijack PC1.</li>
+          <li><strong>Test Presets &amp; Scaling:</strong> Try <em>Unstandardized Scales</em> and toggle <strong>Standardize (Z-Score)</strong> to see why mixed units break unstandardized PCA.</li>
+        </ol>
+      </div>
+
+      <!-- Sandbox Main Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+        <!-- Left Column: Canvas + Controls -->
+        <div class="lg:col-span-7 bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5 space-y-4">
+          <!-- Preset & Action Toolbar -->
+          <div class="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-100">
+            <div class="flex flex-wrap items-center gap-1.5">
+              <span class="text-xs font-semibold text-slate-500 mr-1">Preset:</span>
+              <button data-preset="correlated" class="preset-btn px-2.5 py-1.5 rounded-lg text-xs font-semibold transition bg-indigo-600 text-white">Correlated Cloud</button>
+              <button data-preset="circular" class="preset-btn px-2.5 py-1.5 rounded-lg text-xs font-semibold transition bg-slate-100 text-slate-700 hover:bg-slate-200">Circular / Isotropic</button>
+              <button data-preset="unstandardized" class="preset-btn px-2.5 py-1.5 rounded-lg text-xs font-semibold transition bg-slate-100 text-slate-700 hover:bg-slate-200">Unstandardized Scales</button>
+              <button data-preset="clusters" class="preset-btn px-2.5 py-1.5 rounded-lg text-xs font-semibold transition bg-slate-100 text-slate-700 hover:bg-slate-200">Two Clusters</button>
+            </div>
+          </div>
+
+          <!-- Canvas Container -->
+          <div class="relative w-full aspect-[4/3] sm:aspect-[16/11] bg-slate-50 rounded-xl border border-slate-200 overflow-hidden cursor-crosshair">
+            <canvas id="pcaCanvas" class="block w-full h-full"></canvas>
+            <div class="pointer-events-none absolute top-2.5 left-2.5 flex flex-wrap gap-2 text-[11px] font-medium bg-white/90 backdrop-blur-sm px-2.5 py-1.5 rounded-lg border border-slate-200 shadow-sm">
+              <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-indigo-600 inline-block"></span> PC1 ($v_1$)</span>
+              <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-teal-600 inline-block"></span> PC2 ($v_2$)</span>
+              <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block"></span> Candidate $w(\theta)$</span>
+              <span class="flex items-center gap-1"><span class="w-2.5 h-0.5 bg-rose-500 inline-block"></span> Residuals</span>
+            </div>
+            <div class="pointer-events-none absolute bottom-2 right-2.5 text-[11px] text-slate-400 bg-white/80 px-2 py-0.5 rounded">
+              Click plot to add point
+            </div>
+          </div>
+
+          <!-- Angle Slider & Quick Controls -->
+          <div class="space-y-3 pt-1">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <label for="angleSlider" class="text-xs sm:text-sm font-semibold text-slate-700">
+                Projection Axis Angle ($\theta$):
+                <span id="angleVal" class="font-mono text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded ml-1">30°</span>
+              </label>
+              <div class="flex flex-wrap gap-2">
+                <button id="snapPC1Btn" type="button" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition shadow-sm">
+                  Snap to Optimal PC1
+                </button>
+                <button id="addOutlierBtn" type="button" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 transition">
+                  + Add Extreme Outlier
+                </button>
+                <button id="resetPointsBtn" type="button" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">
+                  Reset Points
+                </button>
+              </div>
+            </div>
+            <input id="angleSlider" type="range" min="0" max="180" step="0.5" value="30" class="w-full h-2 bg-slate-200 rounded-lg cursor-pointer" />
+
+            <!-- Toggle Checkboxes -->
+            <div class="flex flex-wrap items-center gap-x-5 gap-y-2 pt-1 text-xs sm:text-sm text-slate-700">
+              <label class="inline-flex items-center gap-2 cursor-pointer select-none">
+                <input id="toggleStandardize" type="checkbox" class="w-4 h-4 rounded text-indigo-600 border-slate-300 focus:ring-indigo-500" />
+                <span class="font-medium">Standardize (Z-Score)</span>
+              </label>
+              <label class="inline-flex items-center gap-2 cursor-pointer select-none">
+                <input id="toggleResiduals" type="checkbox" checked class="w-4 h-4 rounded text-rose-600 border-slate-300 focus:ring-rose-500" />
+                <span class="font-medium">Show Residuals</span>
+              </label>
+              <label class="inline-flex items-center gap-2 cursor-pointer select-none">
+                <input id="toggleProjections" type="checkbox" checked class="w-4 h-4 rounded text-amber-500 border-slate-300 focus:ring-amber-500" />
+                <span class="font-medium">Show Projected Points</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column: Live Mathematical Dashboard -->
+        <div class="lg:col-span-5 space-y-4">
+
+          <!-- Variance vs Reconstruction Error Conservation Card -->
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
+            <div class="flex items-center justify-between">
+              <h3 class="text-sm font-bold text-slate-900">Variance vs. Reconstruction Error</h3>
+              <span id="optimalBadge" class="hidden text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">Optimal PC1!</span>
+            </div>
+
+            <!-- Projected Variance Bar -->
+            <div class="space-y-1">
+              <div class="flex justify-between text-xs">
+                <span class="font-semibold text-amber-700">Projected Variance $w^T \Sigma w$</span>
+                <span class="font-mono font-semibold text-slate-800">
+                  <span id="projVarVal">0.00</span> <span class="text-slate-400">/ max <span id="maxVarVal">0.00</span></span>
+                </span>
+              </div>
+              <div class="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
+                <div id="projVarBar" class="h-full bg-amber-500 rounded-full transition-all duration-100" style="width: 50%"></div>
+              </div>
+            </div>
+
+            <!-- Reconstruction Error Bar -->
+            <div class="space-y-1">
+              <div class="flex justify-between text-xs">
+                <span class="font-semibold text-rose-700">Reconstruction Error $\text{MSE}(w)$</span>
+                <span class="font-mono font-semibold text-slate-800">
+                  <span id="mseVal">0.00</span> <span class="text-slate-400">/ min <span id="minMseVal">0.00</span></span>
+                </span>
+              </div>
+              <div class="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
+                <div id="mseBar" class="h-full bg-rose-500 rounded-full transition-all duration-100" style="width: 50%"></div>
+              </div>
+            </div>
+
+            <!-- Conservation Law Box -->
+            <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs space-y-1">
+              <div class="font-semibold text-slate-700">Total Variance Conservation (Pythagorean Theorem):</div>
+              <div class="font-mono text-slate-800 flex flex-wrap items-center gap-1.5">
+                <span class="text-amber-700 font-semibold" id="consVar">0.00</span>
+                <span>+</span>
+                <span class="text-rose-700 font-semibold" id="consMse">0.00</span>
+                <span>=</span>
+                <span class="text-indigo-700 font-bold" id="consTotal">0.00</span>
+                <span class="text-slate-500 font-sans ml-1">($\lambda_1 + \lambda_2 = \text{Tr}(\Sigma)$)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sample Covariance Matrix & Eigenvalues Card -->
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
+            <div class="flex items-center justify-between">
+              <h3 class="text-sm font-bold text-slate-900">Sample Covariance $\Sigma$ &amp; Spectrum</h3>
+              <span class="text-xs font-mono text-slate-500">n = <span id="pointCountVal">0</span></span>
+            </div>
+
+            <!-- 2x2 Matrix Display -->
+            <div class="flex items-center justify-center gap-3 py-2 bg-slate-50 rounded-xl border border-slate-200">
+              <span class="text-sm font-semibold text-slate-700">$\Sigma =$</span>
+              <div class="grid grid-cols-2 gap-x-5 gap-y-1.5 px-3 py-1.5 border-l-2 border-r-2 border-slate-700 rounded-md font-mono text-xs sm:text-sm text-right">
+                <span id="cov00" class="font-semibold text-slate-800">0.00</span>
+                <span id="cov01" class="text-slate-600">0.00</span>
+                <span id="cov10" class="text-slate-600">0.00</span>
+                <span id="cov11" class="font-semibold text-slate-800">0.00</span>
+              </div>
+            </div>
+
+            <!-- Eigenvalues & EVR -->
+            <div class="grid grid-cols-2 gap-3">
+              <div class="p-3 rounded-xl bg-indigo-50/70 border border-indigo-100">
+                <div class="text-[11px] font-semibold text-indigo-700 uppercase">PC1 Eigenvalue ($\lambda_1$)</div>
+                <div id="lam1Val" class="text-lg font-mono font-bold text-indigo-900">0.00</div>
+                <div class="w-full h-1.5 bg-indigo-200/70 rounded-full mt-1.5 overflow-hidden">
+                  <div id="evr1Bar" class="h-full bg-indigo-600 rounded-full" style="width: 80%"></div>
+                </div>
+                <div class="text-[11px] text-indigo-700 mt-1 font-medium">EVR: <span id="evr1Val" class="font-mono font-semibold">0.0%</span></div>
+              </div>
+
+              <div class="p-3 rounded-xl bg-teal-50/70 border border-teal-100">
+                <div class="text-[11px] font-semibold text-teal-700 uppercase">PC2 Eigenvalue ($\lambda_2$)</div>
+                <div id="lam2Val" class="text-lg font-mono font-bold text-teal-900">0.00</div>
+                <div class="w-full h-1.5 bg-teal-200/70 rounded-full mt-1.5 overflow-hidden">
+                  <div id="evr2Bar" class="h-full bg-teal-600 rounded-full" style="width: 20%"></div>
+                </div>
+                <div class="text-[11px] text-teal-700 mt-1 font-medium">EVR: <span id="evr2Val" class="font-mono font-semibold">0.0%</span></div>
+              </div>
+            </div>
+
+            <!-- Preset Insight Note -->
+            <div id="presetInsight" class="text-xs text-slate-600 bg-slate-50 border border-slate-200 rounded-lg p-3 leading-relaxed">
+              <strong>Correlated Cloud:</strong> Strong linear correlation means PC1 captures most of the total variance while PC2 captures minor thickness.
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- SECTION 2: INTERACTIVE LATENT DIMENSION (k) & SCREE PLOT EXPLORER     -->
+    <!-- ===================================================================== -->
+    <section id="scree-explorer" class="scroll-mt-24 space-y-5">
+      <div>
+        <span class="text-xs font-bold uppercase tracking-wider text-teal-600">Interactive Lab 2</span>
+        <h2 class="text-2xl font-bold text-slate-900">Latent Dimension ($k$) &amp; Scree Plot Explorer</h2>
+        <p class="text-sm text-slate-600">Explore how noise, explained variance thresholds, and the Kaiser criterion affect your choice of $k$ in a 10-dimensional standardized dataset ($\sum \lambda_i = 10$).</p>
+      </div>
+
+      <!-- Brief How to Use Note -->
+      <div class="bg-teal-50/70 border border-teal-200 rounded-xl p-4 text-xs sm:text-sm text-slate-700">
+        <strong class="text-teal-900">How to Use:</strong> Adjust the <strong>Latent Dimensions ($k$)</strong> slider to choose how many components to keep, drag the <strong>Noise Level</strong> slider to blur the boundary between the 3 true signal components and 7 noise components, and click the <strong>90% / 95% / 99%</strong> buttons to auto-select the smallest $k$ meeting each EVR target. Toggle the <strong>Kaiser line ($\lambda = 1$)</strong> to compare it against the elbow.
+      </div>
+
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-6">
+        <!-- Controls Bar -->
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-5 items-center pb-5 border-b border-slate-100">
+          <!-- k Slider -->
+          <div class="md:col-span-4 space-y-1.5">
+            <div class="flex justify-between text-xs sm:text-sm font-semibold text-slate-700">
+              <label for="kSlider">Latent Dimensions ($k$)</label>
+              <span id="kSliderVal" class="font-mono text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded">k = 3</span>
+            </div>
+            <input id="kSlider" type="range" min="1" max="10" step="1" value="3" class="w-full h-2 bg-slate-200 rounded-lg cursor-pointer" />
+          </div>
+
+          <!-- Noise Slider -->
+          <div class="md:col-span-4 space-y-1.5">
+            <div class="flex justify-between text-xs sm:text-sm font-semibold text-slate-700">
+              <label for="noiseSlider">Noise Level</label>
+              <span id="noiseSliderVal" class="font-mono text-slate-700 bg-slate-100 px-2 py-0.5 rounded">20%</span>
+            </div>
+            <input id="noiseSlider" type="range" min="5" max="95" step="1" value="20" class="w-full h-2 bg-slate-200 rounded-lg cursor-pointer" />
+          </div>
+
+          <!-- EVR Threshold Buttons & Kaiser Toggle -->
+          <div class="md:col-span-4 flex flex-col gap-2">
+            <div class="flex items-center gap-1.5">
+              <span class="text-xs font-semibold text-slate-500 mr-1">EVR Target:</span>
+              <button data-thresh="0.90" class="thresh-btn px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">90%</button>
+              <button data-thresh="0.95" class="thresh-btn px-2.5 py-1 rounded-lg text-xs font-semibold bg-teal-600 text-white transition">95%</button>
+              <button data-thresh="0.99" class="thresh-btn px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">99%</button>
+            </div>
+            <label class="inline-flex items-center gap-2 text-xs font-medium text-slate-700 cursor-pointer select-none">
+              <input id="toggleKaiser" type="checkbox" checked class="w-4 h-4 rounded text-amber-500 border-slate-300 focus:ring-amber-500" />
+              <span>Show Kaiser Criterion ($\lambda = 1$)</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Dual Canvas Plots -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="space-y-2">
+            <h3 class="text-sm font-bold text-slate-800">Scree Plot (Eigenvalues $\lambda_1 \dots \lambda_{10}$)</h3>
+            <div class="w-full aspect-[16/10] bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
+              <canvas id="screeCanvas" class="block w-full h-full"></canvas>
+            </div>
+          </div>
+
+          <div class="space-y-2">
+            <h3 class="text-sm font-bold text-slate-800">Cumulative Explained Variance Ratio $\text{EVR}(k)$</h3>
+            <div class="w-full aspect-[16/10] bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
+              <canvas id="evrCanvas" class="block w-full h-full"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Live Summary Cards -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
+          <div class="p-3.5 rounded-xl bg-indigo-50/70 border border-indigo-100">
+            <div class="text-[11px] font-semibold uppercase text-indigo-700">Retained Variance</div>
+            <div id="screeRetained" class="text-xl font-mono font-bold text-indigo-900 mt-0.5">0.0%</div>
+          </div>
+          <div class="p-3.5 rounded-xl bg-rose-50/70 border border-rose-100">
+            <div class="text-[11px] font-semibold uppercase text-rose-700">Information Lost</div>
+            <div id="screeLost" class="text-xl font-mono font-bold text-rose-900 mt-0.5">0.0%</div>
+          </div>
+          <div class="p-3.5 rounded-xl bg-slate-100 border border-slate-200">
+            <div class="text-[11px] font-semibold uppercase text-slate-600">Dim. Reduction</div>
+            <div id="screeDim" class="text-xl font-mono font-bold text-slate-900 mt-0.5">10 &rarr; 3</div>
+          </div>
+          <div class="p-3.5 rounded-xl bg-teal-50/70 border border-teal-100">
+            <div class="text-[11px] font-semibold uppercase text-teal-700">Recommended $k$</div>
+            <div id="screeRec" class="text-sm font-mono font-bold text-teal-900 mt-1">EVR: 4 | Kaiser: 3</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- SECTION 3 & 4: LEVEL 1 INTUITION & LEVEL 2 MATH DERIVATION            -->
+    <!-- ===================================================================== -->
+    <section id="intuition-math" class="scroll-mt-24 space-y-8">
+
+      <!-- Level 1: Core Intuition -->
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8 space-y-6">
+        <div>
+          <span class="text-xs font-bold uppercase tracking-wider text-indigo-600">Level 1</span>
+          <h2 class="text-2xl font-bold text-slate-900">Core Intuition &amp; Why PCA Is Useful</h2>
+        </div>
+
+        <div class="bg-slate-50 border-l-4 border-indigo-600 rounded-r-xl p-4 sm:p-5 text-sm text-slate-700 leading-relaxed">
+          <strong class="text-slate-900">The Tilted 3D Pancake Analogy:</strong> Imagine a 3D cloud of points shaped like a flattened pancake tilted at an angle. In the original $(x, y, z)$ coordinates, all three axes are needed to describe where a point lies. PCA rotates the coordinate system to find a new set of <strong>orthogonal (perpendicular)</strong> axes:
+          <ul class="mt-2 space-y-1 list-disc list-inside">
+            <li><strong>PC1:</strong> Points along the longest stretch of the pancake (direction of <em>maximum variance</em>).</li>
+            <li><strong>PC2:</strong> Perpendicular to PC1, pointing along the second-longest stretch.</li>
+            <li><strong>PC3:</strong> Perpendicular to both, pointing along the thin thickness of the pancake.</li>
+          </ul>
+          <p class="mt-2">Because PC3 barely varies, we drop it and project the 3D pancake onto the 2D plane spanned by PC1 and PC2 with minimal information loss.</p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="p-4 rounded-xl border border-slate-200 bg-white hover:border-indigo-300 transition">
+            <h3 class="font-bold text-slate-900 text-sm mb-1.5">1. Curse of Dimensionality</h3>
+            <p class="text-xs text-slate-600 leading-relaxed">Reduces feature count $d$, curbing overfitting and dramatically speeding up downstream training and inference.</p>
+          </div>
+          <div class="p-4 rounded-xl border border-slate-200 bg-white hover:border-indigo-300 transition">
+            <h3 class="font-bold text-slate-900 text-sm mb-1.5">2. Decorrelation</h3>
+            <p class="text-xs text-slate-600 leading-relaxed">Principal components are strictly uncorrelated ($\text{Cov}(z_i, z_j) = 0$ for $i \neq j$), eliminating multicollinearity in linear/logistic regression.</p>
+          </div>
+          <div class="p-4 rounded-xl border border-slate-200 bg-white hover:border-indigo-300 transition">
+            <h3 class="font-bold text-slate-900 text-sm mb-1.5">3. Denoising</h3>
+            <p class="text-xs text-slate-600 leading-relaxed">Assumes high-variance directions capture true signal while low-variance tail directions capture random noise; dropping the tail filters noise.</p>
+          </div>
+          <div class="p-4 rounded-xl border border-slate-200 bg-white hover:border-indigo-300 transition">
+            <h3 class="font-bold text-slate-900 text-sm mb-1.5">4. Visualization &amp; Compression</h3>
+            <p class="text-xs text-slate-600 leading-relaxed">Projects high-dimensional data (like 784-D images) into 2D/3D for exploratory analysis, or compresses embeddings by storing only top-$k$ projections.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Level 2: First-Principles Math Derivation -->
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8 space-y-6">
+        <div>
+          <span class="text-xs font-bold uppercase tracking-wider text-indigo-600">Level 2</span>
+          <h2 class="text-2xl font-bold text-slate-900">First-Principles Math Derivation</h2>
+          <p class="text-sm text-slate-600 mt-1">Memorize this 5-step Lagrangian derivation—it is a staple ML final exam proof.</p>
+        </div>
+
+        <div class="space-y-4 text-sm text-slate-700 leading-relaxed">
+          <!-- Step 0 -->
+          <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
+            <h3 class="font-bold text-slate-900 mb-1">Step 0: Centering (and Standardizing)</h3>
+            <p>Let $X \in \mathbb{R}^{n \times d}$ be the data matrix ($n$ samples, $d$ features). Subtract the column mean $\mu_j$ from each feature so every column has mean $0$. If features have different physical units (e.g., meters vs. kilograms), also divide each column by its standard deviation so every feature has variance $1$.</p>
+          </div>
+
+          <!-- Step 1 -->
+          <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
+            <h3 class="font-bold text-slate-900 mb-1">Step 1: Projected Variance Objective</h3>
+            <p>We seek a unit direction $w \in \mathbb{R}^d$ ($\|w\|_2 = 1$) such that projecting centered data $X$ onto $w$ gives scalar projections $z = Xw$ with maximum sample variance:</p>
+            $$\text{Var}(Xw) = \frac{1}{n-1} (Xw)^T (Xw) = w^T \left(\frac{1}{n-1} X^T X\right) w = w^T \Sigma w$$
+            <p>where $\Sigma = \frac{1}{n-1} X^T X \in \mathbb{R}^{d \times d}$ is the <strong>sample covariance matrix</strong>.</p>
+          </div>
+
+          <!-- Step 2 -->
+          <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
+            <h3 class="font-bold text-slate-900 mb-1">Step 2: Constrained Optimization &amp; Lagrangian</h3>
+            <p>Without a norm constraint, $w^T \Sigma w$ would blow up to $\infty$. Enforce $w^T w = 1$:</p>
+            $$\max_{w} \; w^T \Sigma w \quad \text{subject to} \quad w^T w = 1$$
+            <p>Form the Lagrangian with multiplier $\lambda$:</p>
+            $$\mathcal{L}(w, \lambda) = w^T \Sigma w - \lambda(w^T w - 1)$$
+          </div>
+
+          <!-- Step 3 -->
+          <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
+            <h3 class="font-bold text-slate-900 mb-1">Step 3: Take Gradient &amp; Set to Zero</h3>
+            <p>Differentiating with respect to $w$ (using $\nabla_w (w^T A w) = 2Aw$ for symmetric $A$):</p>
+            $$\nabla_w \mathcal{L} = 2\Sigma w - 2\lambda w = 0 \implies \Sigma w = \lambda w$$
+            <p>This is the <strong>eigenvalue equation</strong>! Substituting $\Sigma w = \lambda w$ back into the objective gives $w^T \Sigma w = w^T (\lambda w) = \lambda (w^T w) = \lambda$.</p>
+          </div>
+
+          <!-- Step 4: Key Takeaways -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+            <div class="p-4 rounded-xl bg-indigo-50/60 border border-indigo-200 space-y-2">
+              <h3 class="font-bold text-indigo-900">Key Mathematical Takeaways</h3>
+              <ul class="list-disc list-inside space-y-1 text-xs sm:text-sm text-slate-700">
+                <li><strong>Eigenvectors</strong> $w_1, \dots, w_d$ are the principal components.</li>
+                <li><strong>Eigenvalue $\lambda_i$</strong> is literally the variance of the data along PC$i$.</li>
+                <li>Because $\Sigma$ is <strong>symmetric positive semi-definite (PSD)</strong>, eigenvectors are guaranteed mutually orthogonal and eigenvalues are real and non-negative ($\lambda_1 \ge \lambda_2 \ge \dots \ge \lambda_d \ge 0$).</li>
+                <li>To reduce $X$ to $k$ dimensions, stack the top $k$ eigenvectors into $W_k \in \mathbb{R}^{d \times k}$ and project: $Z = X W_k \in \mathbb{R}^{n \times k}$.</li>
+              </ul>
+            </div>
+
+            <div class="p-4 rounded-xl bg-amber-50/70 border border-amber-200 space-y-2">
+              <h3 class="font-bold text-amber-900">Equivalence to Minimum Reconstruction Error</h3>
+              <p class="text-xs sm:text-sm text-slate-700">
+                PCA can equivalently be derived by minimizing the squared Frobenius norm between $X$ and its rank-$k$ reconstruction $\hat{X} = Z W_k^T = X W_k W_k^T$:
+              </p>
+              $$\min_{W_k^T W_k = I_k} \|X - X W_k W_k^T\|_F^2$$
+              <p class="text-xs sm:text-sm text-slate-700">
+                By orthogonality (Pythagorean theorem), $\|X\|_F^2 = \|X W_k\|_F^2 + \|X - X W_k W_k^T\|_F^2$. Since $\|X\|_F^2$ is fixed, <strong>maximizing projected variance is mathematically identical to minimizing reconstruction error</strong> (as you saw in Sandbox 1!).
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- SECTION 5: LEVEL 3 — SVD & COMPUTATIONAL ISSUES                       -->
+    <!-- ===================================================================== -->
+    <section id="svd-compute" class="scroll-mt-24 bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8 space-y-6">
+      <div>
+        <span class="text-xs font-bold uppercase tracking-wider text-indigo-600">Level 3</span>
+        <h2 class="text-2xl font-bold text-slate-900">SVD &amp; Computational Issues</h2>
+        <p class="text-sm text-slate-600 mt-1">In practice, libraries like scikit-learn almost never explicitly form $\Sigma = \frac{1}{n-1} X^T X$.</p>
+      </div>
+
+      <!-- Numerical Instability & SVD Fix -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <div class="p-5 rounded-xl bg-rose-50/60 border border-rose-200 space-y-2">
+          <h3 class="font-bold text-rose-900 text-sm sm:text-base">Why Forming $X^T X$ Fails: Condition Number Squaring</h3>
+          <p class="text-xs sm:text-sm text-slate-700 leading-relaxed">
+            Explicitly computing $X^T X$ squares the condition number of your data matrix:
+          </p>
+          $$\kappa(X^T X) = \kappa(X)^2$$
+          <p class="text-xs sm:text-sm text-slate-700 leading-relaxed">
+            In 64-bit floating-point arithmetic, squaring a large condition number wipes out precision for smaller eigenvalues and causes severe numerical instability whenever features are highly correlated.
+          </p>
+        </div>
+
+        <div class="p-5 rounded-xl bg-teal-50/60 border border-teal-200 space-y-2">
+          <h3 class="font-bold text-teal-900 text-sm sm:text-base">The Fix: Singular Value Decomposition (SVD)</h3>
+          <p class="text-xs sm:text-sm text-slate-700 leading-relaxed">
+            Factorize the centered data matrix $X$ directly via $X = U S V^T$ ($U, V$ orthogonal; $S$ diagonal with singular values $s_1 \ge s_2 \ge \dots \ge 0$):
+          </p>
+          $$\Sigma = \frac{1}{n-1} X^T X = \frac{1}{n-1}(V S^T U^T)(U S V^T) = V \left(\frac{S^2}{n-1}\right) V^T$$
+          <ul class="text-xs sm:text-sm text-slate-700 list-disc list-inside space-y-0.5">
+            <li>Columns of $V$ are the <strong>principal components</strong> (eigenvectors).</li>
+            <li>Eigenvalues are $\lambda_i = \frac{s_i^2}{n-1}$.</li>
+            <li>Projected data is simply $Z = X V = U S$.</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Responsive Table of Computational Regimes -->
+      <div class="space-y-2">
+        <h3 class="text-base font-bold text-slate-900">Time, Memory &amp; Data Regimes</h3>
+        <div class="overflow-x-auto rounded-xl border border-slate-200">
+          <table class="min-w-full divide-y divide-slate-200 text-xs sm:text-sm text-left">
+            <thead class="bg-slate-100 text-slate-700 font-bold">
+              <tr>
+                <th class="px-4 py-3">Regime</th>
+                <th class="px-4 py-3">The Bottleneck / Issue</th>
+                <th class="px-4 py-3">Practical Solution</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200 bg-white">
+              <tr class="hover:bg-slate-50">
+                <td class="px-4 py-3 font-semibold text-slate-900 whitespace-nowrap">High-Dimensional ($d \gg n$)</td>
+                <td class="px-4 py-3 text-slate-600">Forming $\Sigma \in \mathbb{R}^{d \times d}$ takes $O(d^2)$ memory and $O(d^3)$ time (e.g., $d = 100{,}000$ genomics features).</td>
+                <td class="px-4 py-3 text-slate-800">Use <strong>Thin SVD</strong> in $O(n^2 d)$ time, or eigendecompose the $n \times n$ Gram matrix $X X^T$ instead.</td>
+              </tr>
+              <tr class="hover:bg-slate-50">
+                <td class="px-4 py-3 font-semibold text-slate-900 whitespace-nowrap">Massive Datasets (Large $n$ &amp; $d$)</td>
+                <td class="px-4 py-3 text-slate-600">Exact SVD costs $O(\min(n^2 d, n d^2))$ and requires the full matrix in RAM.</td>
+                <td class="px-4 py-3 text-slate-800"><strong>Randomized SVD</strong> (Halko et al.) approximates top-$k$ in $O(n d \log k)$, or <strong>Incremental PCA</strong> (mini-batches).</td>
+              </tr>
+              <tr class="hover:bg-slate-50">
+                <td class="px-4 py-3 font-semibold text-slate-900 whitespace-nowrap">Sparse Data (e.g., TF-IDF)</td>
+                <td class="px-4 py-3 text-slate-600">Centering $X - \mu$ converts zeros into non-zeros, destroying sparsity and exploding RAM.</td>
+                <td class="px-4 py-3 text-slate-800">Use <strong>Truncated SVD (LSA)</strong> without centering, operating directly on sparse matrices.</td>
+              </tr>
+              <tr class="hover:bg-slate-50">
+                <td class="px-4 py-3 font-semibold text-slate-900 whitespace-nowrap">Extreme Outliers</td>
+                <td class="px-4 py-3 text-slate-600">Variance squares distances, so a single extreme outlier can hijack PC1.</td>
+                <td class="px-4 py-3 text-slate-800">Use <strong>Robust PCA</strong> (decomposing $X = L + S$ into low-rank + sparse outlier matrices) or $L_1$-norm variants.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- SECTION 6: CHOOSING LATENT DIMENSIONS (k) & FINAL EXAM PITFALLS       -->
+    <!-- ===================================================================== -->
+    <section id="choosing-k" class="scroll-mt-24 space-y-6">
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8 space-y-6">
+        <div>
+          <span class="text-xs font-bold uppercase tracking-wider text-teal-600">Model Selection</span>
+          <h2 class="text-2xl font-bold text-slate-900">5 Ways to Choose Latent Dimensions ($k$)</h2>
+          <p class="text-sm text-slate-600 mt-1">Ordered from simple heuristics to statistically rigorous methods.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div class="p-4 rounded-xl border border-slate-200 bg-slate-50/70 space-y-1.5">
+            <span class="text-xs font-bold text-indigo-600">Method 1</span>
+            <h3 class="font-bold text-slate-900 text-sm">Cumulative Explained Variance Threshold</h3>
+            <div class="text-xs py-1">
+              $$\text{EVR}(k) = \frac{\sum_{i=1}^k \lambda_i}{\sum_{j=1}^d \lambda_j}$$
+            </div>
+            <p class="text-xs text-slate-600 leading-relaxed">Pick the smallest $k$ crossing a target threshold (commonly <strong>90%, 95%, or 99%</strong>). Intuitive, though the cutoff is arbitrary.</p>
+          </div>
+
+          <div class="p-4 rounded-xl border border-slate-200 bg-slate-50/70 space-y-1.5">
+            <span class="text-xs font-bold text-indigo-600">Method 2</span>
+            <h3 class="font-bold text-slate-900 text-sm">Scree Plot (Elbow Method)</h3>
+            <p class="text-xs text-slate-600 leading-relaxed pt-1">Plot $\lambda_i$ against component index $i$ and find the visual "elbow" where the steep drop flattens out. The steep slope captures structured signal; the flat tail represents noise.</p>
+          </div>
+
+          <div class="p-4 rounded-xl border border-indigo-200 bg-indigo-50/50 space-y-1.5">
+            <span class="text-xs font-bold text-indigo-700">Method 3 &bull; Best for Supervised ML</span>
+            <h3 class="font-bold text-slate-900 text-sm">Downstream Cross-Validation</h3>
+            <p class="text-xs text-slate-700 leading-relaxed pt-1">Treat $k$ as a hyperparameter for your classifier or regressor. <strong>Always fit PCA inside each CV fold</strong> (never on the whole dataset first!) to prevent data leakage, and choose $k$ minimizing validation error.</p>
+          </div>
+
+          <div class="p-4 rounded-xl border border-slate-200 bg-slate-50/70 space-y-1.5">
+            <span class="text-xs font-bold text-amber-600">Method 4</span>
+            <h3 class="font-bold text-slate-900 text-sm">Kaiser Criterion (Standardized Only)</h3>
+            <p class="text-xs text-slate-600 leading-relaxed pt-1">When using the correlation matrix (standardized features, each with variance $1$), keep components with $\lambda_i > 1$ (explaining more variance than a single original variable). <em>Caveat:</em> often overestimates $k$ in high dimensions.</p>
+          </div>
+
+          <div class="p-4 rounded-xl border border-slate-200 bg-slate-50/70 space-y-1.5 md:col-span-2">
+            <span class="text-xs font-bold text-teal-600">Method 5 &bull; Statistically Rigorous</span>
+            <h3 class="font-bold text-slate-900 text-sm">Gavish-Donoho Optimal Hard Threshold / Parallel Analysis</h3>
+            <p class="text-xs text-slate-600 leading-relaxed pt-1">Separates true signal from white noise by comparing observed eigenvalues against the theoretical <strong>Marchenko-Pastur distribution</strong> (random matrix noise floor) or eigenvalues from randomly permuted copies of your dataset (Parallel Analysis), retaining only components that significantly beat the noise floor.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Final Exam Pitfalls Checklist -->
+      <div class="bg-amber-50/80 border border-amber-300 rounded-2xl p-6 sm:p-8 shadow-sm space-y-4">
+        <div class="flex items-center gap-2.5">
+          <svg class="w-6 h-6 text-amber-600 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+          <h2 class="text-xl font-bold text-amber-950">Final Exam Pitfalls Checklist</h2>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs sm:text-sm text-amber-950">
+          <div class="flex items-start gap-2.5 bg-white/80 p-3.5 rounded-xl border border-amber-200">
+            <span class="font-bold text-amber-600">1.</span>
+            <div><strong>Forgetting to Center $X$:</strong> If you skip subtracting the mean, PC1 points from the origin toward the data centroid instead of the direction of maximum variance.</div>
+          </div>
+          <div class="flex items-start gap-2.5 bg-white/80 p-3.5 rounded-xl border border-amber-200">
+            <span class="font-bold text-amber-600">2.</span>
+            <div><strong>Unstandardized Mixed Units:</strong> PCA is <em>not</em> scale-invariant. A feature measured in millimeters will have $10^6\times$ the variance of one in meters and dominate PC1 unless standardized.</div>
+          </div>
+          <div class="flex items-start gap-2.5 bg-white/80 p-3.5 rounded-xl border border-amber-200">
+            <span class="font-bold text-amber-600">3.</span>
+            <div><strong>Data Leakage in Cross-Validation:</strong> Fitting PCA on train+test (or before CV splitting) leaks validation distribution statistics into training. Always fit on train folds only, then transform val/test.</div>
+          </div>
+          <div class="flex items-start gap-2.5 bg-white/80 p-3.5 rounded-xl border border-amber-200">
+            <span class="font-bold text-amber-600">4.</span>
+            <div><strong>Assuming Linearity:</strong> PCA only finds linear subspaces. If data lies on a curved manifold (e.g., a Swiss roll or concentric circles), use Kernel PCA, t-SNE, or UMAP instead.</div>
+          </div>
+          <div class="flex items-start gap-2.5 bg-white/80 p-3.5 rounded-xl border border-amber-200 md:col-span-2">
+            <span class="font-bold text-amber-600">5.</span>
+            <div><strong>Forgetting PCA Is Unsupervised:</strong> Maximum variance $\neq$ maximum class separability! Two parallel pancake-shaped classes may have their largest variance <em>along</em> the pancakes, while the direction separating them is actually PC2 (lowest variance). For supervised dimensionality reduction, consider Linear Discriminant Analysis (LDA).</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="border-t border-slate-200 bg-white mt-12 py-6 text-center text-xs text-slate-500">
+    PCA Interactive Study Guide &bull; Built for Machine Learning Final Exam Preparation
+  </footer>
+
+  <!-- ======================================================================= -->
+  <!-- JAVASCRIPT: KATEX INIT, 2D PCA SANDBOX ENGINE, SCREE PLOT ENGINE        -->
+  <!-- ======================================================================= -->
+  <script>
+    // -------------------------------------------------------------------------
+    // 1. KaTeX Auto-Render Initialization
+    // -------------------------------------------------------------------------
+    document.addEventListener('DOMContentLoaded', () => {
+      if (typeof renderMathInElement === 'function') {
+        renderMathInElement(document.body, {
+          delimiters: [
+            { left: '$$', right: '$$', display: true },
+            { left: '$', right: '$', display: false }
+          ],
+          throwOnError: false
+        });
+      }
+      initSandbox();
+      initScreeExplorer();
+    });
+
+    // Helper: Deterministic-ish Box-Muller Gaussian RNG for clean presets
+    function seededRandom(seed) {
+      let s = seed % 2147483647;
+      if (s <= 0) s += 2147483646;
+      return () => {
+        s = (s * 16807) % 2147483647;
+        return (s - 1) / 2147483646;
+      };
+    }
+
+    function gaussianPair(rng) {
+      const u1 = Math.max(1e-7, rng());
+      const u2 = rng();
+      const r = Math.sqrt(-2.0 * Math.log(u1));
+      const theta = 2.0 * Math.PI * u2;
+      return [r * Math.cos(theta), r * Math.sin(theta)];
+    }
+
+    // Helper: High-DPI Canvas Resize
+    function setupHiDPICanvas(canvas) {
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      const w = Math.max(1, Math.round(rect.width));
+      const h = Math.max(1, Math.round(rect.height));
+      if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
+        canvas.width = Math.round(w * dpr);
+        canvas.height = Math.round(h * dpr);
+      }
+      const ctx = canvas.getContext('2d');
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      return { ctx, w, h };
+    }
+
+    // -------------------------------------------------------------------------
+    // 2. SECTION 1: INTERACTIVE 2D PCA SANDBOX
+    // -------------------------------------------------------------------------
+    let rawPoints = [];
+    let currentPreset = 'correlated';
+    let currentAngleDeg = 30;
+    let pcaState = null; // Stores computed covariance, eigenvalues, eigenvectors, bounds
+
+    const PRESET_INSIGHTS = {
+      correlated: '<strong>Correlated Cloud:</strong> Strong linear correlation means PC1 captures most of the variance while PC2 captures only thin orthogonal spread.',
+      circular: '<strong>Circular / Isotropic:</strong> Both eigenvalues are nearly equal ($\\lambda_1 \\approx \\lambda_2$). Rotating $w(\\theta)$ barely changes projected variance—there is no dominant direction.',
+      unstandardized: '<strong>Unstandardized Scales:</strong> Feature $x_1$ spans $[-40, 40]$ while $x_2$ spans $[-1.5, 1.5]$. Without standardization, PC1 is forced flat along $x_1$. Toggle <em>Standardize (Z-Score)</em> to reveal the true diagonal correlation!',
+      clusters: '<strong>Two Clusters:</strong> Notice how PC1 aligns with the direction of maximum overall variance (between cluster centers), effectively separating the two groups.'
+    };
+
+    function generatePresetPoints(presetName) {
+      const pts = [];
+      const rng = seededRandom(presetName === 'correlated' ? 42 : presetName === 'circular' ? 101 : presetName === 'unstandardized' ? 77 : 202);
+
+      if (presetName === 'correlated') {
+        const angle = 34 * (Math.PI / 180);
+        const ca = Math.cos(angle), sa = Math.sin(angle);
+        for (let i = 0; i < 42; i++) {
+          const [g1, g2] = gaussianPair(rng);
+          const u = g1 * 2.4;
+          const v = g2 * 0.65;
+          pts.push({ x: u * ca - v * sa, y: u * sa + v * ca });
+        }
+      } else if (presetName === 'circular') {
+        for (let i = 0; i < 45; i++) {
+          const [g1, g2] = gaussianPair(rng);
+          pts.push({ x: g1 * 1.7, y: g2 * 1.65 });
+        }
+      } else if (presetName === 'unstandardized') {
+        // Strong diagonal relationship, but x1 is 25x larger scale than x2
+        for (let i = 0; i < 40; i++) {
+          const [g1, g2] = gaussianPair(rng);
+          const x1 = g1 * 18;
+          const x2 = 0.04 * x1 + g2 * 0.25;
+          pts.push({ x: x1, y: x2 });
+        }
+      } else if (presetName === 'clusters') {
+        for (let i = 0; i < 22; i++) {
+          const [g1, g2] = gaussianPair(rng);
+          pts.push({ x: -2.2 + g1 * 0.7, y: -1.4 + g2 * 0.75 });
+        }
+        for (let i = 0; i < 22; i++) {
+          const [g1, g2] = gaussianPair(rng);
+          pts.push({ x: 2.2 + g1 * 0.7, y: 1.4 + g2 * 0.75 });
+        }
+      }
+      return pts;
+    }
+
+    // Compute centered/standardized points and exact 2x2 PCA
+    function computePCA2D(points, standardize) {
+      const n = points.length;
+      if (n < 2) return null;
+
+      let meanX = 0, meanY = 0;
+      for (const p of points) {
+        meanX += p.x;
+        meanY += p.y;
+      }
+      meanX /= n;
+      meanY /= n;
+
+      let varX = 0, varY = 0;
+      for (const p of points) {
+        varX += (p.x - meanX) ** 2;
+        varY += (p.y - meanY) ** 2;
+      }
+      const stdX = Math.sqrt(varX / (n - 1)) || 1;
+      const stdY = Math.sqrt(varY / (n - 1)) || 1;
+
+      const proc = points.map(p => ({
+        x: standardize ? (p.x - meanX) / stdX : (p.x - meanX),
+        y: standardize ? (p.y - meanY) / stdY : (p.y - meanY)
+      }));
+
+      // Sample Covariance Matrix (2x2)
+      let sxx = 0, syy = 0, sxy = 0;
+      for (const p of proc) {
+        sxx += p.x * p.x;
+        syy += p.y * p.y;
+        sxy += p.x * p.y;
+      }
+      sxx /= (n - 1);
+      syy /= (n - 1);
+      sxy /= (n - 1);
+
+      // Exact eigenvalues of 2x2 symmetric matrix [[sxx, sxy], [sxy, syy]]
+      const trace = sxx + syy;
+      const diff = sxx - syy;
+      const disc = Math.sqrt(Math.max(0, diff * diff + 4 * sxy * sxy));
+      const lam1 = Math.max(0, (trace + disc) / 2);
+      const lam2 = Math.max(0, (trace - disc) / 2);
+
+      // Eigenvector v1 for lam1
+      let v1x, v1y;
+      if (Math.abs(sxy) > 1e-10) {
+        v1x = lam1 - syy;
+        v1y = sxy;
+      } else {
+        if (sxx >= syy) {
+          v1x = 1; v1y = 0;
+        } else {
+          v1x = 0; v1y = 1;
+        }
+      }
+      const norm1 = Math.hypot(v1x, v1y) || 1;
+      v1x /= norm1;
+      v1y /= norm1;
+      // Keep v1 pointing in upper half-plane [0, 180) for consistent angle matching
+      if (v1y < 0 || (Math.abs(v1y) < 1e-9 && v1x < 0)) {
+        v1x = -v1x;
+        v1y = -v1y;
+      }
+
+      // Orthogonal eigenvector v2
+      const v2x = -v1y;
+      const v2y = v1x;
+
+      // Determine symmetric viewport range (equal aspect ratio so orthogonality is visually true!)
+      let maxAbs = 3.5;
+      for (const p of proc) {
+        maxAbs = Math.max(maxAbs, Math.abs(p.x), Math.abs(p.y));
+      }
+      const viewHalf = maxAbs * 1.22;
+
+      return {
+        n,
+        meanX, meanY, stdX, stdY, standardize,
+        proc,
+        sxx, syy, sxy,
+        lam1, lam2, trace,
+        v1: { x: v1x, y: v1y },
+        v2: { x: v2x, y: v2y },
+        pc1AngleDeg: (Math.atan2(v1y, v1x) * 180 / Math.PI + 180) % 180,
+        viewHalf
+      };
+    }
+
+    function drawSandbox() {
+      const canvas = document.getElementById('pcaCanvas');
+      if (!canvas) return;
+      const { ctx, w, h } = setupHiDPICanvas(canvas);
+
+      const standardize = document.getElementById('toggleStandardize').checked;
+      const showResiduals = document.getElementById('toggleResiduals').checked;
+      const showProjections = document.getElementById('toggleProjections').checked;
+
+      pcaState = computePCA2D(rawPoints, standardize);
+      if (!pcaState) return;
+
+      // Preserve 1:1 data aspect ratio so perpendicular projections look truly 90 deg
+      const minDim = Math.min(w, h);
+      const scale = (minDim / 2) / pcaState.viewHalf;
+      const cx = w / 2;
+      const cy = h / 2;
+
+      // Save transform helpers on pcaState for click-to-add
+      pcaState.toCanvas = (dx, dy) => ({ x: cx + dx * scale, y: cy - dy * scale });
+      pcaState.toData = (px, py) => ({ x: (px - cx) / scale, y: -(py - cy) / scale });
+
+      ctx.clearRect(0, 0, w, h);
+
+      // Subtle background grid
+      const step = niceStep(pcaState.viewHalf * 2 / 6);
+      ctx.strokeStyle = '#e2e8f0';
+      ctx.lineWidth = 1;
+      for (let gx = -Math.ceil(w / (2 * scale * step)) * step; gx <= Math.ceil(w / (2 * scale * step)) * step; gx += step) {
+        const xPos = cx + gx * scale;
+        ctx.beginPath();
+        ctx.moveTo(xPos, 0);
+        ctx.lineTo(xPos, h);
+        ctx.stroke();
+      }
+      for (let gy = -Math.ceil(h / (2 * scale * step)) * step; gy <= Math.ceil(h / (2 * scale * step)) * step; gy += step) {
+        const yPos = cy - gy * scale;
+        ctx.beginPath();
+        ctx.moveTo(0, yPos);
+        ctx.lineTo(w, yPos);
+        ctx.stroke();
+      }
+
+      // Origin axes
+      ctx.strokeStyle = '#cbd5e1';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(0, cy); ctx.lineTo(w, cy);
+      ctx.moveTo(cx, 0); ctx.lineTo(cx, h);
+      ctx.stroke();
+
+      // Axis labels
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '11px Inter, sans-serif';
+      ctx.fillText(standardize ? 'z₁ (std)' : 'x₁ (centered)', w - 74, cy - 6);
+      ctx.fillText(standardize ? 'z₂ (std)' : 'x₂ (centered)', cx + 6, 16);
+
+      // User candidate axis w(theta)
+      const rad = currentAngleDeg * Math.PI / 180;
+      const wx = Math.cos(rad);
+      const wy = Math.sin(rad);
+
+      const lineLen = Math.hypot(w, h) / scale;
+      const pA = pcaState.toCanvas(-wx * lineLen, -wy * lineLen);
+      const pB = pcaState.toCanvas(wx * lineLen, wy * lineLen);
+
+      ctx.save();
+      ctx.strokeStyle = '#f59e0b';
+      ctx.lineWidth = 2.2;
+      ctx.setLineDash([6, 4]);
+      ctx.beginPath();
+      ctx.moveTo(pA.x, pA.y);
+      ctx.lineTo(pB.x, pB.y);
+      ctx.stroke();
+      ctx.restore();
+
+      // Draw residuals & projected points
+      for (const pt of pcaState.proc) {
+        const dot = pt.x * wx + pt.y * wy;
+        const projX = dot * wx;
+        const projY = dot * wy;
+
+        const cPt = pcaState.toCanvas(pt.x, pt.y);
+        const cProj = pcaState.toCanvas(projX, projY);
+
+        if (showResiduals) {
+          ctx.strokeStyle = 'rgba(244, 63, 94, 0.45)';
+          ctx.lineWidth = 1.25;
+          ctx.beginPath();
+          ctx.moveTo(cPt.x, cPt.y);
+          ctx.lineTo(cProj.x, cProj.y);
+          ctx.stroke();
+        }
+
+        if (showProjections) {
+          ctx.fillStyle = '#f59e0b';
+          ctx.beginPath();
+          ctx.arc(cProj.x, cProj.y, 3, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      // Draw Data Points
+      for (const pt of pcaState.proc) {
+        const cPt = pcaState.toCanvas(pt.x, pt.y);
+        ctx.fillStyle = '#334155';
+        ctx.beginPath();
+        ctx.arc(cPt.x, cPt.y, 4.2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+      }
+
+      // Draw True Eigenvectors PC1 & PC2 scaled by sqrt(lambda) * 1.5 for visual clarity
+      const arrowScale = 1.5;
+      drawArrow(ctx, cx, cy,
+        cx + pcaState.v1.x * Math.sqrt(pcaState.lam1) * arrowScale * scale,
+        cy - pcaState.v1.y * Math.sqrt(pcaState.lam1) * arrowScale * scale,
+        '#4f46e5', 3.2, 'PC1'
+      );
+      drawArrow(ctx, cx, cy,
+        cx + pcaState.v2.x * Math.sqrt(pcaState.lam2) * arrowScale * scale,
+        cy - pcaState.v2.y * Math.sqrt(pcaState.lam2) * arrowScale * scale,
+        '#0d9488', 2.8, 'PC2'
+      );
+
+      updateSandboxDashboard(wx, wy);
+    }
+
+    function drawArrow(ctx, x1, y1, x2, y2, color, width, label) {
+      const headLen = 10;
+      const angle = Math.atan2(y2 - y1, x2 - x1);
+      ctx.save();
+      ctx.strokeStyle = color;
+      ctx.fillStyle = color;
+      ctx.lineWidth = width;
+      ctx.lineCap = 'round';
+
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(x2, y2);
+      ctx.lineTo(x2 - headLen * Math.cos(angle - Math.PI / 6), y2 - headLen * Math.sin(angle - Math.PI / 6));
+      ctx.lineTo(x2 - headLen * Math.cos(angle + Math.PI / 6), y2 - headLen * Math.sin(angle + Math.PI / 6));
+      ctx.closePath();
+      ctx.fill();
+
+      if (label && Math.hypot(x2 - x1, y2 - y1) > 14) {
+        ctx.font = 'bold 11px Inter, sans-serif';
+        ctx.fillText(label, x2 + Math.cos(angle) * 10 - 10, y2 + Math.sin(angle) * 10 + 4);
+      }
+      ctx.restore();
+    }
+
+    function niceStep(rawStep) {
+      const mag = Math.pow(10, Math.floor(Math.log10(rawStep || 1)));
+      const norm = rawStep / mag;
+      if (norm < 1.5) return 1 * mag;
+      if (norm < 3.5) return 2 * mag;
+      if (norm < 7.5) return 5 * mag;
+      return 10 * mag;
+    }
+
+    function updateSandboxDashboard(wx, wy) {
+      const s = pcaState;
+      const projVar = wx * wx * s.sxx + 2 * wx * wy * s.sxy + wy * wy * s.syy;
+      const mse = Math.max(0, s.trace - projVar);
+
+      const fmt = v => (Math.abs(v) >= 100 ? v.toFixed(1) : v.toFixed(2));
+
+      document.getElementById('projVarVal').textContent = fmt(projVar);
+      document.getElementById('maxVarVal').textContent = fmt(s.lam1);
+      document.getElementById('mseVal').textContent = fmt(mse);
+      document.getElementById('minMseVal').textContent = fmt(s.lam2);
+
+      const total = s.trace || 1;
+      document.getElementById('projVarBar').style.width = `${Math.min(100, (projVar / total) * 100)}%`;
+      document.getElementById('mseBar').style.width = `${Math.min(100, (mse / total) * 100)}%`;
+
+      document.getElementById('consVar').textContent = fmt(projVar);
+      document.getElementById('consMse').textContent = fmt(mse);
+      document.getElementById('consTotal').textContent = fmt(s.trace);
+
+      // Optimal badge check
+      const angDiff = Math.min(
+        Math.abs(currentAngleDeg - s.pc1AngleDeg),
+        180 - Math.abs(currentAngleDeg - s.pc1AngleDeg)
+      );
+      const badge = document.getElementById('optimalBadge');
+      if (angDiff < 1.5) {
+        badge.classList.remove('hidden');
+      } else {
+        badge.classList.add('hidden');
+      }
+
+      // Covariance matrix & eigenvalues
+      document.getElementById('pointCountVal').textContent = s.n;
+      document.getElementById('cov00').textContent = fmt(s.sxx);
+      document.getElementById('cov01').textContent = fmt(s.sxy);
+      document.getElementById('cov10').textContent = fmt(s.sxy);
+      document.getElementById('cov11').textContent = fmt(s.syy);
+
+      const evr1 = (s.lam1 / total) * 100;
+      const evr2 = (s.lam2 / total) * 100;
+      document.getElementById('lam1Val').textContent = fmt(s.lam1);
+      document.getElementById('lam2Val').textContent = fmt(s.lam2);
+      document.getElementById('evr1Val').textContent = `${evr1.toFixed(1)}%`;
+      document.getElementById('evr2Val').textContent = `${evr2.toFixed(1)}%`;
+      document.getElementById('evr1Bar').style.width = `${evr1}%`;
+      document.getElementById('evr2Bar').style.width = `${evr2}%`;
+    }
+
+    function initSandbox() {
+      rawPoints = generatePresetPoints('correlated');
+
+      // Collapsible How-To
+      const toggleBtn = document.getElementById('toggleHowTo1');
+      const howToBox = document.getElementById('howToBox1');
+      toggleBtn.addEventListener('click', () => {
+        const hidden = howToBox.classList.toggle('hidden');
+        toggleBtn.textContent = hidden ? 'Show Guide' : 'Hide Guide';
+      });
+
+      // Angle slider
+      const angleSlider = document.getElementById('angleSlider');
+      const angleVal = document.getElementById('angleVal');
+      angleSlider.addEventListener('input', () => {
+        currentAngleDeg = parseFloat(angleSlider.value);
+        angleVal.textContent = `${currentAngleDeg.toFixed(1).replace(/\.0$/, '')}°`;
+        drawSandbox();
+      });
+
+      // Snap to PC1
+      document.getElementById('snapPC1Btn').addEventListener('click', () => {
+        if (!pcaState) return;
+        currentAngleDeg = Math.round(pcaState.pc1AngleDeg * 2) / 2;
+        angleSlider.value = currentAngleDeg;
+        angleVal.textContent = `${currentAngleDeg.toFixed(1).replace(/\.0$/, '')}°`;
+        drawSandbox();
+      });
+
+      // Add Extreme Outlier
+      document.getElementById('addOutlierBtn').addEventListener('click', () => {
+        if (!pcaState) return;
+        // Place an outlier along the PC2 direction (orthogonal to current PC1) so it visibly hijacks PC1!
+        const mag = pcaState.viewHalf * 1.45;
+        const ox = pcaState.v2.x * mag;
+        const oy = pcaState.v2.y * mag;
+        const rawX = pcaState.standardize ? ox * pcaState.stdX + pcaState.meanX : ox + pcaState.meanX;
+        const rawY = pcaState.standardize ? oy * pcaState.stdY + pcaState.meanY : oy + pcaState.meanY;
+        rawPoints.push({ x: rawX, y: rawY });
+        drawSandbox();
+      });
+
+      // Reset Points
+      document.getElementById('resetPointsBtn').addEventListener('click', () => {
+        rawPoints = generatePresetPoints(currentPreset);
+        drawSandbox();
+      });
+
+      // Toggles
+      ['toggleStandardize', 'toggleResiduals', 'toggleProjections'].forEach(id => {
+        document.getElementById(id).addEventListener('change', drawSandbox);
+      });
+
+      // Preset buttons
+      document.querySelectorAll('.preset-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          currentPreset = btn.dataset.preset;
+          document.querySelectorAll('.preset-btn').forEach(b => {
+            b.className = 'preset-btn px-2.5 py-1.5 rounded-lg text-xs font-semibold transition bg-slate-100 text-slate-700 hover:bg-slate-200';
+          });
+          btn.className = 'preset-btn px-2.5 py-1.5 rounded-lg text-xs font-semibold transition bg-indigo-600 text-white';
+
+          // Reset standardize toggle when switching to unstandardized so the user sees the dramatic unscaled effect first
+          if (currentPreset === 'unstandardized') {
+            document.getElementById('toggleStandardize').checked = false;
+          }
+
+          rawPoints = generatePresetPoints(currentPreset);
+          const insightEl = document.getElementById('presetInsight');
+          insightEl.innerHTML = PRESET_INSIGHTS[currentPreset];
+          if (typeof renderMathInElement === 'function') {
+            renderMathInElement(insightEl, {
+              delimiters: [{ left: '$', right: '$', display: false }],
+              throwOnError: false
+            });
+          }
+          drawSandbox();
+        });
+      });
+
+      // Click canvas to add point
+      const canvas = document.getElementById('pcaCanvas');
+      canvas.addEventListener('click', (e) => {
+        if (!pcaState || !pcaState.toData) return;
+        const rect = canvas.getBoundingClientRect();
+        const px = e.clientX - rect.left;
+        const py = e.clientY - rect.top;
+        const dPt = pcaState.toData(px, py);
+        const rawX = pcaState.standardize ? dPt.x * pcaState.stdX + pcaState.meanX : dPt.x + pcaState.meanX;
+        const rawY = pcaState.standardize ? dPt.y * pcaState.stdY + pcaState.meanY : dPt.y + pcaState.meanY;
+        rawPoints.push({ x: rawX, y: rawY });
+        drawSandbox();
+      });
+
+      drawSandbox();
+    }
+
+    // -------------------------------------------------------------------------
+    // 3. SECTION 2: INTERACTIVE SCREE PLOT & LATENT DIMENSION (k) EXPLORER
+    // -------------------------------------------------------------------------
+    let screeK = 3;
+    let screeNoise = 20;
+    let screeThreshold = 0.95;
+
+    function computeSyntheticSpectrum(noisePct) {
+      // 3 signal components + 7 noise components, normalized to sum to 10 (standardized correlation matrix)
+      const alpha = noisePct / 100; // 0.05 to 0.95
+      const signalBase = [5.2, 2.7, 1.5, 0.16, 0.12, 0.09, 0.08, 0.06, 0.05, 0.04];
+      const flatNoise  = [1.45, 1.30, 1.18, 1.08, 0.98, 0.90, 0.84, 0.79, 0.76, 0.72];
+
+      const raw = signalBase.map((s, i) => (1 - alpha) * s + alpha * flatNoise[i]);
+      const sum = raw.reduce((a, b) => a + b, 0);
+      return raw.map(v => (v / sum) * 10);
+    }
+
+    function drawScreeExplorer() {
+      const lambdas = computeSyntheticSpectrum(screeNoise);
+      const total = 10;
+      const cumEvr = [];
+      let running = 0;
+      for (const l of lambdas) {
+        running += l;
+        cumEvr.push(running / total);
+      }
+
+      const recThreshK = cumEvr.findIndex(v => v >= screeThreshold) + 1 || 10;
+      const recKaiserK = lambdas.filter(l => l > 1.0).length;
+
+      // Update summary cards
+      const retained = cumEvr[screeK - 1] * 100;
+      document.getElementById('screeRetained').textContent = `${retained.toFixed(1)}%`;
+      document.getElementById('screeLost').textContent = `${(100 - retained).toFixed(1)}%`;
+      document.getElementById('screeDim').innerHTML = `10 &rarr; ${screeK}`;
+      document.getElementById('screeRec').textContent = `${Math.round(screeThreshold * 100)}% EVR: k=${recThreshK} | Kaiser: k=${recKaiserK}`;
+
+      drawScreeCanvas(lambdas);
+      drawEvrCanvas(cumEvr);
+    }
+
+    function drawScreeCanvas(lambdas) {
+      const canvas = document.getElementById('screeCanvas');
+      if (!canvas) return;
+      const { ctx, w, h } = setupHiDPICanvas(canvas);
+      const showKaiser = document.getElementById('toggleKaiser').checked;
+
+      ctx.clearRect(0, 0, w, h);
+
+      const pad = { top: 22, right: 20, bottom: 34, left: 42 };
+      const plotW = w - pad.left - pad.right;
+      const plotH = h - pad.top - pad.bottom;
+      const maxY = Math.max(5.5, Math.ceil(lambdas[0] + 0.5));
+
+      // Horizontal grid lines
+      ctx.strokeStyle = '#e2e8f0';
+      ctx.fillStyle = '#64748b';
+      ctx.font = '11px JetBrains Mono, monospace';
+      ctx.lineWidth = 1;
+      for (let yVal = 0; yVal <= maxY; yVal += 1) {
+        const y = pad.top + plotH - (yVal / maxY) * plotH;
+        ctx.beginPath();
+        ctx.moveTo(pad.left, y);
+        ctx.lineTo(w - pad.right, y);
+        ctx.stroke();
+        ctx.textAlign = 'right';
+        ctx.fillText(yVal.toString(), pad.left - 8, y + 4);
+      }
+
+      // Kaiser Criterion line (lambda = 1)
+      if (showKaiser) {
+        const yK = pad.top + plotH - (1 / maxY) * plotH;
+        ctx.save();
+        ctx.strokeStyle = '#f59e0b';
+        ctx.lineWidth = 1.8;
+        ctx.setLineDash([5, 4]);
+        ctx.beginPath();
+        ctx.moveTo(pad.left, yK);
+        ctx.lineTo(w - pad.right, yK);
+        ctx.stroke();
+        ctx.fillStyle = '#b45309';
+        ctx.font = 'bold 10px Inter, sans-serif';
+        ctx.textAlign = 'right';
+        ctx.fillText('Kaiser (λ = 1)', w - pad.right - 4, yK - 5);
+        ctx.restore();
+      }
+
+      // Bars & Line
+      const slotW = plotW / 10;
+      const barW = slotW * 0.56;
+      const centers = [];
+
+      lambdas.forEach((val, idx) => {
+        const comp = idx + 1;
+        const cx = pad.left + slotW * (idx + 0.5);
+        const barH = (val / maxY) * plotH;
+        const y = pad.top + plotH - barH;
+        centers.push({ x: cx, y });
+
+        ctx.fillStyle = comp <= screeK ? 'rgba(79, 70, 229, 0.85)' : 'rgba(148, 163, 184, 0.45)';
+        ctx.beginPath();
+        ctx.roundRect(cx - barW / 2, y, barW, barH, [4, 4, 0, 0]);
+        ctx.fill();
+
+        // X-axis label
+        ctx.fillStyle = comp <= screeK ? '#312e81' : '#64748b';
+        ctx.font = comp <= screeK ? 'bold 11px Inter, sans-serif' : '11px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(`PC${comp}`, cx, h - 12);
+      });
+
+      // Connecting Scree Curve
+      ctx.strokeStyle = '#1e293b';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      centers.forEach((pt, i) => {
+        if (i === 0) ctx.moveTo(pt.x, pt.y);
+        else ctx.lineTo(pt.x, pt.y);
+      });
+      ctx.stroke();
+
+      centers.forEach((pt, i) => {
+        ctx.fillStyle = (i + 1) <= screeK ? '#4f46e5' : '#94a3b8';
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      });
+    }
+
+    function drawEvrCanvas(cumEvr) {
+      const canvas = document.getElementById('evrCanvas');
+      if (!canvas) return;
+      const { ctx, w, h } = setupHiDPICanvas(canvas);
+
+      ctx.clearRect(0, 0, w, h);
+
+      const pad = { top: 22, right: 20, bottom: 34, left: 46 };
+      const plotW = w - pad.left - pad.right;
+      const plotH = h - pad.top - pad.bottom;
+
+      // Grid lines (0% to 100%)
+      ctx.strokeStyle = '#e2e8f0';
+      ctx.fillStyle = '#64748b';
+      ctx.font = '11px JetBrains Mono, monospace';
+      ctx.lineWidth = 1;
+      for (let pct = 0; pct <= 100; pct += 20) {
+        const y = pad.top + plotH - (pct / 100) * plotH;
+        ctx.beginPath();
+        ctx.moveTo(pad.left, y);
+        ctx.lineTo(w - pad.right, y);
+        ctx.stroke();
+        ctx.textAlign = 'right';
+        ctx.fillText(`${pct}%`, pad.left - 8, y + 4);
+      }
+
+      // Threshold dashed line
+      const yThresh = pad.top + plotH - screeThreshold * plotH;
+      ctx.save();
+      ctx.strokeStyle = '#0d9488';
+      ctx.lineWidth = 1.8;
+      ctx.setLineDash([5, 4]);
+      ctx.beginPath();
+      ctx.moveTo(pad.left, yThresh);
+      ctx.lineTo(w - pad.right, yThresh);
+      ctx.stroke();
+      ctx.fillStyle = '#0f766e';
+      ctx.font = 'bold 10px Inter, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText(`Target (${Math.round(screeThreshold * 100)}%)`, pad.left + 6, yThresh - 5);
+      ctx.restore();
+
+      const slotW = plotW / 10;
+      const pts = cumEvr.map((val, i) => ({
+        x: pad.left + slotW * (i + 0.5),
+        y: pad.top + plotH - val * plotH
+      }));
+
+      // Shaded area under curve up to k
+      ctx.fillStyle = 'rgba(79, 70, 229, 0.12)';
+      ctx.beginPath();
+      ctx.moveTo(pts[0].x, pad.top + plotH);
+      for (let i = 0; i < screeK; i++) {
+        ctx.lineTo(pts[i].x, pts[i].y);
+      }
+      ctx.lineTo(pts[screeK - 1].x, pad.top + plotH);
+      ctx.closePath();
+      ctx.fill();
+
+      // Cumulative curve
+      ctx.strokeStyle = '#4f46e5';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      pts.forEach((pt, i) => {
+        if (i === 0) ctx.moveTo(pt.x, pt.y);
+        else ctx.lineTo(pt.x, pt.y);
+      });
+      ctx.stroke();
+
+      // Vertical drop line at active k
+      const activePt = pts[screeK - 1];
+      ctx.save();
+      ctx.strokeStyle = '#4f46e5';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([3, 3]);
+      ctx.beginPath();
+      ctx.moveTo(activePt.x, activePt.y);
+      ctx.lineTo(activePt.x, pad.top + plotH);
+      ctx.stroke();
+      ctx.restore();
+
+      // Points & X-labels
+      pts.forEach((pt, i) => {
+        const comp = i + 1;
+        const isActive = comp === screeK;
+        ctx.fillStyle = isActive ? '#4f46e5' : (comp < screeK ? '#818cf8' : '#cbd5e1');
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, isActive ? 6 : 3.8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.8;
+        ctx.stroke();
+
+        ctx.fillStyle = isActive ? '#312e81' : '#64748b';
+        ctx.font = isActive ? 'bold 11px Inter, sans-serif' : '11px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(`${comp}`, pt.x, h - 12);
+      });
+
+      // Active k percentage callout
+      ctx.fillStyle = '#312e81';
+      ctx.font = 'bold 11px JetBrains Mono, monospace';
+      ctx.textAlign = screeK > 8 ? 'right' : 'center';
+      ctx.fillText(`${(cumEvr[screeK - 1] * 100).toFixed(1)}%`, activePt.x, Math.max(14, activePt.y - 10));
+    }
+
+    function initScreeExplorer() {
+      const kSlider = document.getElementById('kSlider');
+      const kVal = document.getElementById('kSliderVal');
+      const noiseSlider = document.getElementById('noiseSlider');
+      const noiseVal = document.getElementById('noiseSliderVal');
+
+      kSlider.addEventListener('input', () => {
+        screeK = parseInt(kSlider.value, 10);
+        kVal.textContent = `k = ${screeK}`;
+        drawScreeExplorer();
+      });
+
+      noiseSlider.addEventListener('input', () => {
+        screeNoise = parseInt(noiseSlider.value, 10);
+        noiseVal.textContent = `${screeNoise}%`;
+        drawScreeExplorer();
+      });
+
+      document.getElementById('toggleKaiser').addEventListener('change', drawScreeExplorer);
+
+      document.querySelectorAll('.thresh-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          screeThreshold = parseFloat(btn.dataset.thresh);
+          document.querySelectorAll('.thresh-btn').forEach(b => {
+            b.className = 'thresh-btn px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 transition';
+          });
+          btn.className = 'thresh-btn px-2.5 py-1 rounded-lg text-xs font-semibold bg-teal-600 text-white transition';
+
+          // Auto-snap k to required threshold
+          const lambdas = computeSyntheticSpectrum(screeNoise);
+          let running = 0;
+          let reqK = 10;
+          for (let i = 0; i < lambdas.length; i++) {
+            running += lambdas[i];
+            if (running / 10 >= screeThreshold) {
+              reqK = i + 1;
+              break;
+            }
+          }
+          screeK = reqK;
+          kSlider.value = screeK;
+          kVal.textContent = `k = ${screeK}`;
+          drawScreeExplorer();
+        });
+      });
+
+      drawScreeExplorer();
+    }
+
+    // Redraw all high-DPI canvases on window resize
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        drawSandbox();
+        drawScreeExplorer();
+      }, 60);
+    });
+  </script>
+</body>
+</html>
