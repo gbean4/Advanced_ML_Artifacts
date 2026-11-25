@@ -1,0 +1,2546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Clustering & HAC Interactive Study Lab</title>
+
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+        },
+      },
+    };
+  </script>
+
+  <!-- KaTeX for reliable LaTeX rendering -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" />
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+
+  <style>
+    body {
+      background-color: #f8fafc;
+      color: #0f172a;
+      font-family: 'Inter', system-ui, sans-serif;
+    }
+    .tab-btn {
+      transition: all 0.18s ease;
+    }
+    .tab-btn.active {
+      background-color: #4f46e5;
+      color: #ffffff;
+      box-shadow: 0 2px 6px rgba(79, 70, 229, 0.25);
+    }
+    .tab-btn:not(.active):hover {
+      background-color: #e2e8f0;
+      color: #0f172a;
+    }
+    .dendro-cut-line {
+      cursor: ns-resize;
+    }
+    .dendro-hit-area {
+      cursor: ns-resize;
+    }
+    .accordion-content {
+      transition: max-height 0.25s ease-out, opacity 0.25s ease-out;
+    }
+    /* Custom subtle scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+    /* KaTeX overflow safety on mobile */
+    .katex-display {
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding: 0.25rem 0;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- Top Navigation Header -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-col sm:flex-row items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold text-lg shadow-sm">
+          C
+        </div>
+        <div>
+          <h1 class="text-base sm:text-lg font-bold text-slate-900 leading-tight">Clustering &amp; HAC Study Lab</h1>
+          <p class="text-xs text-slate-500">Interactive Visualizer &amp; Conceptual Exam Reference</p>
+        </div>
+      </div>
+
+      <!-- 3-Tab Navigation -->
+      <nav class="flex items-center bg-slate-100 p-1 rounded-xl gap-1 w-full sm:w-auto justify-center" role="tablist">
+        <button id="tab-btn-lab" onclick="switchTab('lab')" class="tab-btn active px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold flex-1 sm:flex-none text-center" role="tab">
+          1. Interactive Lab
+        </button>
+        <button id="tab-btn-howto" onclick="switchTab('howto')" class="tab-btn px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold text-slate-600 flex-1 sm:flex-none text-center" role="tab">
+          2. How to Use
+        </button>
+        <button id="tab-btn-summary" onclick="switchTab('summary')" class="tab-btn px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold text-slate-600 flex-1 sm:flex-none text-center" role="tab">
+          3. Exam Study Summary
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-5">
+
+    <!-- ========================================================= -->
+    <!-- TAB 1: INTERACTIVE LAB                                    -->
+    <!-- ========================================================= -->
+    <section id="tab-lab" class="space-y-4">
+      <!-- Top Control Bar -->
+      <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-wrap">
+          <div class="flex flex-col">
+            <label for="preset-select" class="text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1">Dataset Preset</label>
+            <select id="preset-select" class="bg-slate-50 border border-slate-300 text-slate-800 text-sm rounded-xl px-3 py-2 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              <option value="blobs">3 Gaussian Blobs (Ground Truth)</option>
+              <option value="moons">Two Moons / Chaining Test (Ground Truth)</option>
+              <option value="outliers">Outlier Stress Test (Ground Truth)</option>
+              <option value="classroom">Small 6-Point Classroom Example</option>
+              <option value="clear">Clear / Click to Add Points</option>
+            </select>
+          </div>
+
+          <div class="flex flex-col">
+            <label for="algo-select" class="text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1">Algorithm</label>
+            <select id="algo-select" class="bg-slate-50 border border-slate-300 text-slate-800 text-sm rounded-xl px-3 py-2 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              <option value="hac">HAC (Hierarchical Agglomerative)</option>
+              <option value="kmeans">K-Means (Virtual Centroids)</option>
+              <option value="kmedoids">K-Medoids (Actual Data Points)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-3">
+          <label class="inline-flex items-center gap-2 text-xs sm:text-sm font-medium text-slate-700 cursor-pointer bg-slate-50 border border-slate-200 px-3 py-2 rounded-xl select-none">
+            <input type="checkbox" id="toggle-gt" checked class="rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4" />
+            <span>Show Ground-Truth Shapes</span>
+          </label>
+          <button id="btn-reset-preset" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs sm:text-sm font-semibold rounded-xl transition">
+            Reload Dataset
+          </button>
+        </div>
+      </div>
+
+      <!-- Main 2-Column Workspace -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+
+        <!-- Left Column: Interactive 2D Scatter Plot -->
+        <div class="lg:col-span-6 bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex flex-col">
+          <div class="flex items-center justify-between mb-2">
+            <div>
+              <h2 class="text-sm font-bold text-slate-800">2D Feature Space (Click to Add Points)</h2>
+              <p class="text-xs text-slate-500" id="scatter-subtitle">Colors = Predicted Clusters &middot; Shapes = Ground Truth</p>
+            </div>
+            <div id="hover-readout" class="text-xs font-mono bg-slate-100 text-slate-600 px-2.5 py-1 rounded-lg">
+              Hover a point
+            </div>
+          </div>
+
+          <div id="scatter-container" class="relative w-full aspect-[4/3] bg-slate-50 border border-slate-200 rounded-xl overflow-hidden">
+            <canvas id="scatter-canvas" class="w-full h-full block cursor-crosshair"></canvas>
+          </div>
+
+          <div class="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+            <div class="flex items-center gap-3 flex-wrap" id="scatter-legend">
+              <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-indigo-600 inline-block"></span>Cluster Color</span>
+              <span id="legend-marker-info" class="inline-flex items-center gap-1"></span>
+            </div>
+            <span id="point-count-badge" class="font-mono font-semibold text-slate-700">0 points</span>
+          </div>
+        </div>
+
+        <!-- Right Column: Algorithm Controls & Dendrogram / Status -->
+        <div class="lg:col-span-6 bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex flex-col">
+
+          <!-- HAC PANEL -->
+          <div id="panel-hac" class="flex flex-col h-full">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+              <div>
+                <label for="hac-linkage" class="text-[11px] font-semibold uppercase tracking-wider text-slate-500 block mb-1">Linkage Criterion</label>
+                <select id="hac-linkage" class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-sm rounded-xl px-3 py-1.5 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                  <option value="single">Single Linkage (Min / Nearest)</option>
+                  <option value="complete">Complete Linkage (Max / Farthest)</option>
+                  <option value="average">Average Linkage (UPGMA)</option>
+                  <option value="ward" selected>Ward's Method (Min Variance)</option>
+                </select>
+              </div>
+              <div>
+                <label for="hac-metric" class="text-[11px] font-semibold uppercase tracking-wider text-slate-500 block mb-1">Distance Metric</label>
+                <select id="hac-metric" class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-sm rounded-xl px-3 py-1.5 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                  <option value="euclidean" selected>Euclidean ($L_2$)</option>
+                  <option value="manhattan">Manhattan ($L_1$)</option>
+                  <option value="cosine">Cosine Distance</option>
+                </select>
+                <p id="ward-metric-note" class="text-[11px] text-amber-700 mt-0.5 hidden">Ward's Method always uses Euclidean ($L_2$).</p>
+              </div>
+            </div>
+
+            <!-- HAC Step Controls & K Slider -->
+            <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 mb-3 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div class="flex items-center gap-1.5">
+                <button id="hac-reset" title="Reset to Step 0" class="px-2.5 py-1.5 bg-white border border-slate-300 hover:bg-slate-100 rounded-lg text-xs font-semibold text-slate-700">Reset</button>
+                <button id="hac-back" title="Step Backward" class="px-2.5 py-1.5 bg-white border border-slate-300 hover:bg-slate-100 rounded-lg text-xs font-semibold text-slate-700">&larr; Back</button>
+                <button id="hac-play" title="Play / Pause Merges" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold min-w-[64px]">Play</button>
+                <button id="hac-fwd" title="Step Forward" class="px-2.5 py-1.5 bg-white border border-slate-300 hover:bg-slate-100 rounded-lg text-xs font-semibold text-slate-700">Next &rarr;</button>
+              </div>
+
+              <div class="flex items-center gap-2 w-full sm:w-auto">
+                <label for="hac-k-slider" class="text-xs font-semibold text-slate-700 whitespace-nowrap">Cut $K$:</label>
+                <input type="range" id="hac-k-slider" min="1" max="10" value="3" class="w-full sm:w-28 accent-indigo-600 cursor-pointer" />
+                <span id="hac-k-val" class="font-mono text-xs font-bold bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-md min-w-[28px] text-center">3</span>
+              </div>
+            </div>
+
+            <!-- Live Interactive SVG Dendrogram -->
+            <div class="flex items-center justify-between mb-1">
+              <h3 class="text-xs font-bold uppercase tracking-wider text-slate-600">Interactive Dendrogram</h3>
+              <span class="text-[11px] text-rose-600 font-medium">Drag red dashed line to slice clusters</span>
+            </div>
+            <div id="dendro-container" class="relative flex-1 min-h-[260px] bg-slate-50 border border-slate-200 rounded-xl overflow-hidden select-none">
+              <svg id="dendro-svg" class="w-full h-full block"></svg>
+            </div>
+          </div>
+
+          <!-- K-MEANS / K-MEDOIDS PANEL -->
+          <div id="panel-partitional" class="hidden flex-col h-full justify-between space-y-4">
+            <div class="space-y-4">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div class="bg-slate-50 border border-slate-200 rounded-xl p-3">
+                  <div class="flex items-center justify-between mb-1">
+                    <label for="part-k-slider" class="text-xs font-semibold uppercase tracking-wider text-slate-600">Number of Clusters ($K$)</label>
+                    <span id="part-k-val" class="font-mono text-xs font-bold bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-md">3</span>
+                  </div>
+                  <input type="range" id="part-k-slider" min="2" max="6" value="3" class="w-full accent-indigo-600 cursor-pointer" />
+                </div>
+
+                <div class="bg-slate-50 border border-slate-200 rounded-xl p-3">
+                  <label for="part-metric" class="text-xs font-semibold uppercase tracking-wider text-slate-600 block mb-1">Distance Metric</label>
+                  <select id="part-metric" class="w-full bg-white border border-slate-300 text-slate-800 text-sm rounded-lg px-2.5 py-1.5 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <option value="euclidean" selected>Euclidean ($L_2$)</option>
+                    <option value="manhattan">Manhattan ($L_1$)</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Action Buttons -->
+              <div class="flex flex-wrap gap-2">
+                <button id="part-reinit" class="flex-1 px-3 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs sm:text-sm font-semibold rounded-xl border border-slate-300 transition">
+                  Re-initialize Randomly
+                </button>
+                <button id="part-step" class="flex-1 px-3 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-semibold rounded-xl shadow-sm transition">
+                  Step (Assign / Update)
+                </button>
+                <button id="part-run" class="flex-1 px-3 py-2.5 bg-teal-600 hover:bg-teal-700 text-white text-xs sm:text-sm font-semibold rounded-xl shadow-sm transition">
+                  Run to Convergence
+                </button>
+              </div>
+
+              <!-- Live Status Box -->
+              <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
+                <div class="flex items-center justify-between border-b border-slate-200 pb-2">
+                  <span class="text-xs font-bold uppercase tracking-wider text-slate-500" id="part-algo-title">K-Means Status</span>
+                  <span id="part-converged-badge" class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800">Initialized</span>
+                </div>
+                <div class="grid grid-cols-3 gap-3 text-center">
+                  <div class="bg-white border border-slate-200 rounded-xl p-2.5">
+                    <div class="text-[11px] text-slate-500 font-medium">Iteration</div>
+                    <div id="part-iter" class="text-lg font-mono font-bold text-slate-800">0</div>
+                  </div>
+                  <div class="bg-white border border-slate-200 rounded-xl p-2.5">
+                    <div class="text-[11px] text-slate-500 font-medium">Next Phase</div>
+                    <div id="part-phase" class="text-sm font-bold text-indigo-700 mt-1">Assign</div>
+                  </div>
+                  <div class="bg-white border border-slate-200 rounded-xl p-2.5">
+                    <div class="text-[11px] text-slate-500 font-medium" id="part-cost-label">Inertia (SSE)</div>
+                    <div id="part-cost" class="text-lg font-mono font-bold text-slate-800">—</div>
+                  </div>
+                </div>
+                <div id="part-insight-box" class="text-xs text-slate-600 bg-white border border-slate-200 rounded-xl p-3 leading-relaxed">
+                  Click <strong>Step</strong> to alternate between assigning points to the nearest center and updating center positions. Notice how <strong>Re-initialize Randomly</strong> can yield different final clusters!
+                </div>
+              </div>
+            </div>
+
+            <!-- Conceptual Reminder -->
+            <div class="bg-indigo-50 border border-indigo-200 rounded-xl p-3 text-xs text-indigo-900">
+              <strong id="part-tip-title">K-Means vs. K-Medoids:</strong>
+              <span id="part-tip-text">K-Means places centroids (bold <strong>X</strong>) at the arithmetic mean of each cluster, so extreme outliers pull them away. Switch to K-Medoids to see centers locked onto actual data points (double rings).</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom Metrics & Inspection Strip -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        <!-- Live Rand Index & Adjusted Rand Index Panel -->
+        <div class="lg:col-span-7 bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <h3 class="text-sm font-bold text-slate-800">Live Evaluation: Rand Index (RI) &amp; Adjusted Rand Index (ARI)</h3>
+            <span id="ri-status-badge" class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-teal-100 text-teal-800">Ground Truth Active</span>
+          </div>
+
+          <div id="ri-content" class="grid grid-cols-2 sm:grid-cols-6 gap-2.5">
+            <div class="bg-indigo-50 border border-indigo-200 rounded-xl p-2.5 text-center">
+              <div class="text-[11px] font-semibold text-indigo-700">Rand Index (RI)</div>
+              <div id="val-ri" class="text-xl font-mono font-bold text-indigo-900">—</div>
+            </div>
+            <div class="bg-teal-50 border border-teal-200 rounded-xl p-2.5 text-center">
+              <div class="text-[11px] font-semibold text-teal-700">Adjusted RI (ARI)</div>
+              <div id="val-ari" class="text-xl font-mono font-bold text-teal-900">—</div>
+            </div>
+            <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-center">
+              <div class="text-[11px] text-slate-500">Pairs $\binom{n}{2}$</div>
+              <div id="val-pairs" class="text-base font-mono font-bold text-slate-800 mt-0.5">—</div>
+            </div>
+            <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-center" title="Same cluster in both truth and prediction">
+              <div class="text-[11px] text-emerald-700 font-semibold">$a$ (Same-Same)</div>
+              <div id="val-a" class="text-base font-mono font-bold text-emerald-800 mt-0.5">—</div>
+            </div>
+            <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-center" title="Different clusters in both truth and prediction">
+              <div class="text-[11px] text-emerald-700 font-semibold">$b$ (Diff-Diff)</div>
+              <div id="val-b" class="text-base font-mono font-bold text-emerald-800 mt-0.5">—</div>
+            </div>
+            <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-center" title="Disagreements between truth and prediction">
+              <div class="text-[11px] text-rose-700 font-semibold">$c + d$ (Disagree)</div>
+              <div id="val-cd" class="text-base font-mono font-bold text-rose-800 mt-0.5">—</div>
+            </div>
+          </div>
+
+          <p id="ri-disabled-msg" class="hidden text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-xl p-3">
+            Custom / unlabeled dataset active. Switch to a preset with <strong>(Ground Truth)</strong> to compute live Rand Index (RI) and Adjusted Rand Index (ARI).
+          </p>
+        </div>
+
+        <!-- Live Step Log / Merge Explanation -->
+        <div class="lg:col-span-5 bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex flex-col justify-between">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-sm font-bold text-slate-800">Live Step Log &amp; Merge Explanation</h3>
+            <span id="step-badge" class="font-mono text-xs font-semibold bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md">Ready</span>
+          </div>
+          <div id="step-log-box" class="bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs sm:text-sm text-slate-700 font-mono leading-relaxed min-h-[72px] flex items-center">
+            Select a dataset and drag the dendrogram cut line or step through merges to inspect decisions.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================= -->
+    <!-- TAB 2: HOW TO USE THIS INTERACTIVE                        -->
+    <!-- ========================================================= -->
+    <section id="tab-howto" class="hidden space-y-6">
+      <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+        <h2 class="text-xl font-bold text-slate-900 mb-2">How to Use the Interactive Lab</h2>
+        <p class="text-sm text-slate-600 leading-relaxed max-w-3xl">
+          This lab lets you experiment directly with the algorithms covered on your exam. Click anywhere on the <strong>2D Feature Space</strong> to add custom points, switch between <strong>HAC</strong>, <strong>K-Means</strong>, and <strong>K-Medoids</strong>, and watch how the <strong>Rand Index (RI)</strong> and <strong>Adjusted Rand Index (ARI)</strong> respond in real time.
+        </p>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-5">
+          <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
+            <div class="text-xs font-bold uppercase tracking-wider text-indigo-600 mb-1">1. Canvas Controls</div>
+            <p class="text-xs text-slate-600 leading-relaxed">Click anywhere on the 2D plot to add points. Hover over any point to inspect its ID and $(x, y)$ coordinates. Toggle <strong>Ground-Truth Shapes</strong> (circles, triangles, squares) to compare true labels against predicted colors.</p>
+          </div>
+          <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
+            <div class="text-xs font-bold uppercase tracking-wider text-indigo-600 mb-1">2. Dendrogram Slicing</div>
+            <p class="text-xs text-slate-600 leading-relaxed">In HAC mode, drag the <strong>red dashed threshold line</strong> up or down directly on the dendrogram—or slide $K$—to slice the tree at any dissimilarity level without re-running the algorithm.</p>
+          </div>
+          <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
+            <div class="text-xs font-bold uppercase tracking-wider text-indigo-600 mb-1">3. Step-by-Step Playback</div>
+            <p class="text-xs text-slate-600 leading-relaxed">Use <strong>Back / Play / Next</strong> in HAC to watch bottom-up merges happen one pair at a time, or use <strong>Step (Assign / Update)</strong> in K-Means and K-Medoids to see centers move iteratively.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4 Guided Experiments -->
+      <div>
+        <h3 class="text-base font-bold text-slate-800 mb-3">4 Quick Guided Experiments to Master Exam Concepts</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+          <!-- Experiment 1 -->
+          <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-lg">Experiment 1</span>
+                <span class="text-xs text-slate-400 font-mono">HAC Linkages</span>
+              </div>
+              <h4 class="text-base font-bold text-slate-900 mb-1.5">See Chaining in Action</h4>
+              <p class="text-sm text-slate-600 leading-relaxed mb-4">
+                Load <strong>Two Moons / Chaining Test</strong> in HAC mode with $K=2$. Compare <strong>Single Linkage</strong> (which follows the curved moons cleanly via nearest neighbors) against <strong>Complete Linkage</strong> or <strong>Ward's Method</strong> (which forces compact, spherical cuts across the moons). Then click between the two moons to add a single "bridge" noise point and watch Single Linkage chain both moons together!
+              </p>
+            </div>
+            <button onclick="launchExperiment(1)" class="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl transition">
+              Launch Experiment 1 &rarr;
+            </button>
+          </div>
+
+          <!-- Experiment 2 -->
+          <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-bold uppercase tracking-wider text-teal-700 bg-teal-50 px-2.5 py-1 rounded-lg">Experiment 2</span>
+                <span class="text-xs text-slate-400 font-mono">Dendrograms</span>
+              </div>
+              <h4 class="text-base font-bold text-slate-900 mb-1.5">Slice the Dendrogram</h4>
+              <p class="text-sm text-slate-600 leading-relaxed mb-4">
+                Load the <strong>Small 6-Point Classroom Example</strong>. Drag the red dashed threshold line slowly from top to bottom. Notice how HAC builds the entire hierarchy once, allowing you to inspect every possible cluster count from $K=1$ to $K=6$ simply by changing the height of the horizontal cut.
+              </p>
+            </div>
+            <button onclick="launchExperiment(2)" class="w-full py-2.5 px-4 bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold rounded-xl transition">
+              Launch Experiment 2 &rarr;
+            </button>
+          </div>
+
+          <!-- Experiment 3 -->
+          <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-bold uppercase tracking-wider text-amber-700 bg-amber-50 px-2.5 py-1 rounded-lg">Experiment 3</span>
+                <span class="text-xs text-slate-400 font-mono">Outlier Robustness</span>
+              </div>
+              <h4 class="text-base font-bold text-slate-900 mb-1.5">Outliers: K-Means vs. K-Medoids</h4>
+              <p class="text-sm text-slate-600 leading-relaxed mb-4">
+                Load the <strong>Outlier Stress Test</strong> ($K=2$). Run <strong>K-Means</strong> to convergence and watch the virtual centroid (<strong>X</strong>) get dragged out into empty space toward the extreme outliers. Then switch to <strong>K-Medoids</strong> and run it—the medoid (double ring) stays grounded on an actual core data point.
+              </p>
+            </div>
+            <button onclick="launchExperiment(3)" class="w-full py-2.5 px-4 bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold rounded-xl transition">
+              Launch Experiment 3 &rarr;
+            </button>
+          </div>
+
+          <!-- Experiment 4 -->
+          <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-bold uppercase tracking-wider text-rose-700 bg-rose-50 px-2.5 py-1 rounded-lg">Experiment 4</span>
+                <span class="text-xs text-slate-400 font-mono">RI vs. ARI</span>
+              </div>
+              <h4 class="text-base font-bold text-slate-900 mb-1.5">Understand RI vs. ARI</h4>
+              <p class="text-sm text-slate-600 leading-relaxed mb-4">
+                Load <strong>3 Gaussian Blobs</strong> in HAC mode. First look at $K=3$ ($\text{RI} \approx 1.0, \text{ARI} \approx 1.0$). Now drag the cut line all the way to the top ($K=1$) or all the way to the bottom ($K=N$). Notice how raw <strong>RI</strong> stays deceptively high (often $> 0.65$ at $K=N$ because $b$ is huge!), while <strong>ARI</strong> immediately drops to $0.00$ to tell you the clustering is no better than random.
+              </p>
+            </div>
+            <button onclick="launchExperiment(4)" class="w-full py-2.5 px-4 bg-rose-600 hover:bg-rose-700 text-white text-sm font-semibold rounded-xl transition">
+              Launch Experiment 4 &rarr;
+            </button>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================= -->
+    <!-- TAB 3: EXAM STUDY SUMMARY                                 -->
+    <!-- ========================================================= -->
+    <section id="tab-summary" class="hidden space-y-6 pb-10">
+
+      <!-- Quick Jump Bar -->
+      <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex flex-wrap items-center gap-2 text-xs font-semibold">
+        <span class="text-slate-400 uppercase tracking-wider mr-1">Jump to:</span>
+        <a href="#sec-clustering" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-indigo-100 hover:text-indigo-700 text-slate-700">1. Clustering &amp; Metrics</a>
+        <a href="#sec-uses" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-indigo-100 hover:text-indigo-700 text-slate-700">2. Applications</a>
+        <a href="#sec-hac" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-indigo-100 hover:text-indigo-700 text-slate-700">3. HAC &amp; Dendrograms</a>
+        <a href="#sec-linkages" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-indigo-100 hover:text-indigo-700 text-slate-700">4. Linkage Criteria</a>
+        <a href="#sec-compare" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-indigo-100 hover:text-indigo-700 text-slate-700">5. Algorithm Comparison</a>
+        <a href="#sec-ri" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-indigo-100 hover:text-indigo-700 text-slate-700">6. Rand Index &amp; ARI</a>
+        <a href="#sec-highd" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-indigo-100 hover:text-indigo-700 text-slate-700">7. High Dimensions</a>
+        <a href="#sec-qa" class="px-2.5 py-1 rounded-lg bg-indigo-100 text-indigo-800 hover:bg-indigo-200">8. Exam Concept Check</a>
+      </div>
+
+      <!-- 1. What is Clustering? -->
+      <article id="sec-clustering" class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
+        <div class="flex items-center gap-2">
+          <span class="w-7 h-7 rounded-lg bg-indigo-100 text-indigo-700 font-bold text-sm flex items-center justify-center">1</span>
+          <h2 class="text-lg font-bold text-slate-900">What is Clustering?</h2>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-slate-700 leading-relaxed">
+          <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
+            <h3 class="font-bold text-slate-900 mb-1">Unsupervised vs. Supervised Learning</h3>
+            <p>
+              <strong>Supervised learning</strong> (classification/regression) learns from labeled examples $(x_i, y_i)$. <strong>Clustering</strong> is <strong>unsupervised learning</strong>: the algorithm receives only unlabeled feature vectors $D = \{x_1, x_2, \dots, x_n\} \subset \mathbb{R}^d$ and partitions $D$ into $k$ subsets $C_1, \dots, C_k$.
+            </p>
+          </div>
+          <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
+            <h3 class="font-bold text-slate-900 mb-1">Core Optimization Objective</h3>
+            <p>
+              A good clustering simultaneously achieves two goals:
+            </p>
+            <ul class="list-disc list-inside mt-1 space-y-1">
+              <li><strong>Maximize intra-cluster similarity</strong> (points inside the same cluster are close together).</li>
+              <li><strong>Minimize inter-cluster similarity</strong> (points in different clusters are far apart).</li>
+            </ul>
+          </div>
+        </div>
+
+        <h3 class="text-sm font-bold text-slate-800 pt-1">Common Distance / Dissimilarity Metrics</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="border border-slate-200 rounded-xl p-4 bg-white">
+            <div class="font-bold text-indigo-700 text-sm mb-1">Euclidean Distance ($L_2$)</div>
+            <div class="my-2 text-center">$$d_2(x, y) = \sqrt{\sum_{i=1}^{d} (x_i - y_i)^2}$$</div>
+            <p class="text-xs text-slate-600">Straight-line distance. Standard default for low-dimensional continuous data; sensitive to feature scaling and outliers.</p>
+          </div>
+          <div class="border border-slate-200 rounded-xl p-4 bg-white">
+            <div class="font-bold text-teal-700 text-sm mb-1">Manhattan Distance ($L_1$)</div>
+            <div class="my-2 text-center">$$d_1(x, y) = \sum_{i=1}^{d} |x_i - y_i|$$</div>
+            <p class="text-xs text-slate-600">Grid / taxicab distance. Less sensitive to outliers and degrades more slowly than $L_2$ in higher dimensions.</p>
+          </div>
+          <div class="border border-slate-200 rounded-xl p-4 bg-white">
+            <div class="font-bold text-amber-700 text-sm mb-1">Cosine Distance</div>
+            <div class="my-2 text-center">$$d_{\cos}(x, y) = 1 - \frac{x \cdot y}{\|x\|_2 \|y\|_2}$$</div>
+            <p class="text-xs text-slate-600">Measures angle between vectors, ignoring magnitude. Ideal for text documents (TF-IDF) and high-dimensional embeddings.</p>
+          </div>
+        </div>
+      </article>
+
+      <!-- 2. Why Clustering is Useful -->
+      <article id="sec-uses" class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="w-7 h-7 rounded-lg bg-indigo-100 text-indigo-700 font-bold text-sm flex items-center justify-center">2</span>
+          <h2 class="text-lg font-bold text-slate-900">Why Clustering is Useful</h2>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-xs leading-relaxed">
+          <div class="bg-slate-50 border border-slate-200 rounded-xl p-3.5">
+            <div class="font-bold text-slate-900 mb-1">Customer Segmentation</div>
+            <p class="text-slate-600">Group shoppers by spend &amp; frequency to tailor marketing to VIPs vs. bargain hunters.</p>
+          </div>
+          <div class="bg-slate-50 border border-slate-200 rounded-xl p-3.5">
+            <div class="font-bold text-slate-900 mb-1">Genomics &amp; Biology</div>
+            <p class="text-slate-600">Group genes with similar expression profiles across tissues to infer shared functions.</p>
+          </div>
+          <div class="bg-slate-50 border border-slate-200 rounded-xl p-3.5">
+            <div class="font-bold text-slate-900 mb-1">Anomaly / Fraud Detection</div>
+            <p class="text-slate-600">Flag transactions sitting far outside any tight normal cluster as potential fraud.</p>
+          </div>
+          <div class="bg-slate-50 border border-slate-200 rounded-xl p-3.5">
+            <div class="font-bold text-slate-900 mb-1">Document Grouping</div>
+            <p class="text-slate-600">Organize thousands of news articles or support tickets by topic without manual labels.</p>
+          </div>
+          <div class="bg-slate-50 border border-slate-200 rounded-xl p-3.5">
+            <div class="font-bold text-slate-900 mb-1">Data Compression</div>
+            <p class="text-slate-600">Color quantization: cluster image pixels into $K$ colors and replace each pixel with its centroid.</p>
+          </div>
+        </div>
+      </article>
+
+      <!-- 3. HAC & Dendrograms -->
+      <article id="sec-hac" class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
+        <div class="flex items-center gap-2">
+          <span class="w-7 h-7 rounded-lg bg-indigo-100 text-indigo-700 font-bold text-sm flex items-center justify-center">3</span>
+          <h2 class="text-lg font-bold text-slate-900">Hierarchical Agglomerative Clustering (HAC)</h2>
+        </div>
+        <p class="text-sm text-slate-700 leading-relaxed">
+          HAC builds a nested hierarchy of clusters from the <strong>bottom up</strong> (<em>agglomerative</em> = gathering together). Unlike K-Means, it does not require choosing $K$ beforehand and is completely <strong>deterministic</strong> (no random starting centers).
+        </p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
+            <h3 class="text-sm font-bold text-slate-900 mb-2">The 4-Step Bottom-Up Algorithm</h3>
+            <ol class="list-decimal list-inside text-xs sm:text-sm text-slate-700 space-y-1.5">
+              <li>Start with $n$ singleton clusters: $C_i = \{x_i\}$ for $i = 1, \dots, n$.</li>
+              <li>Compute the $n \times n$ pairwise distance matrix between all clusters.</li>
+              <li>Find the two closest clusters $(C_i, C_j)$ under the chosen <strong>linkage criterion</strong> and merge them into $C_{ij}$.</li>
+              <li>Update the distance matrix and repeat Steps 3–4 until only $1$ giant cluster remains ($n-1$ total merges).</li>
+            </ol>
+          </div>
+          <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
+            <h3 class="text-sm font-bold text-slate-900 mb-2">Reading &amp; Cutting a Dendrogram</h3>
+            <ul class="list-disc list-inside text-xs sm:text-sm text-slate-700 space-y-1.5">
+              <li><strong>Leaves (bottom):</strong> Individual data points at height $0$.</li>
+              <li><strong>Y-Axis (Merge Height):</strong> Dissimilarity at which two clusters fuse. Taller vertical jumps mean merging very dissimilar groups.</li>
+              <li><strong>Horizontal Threshold Cut:</strong> Slicing across the tree at height $h$ yields $K$ clusters equal to the number of vertical branches crossed by the cut line.</li>
+              <li><strong>Rule of Thumb for Best $K$:</strong> Cut across the longest uninterrupted vertical gap in the dendrogram.</li>
+            </ul>
+          </div>
+        </div>
+      </article>
+
+      <!-- 4. Linkage Criteria Deep Dive -->
+      <article id="sec-linkages" class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
+        <div class="flex items-center gap-2">
+          <span class="w-7 h-7 rounded-lg bg-indigo-100 text-indigo-700 font-bold text-sm flex items-center justify-center">4</span>
+          <h2 class="text-lg font-bold text-slate-900">Linkage Criteria Deep Dive</h2>
+        </div>
+        <p class="text-sm text-slate-600">
+          Once clusters contain multiple points, the <strong>linkage criterion</strong> defines how to measure the distance $D(A, B)$ between two clusters $A$ and $B$.
+        </p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Single -->
+          <div class="border border-slate-200 rounded-xl p-4 bg-slate-50">
+            <div class="flex items-center justify-between mb-1">
+              <h3 class="font-bold text-indigo-800 text-sm">Single Linkage (Minimum / Nearest)</h3>
+              <span class="text-[11px] font-semibold bg-rose-100 text-rose-800 px-2 py-0.5 rounded-md">Pitfall: Chaining</span>
+            </div>
+            <div class="my-2">$$D_{\text{single}}(A, B) = \min_{x \in A,\; y \in B} d(x, y)$$</div>
+            <p class="text-xs text-slate-700 leading-relaxed">
+              <strong>Cluster Shape:</strong> Can detect elongated, non-spherical shapes (like Two Moons).<br />
+              <strong>Pitfall:</strong> <em>Chaining</em>—a few noisy points between two distinct clusters can act as a bridge and prematurely fuse them into one long string.
+            </p>
+          </div>
+
+          <!-- Complete -->
+          <div class="border border-slate-200 rounded-xl p-4 bg-slate-50">
+            <div class="flex items-center justify-between mb-1">
+              <h3 class="font-bold text-teal-800 text-sm">Complete Linkage (Maximum / Farthest)</h3>
+              <span class="text-[11px] font-semibold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-md">Pitfall: Outliers</span>
+            </div>
+            <div class="my-2">$$D_{\text{complete}}(A, B) = \max_{x \in A,\; y \in B} d(x, y)$$</div>
+            <p class="text-xs text-slate-700 leading-relaxed">
+              <strong>Cluster Shape:</strong> Tight, compact, roughly equal-diameter spherical clusters.<br />
+              <strong>Pitfall:</strong> Sensitive to outliers (one distant point inflates the max distance) and tends to break apart large or elongated clusters.
+            </p>
+          </div>
+
+          <!-- Average -->
+          <div class="border border-slate-200 rounded-xl p-4 bg-slate-50">
+            <div class="flex items-center justify-between mb-1">
+              <h3 class="font-bold text-amber-800 text-sm">Average Linkage (UPGMA)</h3>
+              <span class="text-[11px] font-semibold bg-teal-100 text-teal-800 px-2 py-0.5 rounded-md">Balanced Middle Ground</span>
+            </div>
+            <div class="my-2">$$D_{\text{avg}}(A, B) = \frac{1}{|A|\,|B|} \sum_{x \in A} \sum_{y \in B} d(x, y)$$</div>
+            <p class="text-xs text-slate-700 leading-relaxed">
+              <strong>Cluster Shape:</strong> Compromise between Single and Complete linkage.<br />
+              <strong>Behavior:</strong> Much less prone to chaining than Single Linkage and less distorted by single outliers than Complete Linkage.
+            </p>
+          </div>
+
+          <!-- Ward's -->
+          <div class="border border-slate-200 rounded-xl p-4 bg-slate-50">
+            <div class="flex items-center justify-between mb-1">
+              <h3 class="font-bold text-violet-800 text-sm">Ward's Method (Minimum Variance)</h3>
+              <span class="text-[11px] font-semibold bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-md">Requires Euclidean</span>
+            </div>
+            <div class="my-2">$$\Delta \text{SSE}(A, B) = \frac{|A|\,|B|}{|A| + |B|} \|\mu_A - \mu_B\|_2^2$$</div>
+            <p class="text-xs text-slate-700 leading-relaxed">
+              <strong>Cluster Shape:</strong> Clean, compact, evenly sized spherical clusters (similar objective to K-Means).<br />
+              <strong>Behavior:</strong> Merges the pair that causes the smallest increase in total within-cluster sum of squares (variance).
+            </p>
+          </div>
+        </div>
+      </article>
+
+      <!-- 5. HAC vs. K-Means vs. K-Medoids Comparison Table -->
+      <article id="sec-compare" class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-3">
+        <div class="flex items-center gap-2">
+          <span class="w-7 h-7 rounded-lg bg-indigo-100 text-indigo-700 font-bold text-sm flex items-center justify-center">5</span>
+          <h2 class="text-lg font-bold text-slate-900">HAC vs. K-Means vs. K-Medoids</h2>
+        </div>
+
+        <div class="overflow-x-auto border border-slate-200 rounded-xl">
+          <table class="w-full text-left border-collapse text-xs sm:text-sm">
+            <thead>
+              <tr class="bg-slate-100 text-slate-800 border-b border-slate-200">
+                <th class="py-3 px-4 font-bold">Property</th>
+                <th class="py-3 px-4 font-bold text-indigo-800">HAC</th>
+                <th class="py-3 px-4 font-bold text-teal-800">K-Means</th>
+                <th class="py-3 px-4 font-bold text-amber-800">K-Medoids (PAM)</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200 text-slate-700">
+              <tr class="hover:bg-slate-50">
+                <td class="py-2.5 px-4 font-semibold text-slate-900">Approach</td>
+                <td class="py-2.5 px-4">Hierarchical (nested bottom-up tree)</td>
+                <td class="py-2.5 px-4">Partitional (flat iterative)</td>
+                <td class="py-2.5 px-4">Partitional (flat iterative)</td>
+              </tr>
+              <tr class="hover:bg-slate-50">
+                <td class="py-2.5 px-4 font-semibold text-slate-900">Cluster Center</td>
+                <td class="py-2.5 px-4">None (defined by linkage rule)</td>
+                <td class="py-2.5 px-4"><strong>Centroid</strong> (virtual mean vector)</td>
+                <td class="py-2.5 px-4"><strong>Medoid</strong> (actual data point)</td>
+              </tr>
+              <tr class="hover:bg-slate-50">
+                <td class="py-2.5 px-4 font-semibold text-slate-900">Must pick $K$ upfront?</td>
+                <td class="py-2.5 px-4 font-semibold text-emerald-700">No (cut dendrogram afterward)</td>
+                <td class="py-2.5 px-4">Yes</td>
+                <td class="py-2.5 px-4">Yes</td>
+              </tr>
+              <tr class="hover:bg-slate-50">
+                <td class="py-2.5 px-4 font-semibold text-slate-900">Deterministic?</td>
+                <td class="py-2.5 px-4 font-semibold text-emerald-700">Yes (same output every run)</td>
+                <td class="py-2.5 px-4">No (depends on random init)</td>
+                <td class="py-2.5 px-4">No (depends on random init)</td>
+              </tr>
+              <tr class="hover:bg-slate-50">
+                <td class="py-2.5 px-4 font-semibold text-slate-900">Outlier Sensitivity</td>
+                <td class="py-2.5 px-4">Varies by linkage (high in Complete)</td>
+                <td class="py-2.5 px-4 text-rose-700 font-medium">High (means get pulled)</td>
+                <td class="py-2.5 px-4 text-emerald-700 font-semibold">Low (robust to outliers)</td>
+              </tr>
+              <tr class="hover:bg-slate-50">
+                <td class="py-2.5 px-4 font-semibold text-slate-900">Distance Metric Flexibility</td>
+                <td class="py-2.5 px-4">Any metric (except Ward's $\to L_2$)</td>
+                <td class="py-2.5 px-4">Euclidean ($L_2$) standard</td>
+                <td class="py-2.5 px-4 font-semibold text-emerald-700">Any arbitrary dissimilarity matrix</td>
+              </tr>
+              <tr class="hover:bg-slate-50">
+                <td class="py-2.5 px-4 font-semibold text-slate-900">Typical Time Complexity</td>
+                <td class="py-2.5 px-4 font-mono">$O(n^2 \log n)$ to $O(n^3)$</td>
+                <td class="py-2.5 px-4 font-mono">$O(n \cdot K \cdot t)$ (fast)</td>
+                <td class="py-2.5 px-4 font-mono">$O(K(n-K)^2)$ per iter (slower)</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </article>
+
+      <!-- 6. Rand Index & Adjusted Rand Index -->
+      <article id="sec-ri" class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
+        <div class="flex items-center gap-2">
+          <span class="w-7 h-7 rounded-lg bg-indigo-100 text-indigo-700 font-bold text-sm flex items-center justify-center">6</span>
+          <h2 class="text-lg font-bold text-slate-900">Rand Index (RI) &amp; Adjusted Rand Index (ARI)</h2>
+        </div>
+
+        <p class="text-sm text-slate-700 leading-relaxed">
+          Cluster IDs are arbitrary (swapping "Cluster 1" and "Cluster 2" gives the exact same partition), so standard classification accuracy fails. The <strong>Rand Index</strong> avoids the label-permutation problem by counting agreements across all $\binom{n}{2} = \frac{n(n-1)}{2}$ unordered pairs of points:
+        </p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-2">
+            <h3 class="font-bold text-slate-900 text-sm">Raw Rand Index (RI)</h3>
+            <ul class="text-xs text-slate-700 space-y-1">
+              <li>$a$: Pairs in the <strong>same</strong> cluster in both true &amp; predicted.</li>
+              <li>$b$: Pairs in <strong>different</strong> clusters in both true &amp; predicted.</li>
+              <li>$c, d$: Pairs where the two clusterings <strong>disagree</strong>.</li>
+            </ul>
+            <div class="pt-1">$$\text{RI} = \frac{a + b}{a + b + c + d} = \frac{a + b}{\binom{n}{2}} \in [0, 1]$$</div>
+            <p class="text-xs text-rose-700 font-medium">
+              <strong>The Catch:</strong> Even random assignments produce many diff-diff pairs ($b$), inflating raw RI well above $0$ (often $0.5\text{–}0.7$).
+            </p>
+          </div>
+
+          <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-2">
+            <h3 class="font-bold text-slate-900 text-sm">Adjusted Rand Index (ARI)</h3>
+            <p class="text-xs text-slate-700">Corrects raw RI for agreement expected purely by chance:</p>
+            <div>$$\text{ARI} = \frac{\text{Index} - \mathbb{E}[\text{Index}]}{\max(\text{Index}) - \mathbb{E}[\text{Index}]}$$</div>
+            <ul class="text-xs text-slate-700 space-y-1 pt-1">
+              <li><strong>$\text{ARI} = 1.0$:</strong> Perfect match (up to label renaming).</li>
+              <li><strong>$\text{ARI} \approx 0.0$:</strong> No better than random guessing (or trivial $K=1$ / $K=n$ cut).</li>
+              <li><strong>$\text{ARI} < 0.0$:</strong> Worse than random agreement.</li>
+            </ul>
+          </div>
+        </div>
+      </article>
+
+      <!-- 7. High Dimensions & Curse of Dimensionality -->
+      <article id="sec-highd" class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
+        <div class="flex items-center gap-2">
+          <span class="w-7 h-7 rounded-lg bg-indigo-100 text-indigo-700 font-bold text-sm flex items-center justify-center">7</span>
+          <h2 class="text-lg font-bold text-slate-900">High Dimensions &amp; The Curse of Dimensionality</h2>
+        </div>
+
+        <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-950 leading-relaxed">
+          <strong>Why does clustering struggle with many parameters (features)?</strong><br />
+          As the number of dimensions $d$ grows, volume expands exponentially and data becomes extremely sparse. A phenomenon called <strong>distance concentration</strong> occurs: the distance to the nearest neighbor $d_{\min}$ and the farthest neighbor $d_{\max}$ converge toward the same value:
+          <div class="my-2">$$\lim_{d \to \infty} \frac{d_{\max} - d_{\min}}{d_{\min}} \to 0$$</div>
+          When every pair of points looks almost equidistant, distance-based clustering (especially Euclidean $L_2$) loses the contrast needed to tell "close" from "far."
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs sm:text-sm text-slate-700">
+          <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
+            <h3 class="font-bold text-slate-900 mb-1.5">Is There a Hard Dimension Threshold?</h3>
+            <p class="leading-relaxed">
+              There is <strong>no single universal cutoff</strong>—it depends on how many features are noisy vs. informative and whether the data lies on a low-dimensional manifold. However, as a practical rule of thumb, standard Euclidean clustering noticeably degrades once you pass <strong>~10–20 noisy/independent dimensions</strong>, and fails severely in hundreds or thousands of raw dimensions.
+            </p>
+          </div>
+          <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
+            <h3 class="font-bold text-slate-900 mb-1.5">How Clustering Recognizes Similarity in High-D</h3>
+            <ul class="list-disc list-inside space-y-1 leading-relaxed">
+              <li><strong>Switch Distance Metrics:</strong> Use <strong>Cosine Similarity</strong> (compares angle/direction, great for text &amp; embeddings) or <strong>Manhattan ($L_1$)</strong> (more robust than $L_2$).</li>
+              <li><strong>Dimensionality Reduction:</strong> Compress features first with <strong>PCA</strong> (linear) or <strong>UMAP / Autoencoders</strong> (nonlinear), then cluster in the compact space.</li>
+              <li><strong>Feature Selection &amp; Scaling:</strong> Drop irrelevant features and standardize (z-score) so large-scale variables don't drown out others.</li>
+              <li><strong>Subspace Clustering:</strong> Search for clusters that exist only within subsets of dimensions (e.g., CLIQUE, PROCLUS).</li>
+            </ul>
+          </div>
+        </div>
+      </article>
+
+      <!-- 8. Exam Concept Check (Interactive Accordions) -->
+      <article id="sec-qa" class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-3">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="w-7 h-7 rounded-lg bg-indigo-600 text-white font-bold text-sm flex items-center justify-center">8</span>
+            <h2 class="text-lg font-bold text-slate-900">Exam Concept Check (Click to Reveal Answer)</h2>
+          </div>
+          <button onclick="toggleAllAccordions()" class="text-xs font-semibold text-indigo-600 hover:text-indigo-800">Expand / Collapse All</button>
+        </div>
+
+        <div class="space-y-2.5" id="qa-list">
+          <!-- Q1 -->
+          <div class="border border-slate-200 rounded-xl overflow-hidden">
+            <button onclick="toggleAccordion(this)" class="w-full text-left px-4 py-3 bg-slate-50 hover:bg-slate-100 flex items-center justify-between gap-2 font-semibold text-sm text-slate-800">
+              <span>Q1: Why can't you use standard classification accuracy to evaluate clustering?</span>
+              <span class="qa-icon text-indigo-600 font-bold text-lg leading-none">+</span>
+            </button>
+            <div class="qa-body hidden px-4 py-3 bg-white text-xs sm:text-sm text-slate-700 border-t border-slate-200 leading-relaxed">
+              Because clustering is unsupervised, cluster labels are <strong>arbitrary permutations</strong>. If the algorithm puts all true "Group A" points into "Cluster 2" and all "Group B" points into "Cluster 1", the clustering is 100% perfect—yet naive accuracy comparing label numbers would score 0%. Metrics like the <strong>Rand Index</strong> and <strong>ARI</strong> solve this by evaluating <em>pairs of points</em> (whether they belong together or apart), making them invariant to label renaming.
+            </div>
+          </div>
+
+          <!-- Q2 -->
+          <div class="border border-slate-200 rounded-xl overflow-hidden">
+            <button onclick="toggleAccordion(this)" class="w-full text-left px-4 py-3 bg-slate-50 hover:bg-slate-100 flex items-center justify-between gap-2 font-semibold text-sm text-slate-800">
+              <span>Q2: Why is HAC deterministic while K-Means is not?</span>
+              <span class="qa-icon text-indigo-600 font-bold text-lg leading-none">+</span>
+            </button>
+            <div class="qa-body hidden px-4 py-3 bg-white text-xs sm:text-sm text-slate-700 border-t border-slate-200 leading-relaxed">
+              <strong>HAC</strong> always starts from the exact same $n$ singleton points and greedily merges the closest pair according to a fixed distance matrix and linkage formula (barring exact distance ties, the tree is identical every time). <strong>K-Means</strong> starts by placing $K$ initial centroids randomly (or via randomized K-Means++) and iteratively descends to a <em>local</em> minimum of SSE, so different random seeds can converge to different clusterings.
+            </div>
+          </div>
+
+          <!-- Q3 -->
+          <div class="border border-slate-200 rounded-xl overflow-hidden">
+            <button onclick="toggleAccordion(this)" class="w-full text-left px-4 py-3 bg-slate-50 hover:bg-slate-100 flex items-center justify-between gap-2 font-semibold text-sm text-slate-800">
+              <span>Q3: When should you prefer K-Medoids over K-Means?</span>
+              <span class="qa-icon text-indigo-600 font-bold text-lg leading-none">+</span>
+            </button>
+            <div class="qa-body hidden px-4 py-3 bg-white text-xs sm:text-sm text-slate-700 border-t border-slate-200 leading-relaxed">
+              Choose <strong>K-Medoids</strong> when: (1) your dataset contains <strong>extreme outliers</strong> (since K-Means averages points, outliers pull centroids off-center, whereas a medoid must be an actual data point); (2) you need a <strong>non-Euclidean distance metric</strong> (such as Manhattan, Cosine, or edit distance on strings where a "mean" doesn't even exist); or (3) you want each cluster's center to be an interpretable, real example from the dataset.
+            </div>
+          </div>
+
+          <!-- Q4 -->
+          <div class="border border-slate-200 rounded-xl overflow-hidden">
+            <button onclick="toggleAccordion(this)" class="w-full text-left px-4 py-3 bg-slate-50 hover:bg-slate-100 flex items-center justify-between gap-2 font-semibold text-sm text-slate-800">
+              <span>Q4: Why does Single Linkage cause "chaining"?</span>
+              <span class="qa-icon text-indigo-600 font-bold text-lg leading-none">+</span>
+            </button>
+            <div class="qa-body hidden px-4 py-3 bg-white text-xs sm:text-sm text-slate-700 border-t border-slate-200 leading-relaxed">
+              Single Linkage defines cluster distance as the <strong>minimum</strong> distance between any single pair of points across two clusters: $D(A,B) = \min_{x\in A, y\in B} d(x,y)$. Because it completely ignores all other points in both clusters, a small trail of noisy points between two otherwise distant clusters creates short local hops that fuse the two clusters into one long, stretched-out chain.
+            </div>
+          </div>
+
+          <!-- Q5 -->
+          <div class="border border-slate-200 rounded-xl overflow-hidden">
+            <button onclick="toggleAccordion(this)" class="w-full text-left px-4 py-3 bg-slate-50 hover:bg-slate-100 flex items-center justify-between gap-2 font-semibold text-sm text-slate-800">
+              <span>Q5: Why does Euclidean distance fail in 100+ dimensions, and how do you fix it?</span>
+              <span class="qa-icon text-indigo-600 font-bold text-lg leading-none">+</span>
+            </button>
+            <div class="qa-body hidden px-4 py-3 bg-white text-xs sm:text-sm text-slate-700 border-t border-slate-200 leading-relaxed">
+              Due to the <strong>Curse of Dimensionality</strong>, squaring and summing differences across 100+ dimensions causes <em>distance concentration</em>: $\frac{d_{\max} - d_{\min}}{d_{\min}} \to 0$, meaning all points become nearly equidistant and nearest neighbors lose meaning. Fixes include: reducing dimensions first with <strong>PCA / UMAP</strong>, switching to <strong>Cosine similarity</strong> (measuring direction rather than magnitude) or <strong>$L_1$ Manhattan</strong>, removing noisy features, or using <strong>subspace clustering</strong>.
+            </div>
+          </div>
+        </div>
+      </article>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-white border-t border-slate-200 py-3 text-center text-xs text-slate-400">
+    Clustering &amp; HAC Interactive Study Lab &middot; Built for Conceptual Mastery &amp; Exam Prep
+  </footer>
+
+  <!-- ========================================================= -->
+  <!-- APPLICATION JAVASCRIPT                                    -->
+  <!-- ========================================================= -->
+  <script>
+    // ===========================================================
+    // 1. GLOBAL STATE & COLORBLIND-FRIENDLY PALETTE
+    // ===========================================================
+    const CLUSTER_COLORS = [
+      '#4f46e5', // Indigo
+      '#0d9488', // Teal
+      '#d97706', // Amber
+      '#e11d48', // Rose
+      '#7c3aed', // Violet
+      '#0284c7', // Sky
+      '#65a30d', // Lime
+      '#ea580c', // Orange
+      '#db2777', // Pink
+      '#0891b2', // Cyan
+    ];
+
+    const state = {
+      activeTab: 'lab',
+      preset: 'blobs',
+      algo: 'hac', // 'hac' | 'kmeans' | 'kmedoids'
+      showGT: true,
+      points: [], // { id, label, x, y, gt }  coordinates in [0, 10]
+      assignments: [], // cluster index per point
+      hoveredIdx: -1,
+
+      // HAC state
+      hacLinkage: 'ward',
+      hacMetric: 'euclidean',
+      hacRoot: null,
+      hacMerges: [], // array of merge steps (length N-1)
+      hacK: 3,
+      hacCutHeight: null, // numeric height on dendrogram
+      hacStepMode: false, // true when user is stepping through merges
+      hacCurrentStep: 0, // 0 .. N-1
+      hacPlayTimer: null,
+      dendroGeom: null, // cached SVG mapping for dragging cut line
+
+      // Partitional (K-Means / K-Medoids) state
+      partK: 3,
+      partMetric: 'euclidean',
+      partCenters: [], // for kmeans: [{x, y}], for kmedoids: point indices [idx, ...]
+      partIter: 0,
+      partPhase: 'assign', // 'assign' | 'update'
+      partConverged: false,
+      partCost: null,
+    };
+
+    // ===========================================================
+    // 2. KATEX RENDERING HELPER
+    // ===========================================================
+    function renderAllMath(rootEl = document.body) {
+      if (typeof renderMathInElement === 'function') {
+        try {
+          renderMathInElement(rootEl, {
+            delimiters: [
+              { left: '$$', right: '$$', display: true },
+              { left: '$', right: '$', display: false },
+            ],
+            throwOnError: false,
+          });
+        } catch (err) {
+          console.error('KaTeX render error:', err);
+        }
+      }
+    }
+
+    // ===========================================================
+    // 3. TAB & ACCORDION NAVIGATION
+    // ===========================================================
+    function switchTab(tabName) {
+      stopHacPlayback();
+      state.activeTab = tabName;
+      const tabs = ['lab', 'howto', 'summary'];
+      tabs.forEach((t) => {
+        const sec = document.getElementById(`tab-${t}`);
+        const btn = document.getElementById(`tab-btn-${t}`);
+        if (t === tabName) {
+          sec.classList.remove('hidden');
+          btn.classList.add('active');
+          btn.classList.remove('text-slate-600');
+        } else {
+          sec.classList.add('hidden');
+          btn.classList.remove('active');
+          btn.classList.add('text-slate-600');
+        }
+      });
+
+      if (tabName === 'lab') {
+        resizeScatterCanvas();
+        renderAll();
+      }
+      renderAllMath(document.getElementById(`tab-${tabName}`));
+    }
+
+    function toggleAccordion(btn) {
+      const body = btn.nextElementSibling;
+      const icon = btn.querySelector('.qa-icon');
+      const isHidden = body.classList.contains('hidden');
+      if (isHidden) {
+        body.classList.remove('hidden');
+        icon.textContent = '−';
+        renderAllMath(body);
+      } else {
+        body.classList.add('hidden');
+        icon.textContent = '+';
+      }
+    }
+
+    let allExpanded = false;
+    function toggleAllAccordions() {
+      allExpanded = !allExpanded;
+      const buttons = document.querySelectorAll('#qa-list button');
+      buttons.forEach((btn) => {
+        const body = btn.nextElementSibling;
+        const icon = btn.querySelector('.qa-icon');
+        if (allExpanded) {
+          body.classList.remove('hidden');
+          icon.textContent = '−';
+          renderAllMath(body);
+        } else {
+          body.classList.add('hidden');
+          icon.textContent = '+';
+        }
+      });
+    }
+
+    // Guided Experiments launcher from Tab 2
+    function launchExperiment(num) {
+      switchTab('lab');
+      if (num === 1) {
+        // Two Moons + Single Linkage + K=2
+        document.getElementById('preset-select').value = 'moons';
+        document.getElementById('algo-select').value = 'hac';
+        document.getElementById('hac-linkage').value = 'single';
+        document.getElementById('hac-metric').value = 'euclidean';
+        state.preset = 'moons';
+        state.algo = 'hac';
+        state.hacLinkage = 'single';
+        state.hacMetric = 'euclidean';
+        loadPreset('moons', 2);
+        updateAlgoPanels();
+        recomputeAlgorithm();
+      } else if (num === 2) {
+        // Small 6-Point Classroom Example + Ward's
+        document.getElementById('preset-select').value = 'classroom';
+        document.getElementById('algo-select').value = 'hac';
+        document.getElementById('hac-linkage').value = 'average';
+        state.preset = 'classroom';
+        state.algo = 'hac';
+        state.hacLinkage = 'average';
+        loadPreset('classroom', 3);
+        updateAlgoPanels();
+        recomputeAlgorithm();
+      } else if (num === 3) {
+        // Outlier Stress Test + K-Means K=2
+        document.getElementById('preset-select').value = 'outliers';
+        document.getElementById('algo-select').value = 'kmeans';
+        document.getElementById('part-k-slider').value = '2';
+        document.getElementById('part-k-val').textContent = '2';
+        state.preset = 'outliers';
+        state.algo = 'kmeans';
+        state.partK = 2;
+        loadPreset('outliers', 2);
+        updateAlgoPanels();
+        recomputeAlgorithm();
+        runPartitionalToConvergence();
+      } else if (num === 4) {
+        // 3 Gaussian Blobs + HAC Ward's K=3
+        document.getElementById('preset-select').value = 'blobs';
+        document.getElementById('algo-select').value = 'hac';
+        document.getElementById('hac-linkage').value = 'ward';
+        state.preset = 'blobs';
+        state.algo = 'hac';
+        state.hacLinkage = 'ward';
+        loadPreset('blobs', 3);
+        updateAlgoPanels();
+        recomputeAlgorithm();
+      }
+    }
+
+    // ===========================================================
+    // 4. DATASET PRESETS (DETERMINISTIC SEEDED GENERATOR)
+    // ===========================================================
+    function mulberry32(seed) {
+      return function () {
+        let t = (seed += 0x6d2b79f5);
+        t = Math.imul(t ^ (t >>> 15), t | 1);
+        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+
+    function gaussianRand(rng) {
+      let u = 0, v = 0;
+      while (u === 0) u = rng();
+      while (v === 0) v = rng();
+      return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+    }
+
+    function clamp(val, min, max) {
+      return Math.max(min, Math.min(max, val));
+    }
+
+    function loadPreset(presetKey, preferredK = null) {
+      stopHacPlayback();
+      const rng = mulberry32(42);
+      const pts = [];
+
+      if (presetKey === 'blobs') {
+        const centers = [
+          { x: 2.3, y: 2.6, gt: 0 },
+          { x: 7.5, y: 2.8, gt: 1 },
+          { x: 4.9, y: 7.7, gt: 2 },
+        ];
+        let id = 1;
+        centers.forEach((c) => {
+          for (let i = 0; i < 8; i++) {
+            pts.push({
+              id,
+              label: `P${id}`,
+              x: clamp(c.x + gaussianRand(rng) * 0.72, 0.5, 9.5),
+              y: clamp(c.y + gaussianRand(rng) * 0.72, 0.5, 9.5),
+              gt: c.gt,
+            });
+            id++;
+          }
+        });
+        state.hacK = preferredK || 3;
+        state.partK = preferredK || 3;
+      } else if (presetKey === 'moons') {
+        // Two clean interleaving crescents (12 points each)
+        let id = 1;
+        for (let i = 0; i < 12; i++) {
+          const angle = (Math.PI * i) / 11;
+          const x = 3.7 + 2.4 * Math.cos(angle) + (rng() - 0.5) * 0.25;
+          const y = 4.6 + 2.4 * Math.sin(angle) + (rng() - 0.5) * 0.25;
+          pts.push({ id, label: `P${id}`, x: clamp(x, 0.5, 9.5), y: clamp(y, 0.5, 9.5), gt: 0 });
+          id++;
+        }
+        for (let i = 0; i < 12; i++) {
+          const angle = (Math.PI * i) / 11;
+          const x = 6.1 - 2.4 * Math.cos(angle) + (rng() - 0.5) * 0.25;
+          const y = 5.2 - 2.4 * Math.sin(angle) + (rng() - 0.5) * 0.25;
+          pts.push({ id, label: `P${id}`, x: clamp(x, 0.5, 9.5), y: clamp(y, 0.5, 9.5), gt: 1 });
+          id++;
+        }
+        state.hacK = preferredK || 2;
+        state.partK = preferredK || 2;
+      } else if (presetKey === 'outliers') {
+        // Two tight clusters + 2 extreme outliers belonging to cluster 1
+        let id = 1;
+        for (let i = 0; i < 9; i++) {
+          pts.push({
+            id,
+            label: `P${id}`,
+            x: clamp(2.1 + gaussianRand(rng) * 0.48, 0.5, 9.5),
+            y: clamp(2.5 + gaussianRand(rng) * 0.48, 0.5, 9.5),
+            gt: 0,
+          });
+          id++;
+        }
+        for (let i = 0; i < 9; i++) {
+          pts.push({
+            id,
+            label: `P${id}`,
+            x: clamp(5.0 + gaussianRand(rng) * 0.48, 0.5, 9.5),
+            y: clamp(4.8 + gaussianRand(rng) * 0.48, 0.5, 9.5),
+            gt: 1,
+          });
+          id++;
+        }
+        // Extreme outliers pulling mean of cluster 1 far to top-right
+        pts.push({ id, label: `P${id}`, x: 9.4, y: 9.2, gt: 1 }); id++;
+        pts.push({ id, label: `P${id}`, x: 9.1, y: 8.6, gt: 1 }); id++;
+        state.hacK = preferredK || 2;
+        state.partK = preferredK || 2;
+      } else if (presetKey === 'classroom') {
+        const raw = [
+          { x: 1.8, y: 2.2 },
+          { x: 2.5, y: 2.7 },
+          { x: 3.1, y: 1.9 },
+          { x: 6.8, y: 7.4 },
+          { x: 7.6, y: 6.9 },
+          { x: 8.4, y: 2.4 },
+        ];
+        raw.forEach((p, idx) => {
+          pts.push({ id: idx + 1, label: `x${idx + 1}`, x: p.x, y: p.y, gt: null });
+        });
+        state.hacK = preferredK || 3;
+        state.partK = preferredK || 3;
+      } else {
+        // Clear
+        state.hacK = 1;
+        state.partK = 2;
+      }
+
+      state.points = pts;
+      state.hoveredIdx = -1;
+      syncSliders();
+    }
+
+    function syncSliders() {
+      const n = state.points.length;
+      const hacSlider = document.getElementById('hac-k-slider');
+      hacSlider.min = 1;
+      hacSlider.max = Math.max(1, n);
+      state.hacK = clamp(state.hacK, 1, Math.max(1, n));
+      hacSlider.value = state.hacK;
+      document.getElementById('hac-k-val').textContent = state.hacK;
+
+      const partSlider = document.getElementById('part-k-slider');
+      partSlider.min = 2;
+      partSlider.max = Math.max(2, Math.min(6, n || 2));
+      state.partK = clamp(state.partK, 2, parseInt(partSlider.max, 10));
+      partSlider.value = state.partK;
+      document.getElementById('part-k-val').textContent = state.partK;
+    }
+
+    // ===========================================================
+    // 5. DISTANCE METRICS
+    // ===========================================================
+    function pointDist(a, b, metric) {
+      const dx = a.x - b.x;
+      const dy = a.y - b.y;
+      if (metric === 'manhattan') {
+        return Math.abs(dx) + Math.abs(dy);
+      }
+      if (metric === 'cosine') {
+        const dot = a.x * b.x + a.y * b.y;
+        const na = Math.hypot(a.x, a.y);
+        const nb = Math.hypot(b.x, b.y);
+        if (na === 0 || nb === 0) return 0;
+        return Math.max(0, 1 - dot / (na * nb));
+      }
+      // Euclidean L2
+      return Math.hypot(dx, dy);
+    }
+
+    // ===========================================================
+    // 6. HIERARCHICAL AGGLOMERATIVE CLUSTERING (HAC) ENGINE
+    // ===========================================================
+    function computeHAC() {
+      const pts = state.points;
+      const n = pts.length;
+      state.hacMerges = [];
+      state.hacRoot = null;
+      state.hacStepMode = false;
+      state.hacCurrentStep = Math.max(0, n - 1);
+
+      if (n === 0) {
+        state.assignments = [];
+        return;
+      }
+      if (n === 1) {
+        state.hacRoot = { id: 0, label: pts[0].label, members: [0], height: 0, left: null, right: null };
+        state.assignments = [0];
+        state.hacCutHeight = 0.5;
+        return;
+      }
+
+      const linkage = state.hacLinkage;
+      const metric = linkage === 'ward' ? 'euclidean' : state.hacMetric;
+
+      // Precompute pairwise point distances
+      const dMat = Array.from({ length: n }, () => new Float64Array(n));
+      for (let i = 0; i < n; i++) {
+        for (let j = i + 1; j < n; j++) {
+          const d = pointDist(pts[i], pts[j], metric);
+          dMat[i][j] = d;
+          dMat[j][i] = d;
+        }
+      }
+
+      // Initialize singleton clusters
+      let nextNodeId = n;
+      let active = pts.map((p, idx) => ({
+        id: idx,
+        label: p.label,
+        members: [idx],
+        height: 0,
+        left: null,
+        right: null,
+        cx: p.x,
+        cy: p.y,
+      }));
+
+      function clusterDistance(cA, cB) {
+        if (linkage === 'single') {
+          let minD = Infinity;
+          for (const i of cA.members) {
+            for (const j of cB.members) {
+              if (dMat[i][j] < minD) minD = dMat[i][j];
+            }
+          }
+          return minD;
+        }
+        if (linkage === 'complete') {
+          let maxD = -Infinity;
+          for (const i of cA.members) {
+            for (const j of cB.members) {
+              if (dMat[i][j] > maxD) maxD = dMat[i][j];
+            }
+          }
+          return maxD;
+        }
+        if (linkage === 'average') {
+          let sum = 0;
+          for (const i of cA.members) {
+            for (const j of cB.members) {
+              sum += dMat[i][j];
+            }
+          }
+          return sum / (cA.members.length * cB.members.length);
+        }
+        // Ward's Method: sqrt( 2 * |A||B| / (|A|+|B|) ) * ||mu_A - mu_B||_2
+        const nA = cA.members.length;
+        const nB = cB.members.length;
+        const distCent = Math.hypot(cA.cx - cB.cx, cA.cy - cB.cy);
+        return Math.sqrt((2 * nA * nB) / (nA + nB)) * distCent;
+      }
+
+      for (let step = 1; step < n; step++) {
+        let bestI = 0;
+        let bestJ = 1;
+        let bestDist = Infinity;
+
+        for (let i = 0; i < active.length; i++) {
+          for (let j = i + 1; j < active.length; j++) {
+            const d = clusterDistance(active[i], active[j]);
+            if (d < bestDist) {
+              bestDist = d;
+              bestI = i;
+              bestJ = j;
+            }
+          }
+        }
+
+        const cA = active[bestI];
+        const cB = active[bestJ];
+        const mergedMembers = [...cA.members, ...cB.members];
+        const nTot = mergedMembers.length;
+        const cx = (cA.cx * cA.members.length + cB.cx * cB.members.length) / nTot;
+        const cy = (cA.cy * cA.members.length + cB.cy * cB.members.length) / nTot;
+
+        const newNode = {
+          id: nextNodeId++,
+          label: null,
+          members: mergedMembers,
+          height: bestDist,
+          left: cA,
+          right: cB,
+          cx,
+          cy,
+          stepIndex: step,
+        };
+
+        // Remove bestJ then bestI
+        active.splice(bestJ, 1);
+        active.splice(bestI, 1);
+        active.push(newNode);
+
+        state.hacMerges.push({
+          step,
+          nodeA: cA,
+          nodeB: cB,
+          mergedNode: newNode,
+          distance: bestDist,
+          clustersAfter: active.map((c) => [...c.members]),
+        });
+      }
+
+      state.hacRoot = active[0];
+      state.hacCurrentStep = state.hacMerges.length;
+      applyHacCutByK(state.hacK);
+    }
+
+    function applyHacCutByK(k) {
+      const n = state.points.length;
+      if (n === 0) {
+        state.assignments = [];
+        return;
+      }
+      if (n === 1) {
+        state.assignments = [0];
+        state.hacCutHeight = 0.5;
+        return;
+      }
+
+      const clampedK = clamp(k, 1, n);
+      state.hacK = clampedK;
+      document.getElementById('hac-k-slider').value = clampedK;
+      document.getElementById('hac-k-val').textContent = clampedK;
+
+      // Exact cluster partition at merge step (n - k)
+      const mergeIdx = n - clampedK - 1; // -1 means 0 merges (K=N)
+      let clusters;
+      if (mergeIdx < 0) {
+        clusters = state.points.map((_, idx) => [idx]);
+      } else {
+        clusters = state.hacMerges[mergeIdx].clustersAfter;
+      }
+
+      // Compute visual cutHeight halfway between mergeIdx and mergeIdx+1
+      const maxH = state.hacRoot ? Math.max(state.hacRoot.height, 0.01) : 1;
+      const hLow = mergeIdx >= 0 ? state.hacMerges[mergeIdx].distance : 0;
+      const hHigh = mergeIdx + 1 < state.hacMerges.length ? state.hacMerges[mergeIdx + 1].distance : maxH * 1.12;
+      state.hacCutHeight = (hLow + hHigh) / 2;
+
+      assignClustersFromList(clusters);
+      updateStepLogForHac();
+    }
+
+    function applyHacCutByHeight(height) {
+      const n = state.points.length;
+      if (n <= 1 || !state.hacRoot) return;
+
+      const maxH = Math.max(state.hacRoot.height, 0.01);
+      state.hacCutHeight = clamp(height, 0, maxH * 1.14);
+      state.hacStepMode = false;
+
+      // Traverse tree to collect clusters where node.height <= cutHeight
+      const clusters = [];
+      function collect(node) {
+        if (!node.left && !node.right) {
+          clusters.push(node.members);
+          return;
+        }
+        if (node.height <= state.hacCutHeight) {
+          clusters.push(node.members);
+        } else {
+          collect(node.left);
+          collect(node.right);
+        }
+      }
+      collect(state.hacRoot);
+
+      state.hacK = clusters.length;
+      document.getElementById('hac-k-slider').value = state.hacK;
+      document.getElementById('hac-k-val').textContent = state.hacK;
+
+      assignClustersFromList(clusters);
+      updateStepLogForHac();
+    }
+
+    function applyHacStep(stepNum) {
+      const n = state.points.length;
+      if (n <= 1) return;
+      const total = state.hacMerges.length;
+      state.hacCurrentStep = clamp(stepNum, 0, total);
+      state.hacStepMode = true;
+
+      const kAtStep = n - state.hacCurrentStep;
+      applyHacCutByK(kAtStep);
+      state.hacStepMode = true; // preserve step mode highlight
+      updateStepLogForHac();
+    }
+
+    function assignClustersFromList(clusters) {
+      // Sort clusters by smallest member index for stable colors
+      const sorted = clusters.map((c) => [...c]).sort((a, b) => Math.min(...a) - Math.min(...b));
+      const assigns = new Array(state.points.length).fill(0);
+      sorted.forEach((members, cIdx) => {
+        members.forEach((ptIdx) => {
+          assigns[ptIdx] = cIdx;
+        });
+      });
+      state.assignments = assigns;
+    }
+
+    function formatMemberList(members) {
+      const labels = members.map((idx) => state.points[idx].label);
+      if (labels.length <= 4) return `{${labels.join(', ')}}`;
+      return `{${labels.slice(0, 3).join(', ')}, … (${labels.length} pts)}`;
+    }
+
+    function updateStepLogForHac() {
+      const logEl = document.getElementById('step-log-box');
+      const badgeEl = document.getElementById('step-badge');
+      const n = state.points.length;
+      if (n <= 1) {
+        badgeEl.textContent = 'Add Points';
+        logEl.textContent = 'Add at least 2 points on the scatter plot to run HAC.';
+        return;
+      }
+
+      const linkageNames = {
+        single: 'Single Linkage',
+        complete: 'Complete Linkage',
+        average: 'Average Linkage',
+        ward: "Ward's Method",
+      };
+      const linkName = linkageNames[state.hacLinkage];
+      const activeMergeIndex = n - state.hacK - 1;
+
+      if (activeMergeIndex < 0) {
+        badgeEl.textContent = `Step 0 / ${n - 1}`;
+        logEl.textContent = `Step 0: Every point starts as its own singleton cluster (K = ${n}). Click "Next" or drag the red line up to merge.`;
+      } else {
+        const m = state.hacMerges[activeMergeIndex];
+        badgeEl.textContent = `Step ${m.step} / ${n - 1} (K=${state.hacK})`;
+        logEl.textContent = `Step ${m.step}: Merged ${formatMemberList(m.nodeA.members)} and ${formatMemberList(m.nodeB.members)} using ${linkName} at distance d = ${m.distance.toFixed(2)}.`;
+      }
+    }
+
+    function stopHacPlayback() {
+      if (state.hacPlayTimer) {
+        clearInterval(state.hacPlayTimer);
+        state.hacPlayTimer = null;
+        const btn = document.getElementById('hac-play');
+        if (btn) btn.textContent = 'Play';
+      }
+    }
+
+    // ===========================================================
+    // 7. K-MEANS & K-MEDOIDS ENGINE
+    // ===========================================================
+    function initPartitional() {
+      const n = state.points.length;
+      const k = Math.min(state.partK, n);
+      state.partIter = 0;
+      state.partPhase = 'assign';
+      state.partConverged = false;
+      state.partCost = null;
+      state.partCenters = [];
+      state.assignments = new Array(n).fill(0);
+
+      if (n < 2) {
+        updatePartitionalUI();
+        return;
+      }
+
+      // Pick k distinct random data point indices
+      const indices = Array.from({ length: n }, (_, i) => i);
+      for (let i = indices.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [indices[i], indices[j]] = [indices[j], indices[i]];
+      }
+      const chosen = indices.slice(0, k);
+
+      if (state.algo === 'kmeans') {
+        state.partCenters = chosen.map((idx) => ({
+          x: state.points[idx].x,
+          y: state.points[idx].y,
+        }));
+      } else {
+        state.partCenters = chosen; // actual point indices
+      }
+
+      // Perform initial assignment so plot is colored right away
+      partitionalAssign();
+      state.partPhase = 'update';
+      updatePartitionalUI();
+    }
+
+    function partitionalAssign() {
+      const pts = state.points;
+      const metric = state.partMetric;
+      let changed = false;
+      let totalCost = 0;
+
+      for (let i = 0; i < pts.length; i++) {
+        let bestC = 0;
+        let bestD = Infinity;
+        for (let c = 0; c < state.partCenters.length; c++) {
+          const centerPt = state.algo === 'kmeans' ? state.partCenters[c] : pts[state.partCenters[c]];
+          const d = pointDist(pts[i], centerPt, metric);
+          if (d < bestD) {
+            bestD = d;
+            bestC = c;
+          }
+        }
+        if (state.assignments[i] !== bestC) {
+          state.assignments[i] = bestC;
+          changed = true;
+        }
+        totalCost += state.algo === 'kmeans' ? bestD * bestD : bestD;
+      }
+      state.partCost = totalCost;
+      return changed;
+    }
+
+    function partitionalUpdate() {
+      const pts = state.points;
+      const k = state.partCenters.length;
+      const metric = state.partMetric;
+      let moved = false;
+
+      if (state.algo === 'kmeans') {
+        for (let c = 0; c < k; c++) {
+          let sx = 0, sy = 0, cnt = 0;
+          for (let i = 0; i < pts.length; i++) {
+            if (state.assignments[i] === c) {
+              sx += pts[i].x;
+              sy += pts[i].y;
+              cnt++;
+            }
+          }
+          if (cnt > 0) {
+            const nx = sx / cnt;
+            const ny = sy / cnt;
+            if (Math.hypot(nx - state.partCenters[c].x, ny - state.partCenters[c].y) > 1e-4) {
+              moved = true;
+            }
+            state.partCenters[c] = { x: nx, y: ny };
+          }
+        }
+      } else {
+        // K-Medoids: for each cluster, pick the actual member point minimizing total distance to all other members
+        for (let c = 0; c < k; c++) {
+          const members = [];
+          for (let i = 0; i < pts.length; i++) {
+            if (state.assignments[i] === c) members.push(i);
+          }
+          if (members.length === 0) continue;
+
+          let bestMedoid = state.partCenters[c];
+          let bestSum = Infinity;
+          for (const cand of members) {
+            let sum = 0;
+            for (const other of members) {
+              sum += pointDist(pts[cand], pts[other], metric);
+            }
+            if (sum < bestSum) {
+              bestSum = sum;
+              bestMedoid = cand;
+            }
+          }
+          if (bestMedoid !== state.partCenters[c]) {
+            moved = true;
+            state.partCenters[c] = bestMedoid;
+          }
+        }
+      }
+
+      // Recalculate cost after center move
+      let totalCost = 0;
+      for (let i = 0; i < pts.length; i++) {
+        const c = state.assignments[i];
+        const centerPt = state.algo === 'kmeans' ? state.partCenters[c] : pts[state.partCenters[c]];
+        const d = pointDist(pts[i], centerPt, metric);
+        totalCost += state.algo === 'kmeans' ? d * d : d;
+      }
+      state.partCost = totalCost;
+      return moved;
+    }
+
+    function stepPartitional() {
+      if (state.points.length < 2 || state.partConverged) return;
+      if (state.partPhase === 'assign') {
+        const changed = partitionalAssign();
+        state.partPhase = 'update';
+        if (!changed && state.partIter > 0) {
+          state.partConverged = true;
+        }
+      } else {
+        const moved = partitionalUpdate();
+        state.partIter++;
+        state.partPhase = 'assign';
+        if (!moved) {
+          state.partConverged = true;
+        }
+      }
+      updatePartitionalUI();
+      renderAll();
+    }
+
+    function runPartitionalToConvergence() {
+      if (state.points.length < 2) return;
+      let guard = 0;
+      while (!state.partConverged && guard < 60) {
+        if (state.partPhase === 'assign') {
+          const changed = partitionalAssign();
+          state.partPhase = 'update';
+          if (!changed && state.partIter > 0) state.partConverged = true;
+        } else {
+          const moved = partitionalUpdate();
+          state.partIter++;
+          state.partPhase = 'assign';
+          if (!moved) state.partConverged = true;
+        }
+        guard++;
+      }
+      updatePartitionalUI();
+      renderAll();
+    }
+
+    function updatePartitionalUI() {
+      const isKMeans = state.algo === 'kmeans';
+      document.getElementById('part-algo-title').textContent = isKMeans ? 'K-Means Status' : 'K-Medoids Status';
+      document.getElementById('part-cost-label').textContent = isKMeans ? 'Inertia (SSE)' : 'Total Cost (Sum d)';
+      document.getElementById('part-iter').textContent = state.partIter;
+      document.getElementById('part-phase').textContent = state.partConverged
+        ? 'Done'
+        : state.partPhase === 'assign'
+        ? 'Assign'
+        : 'Update';
+      document.getElementById('part-cost').textContent = state.partCost !== null ? state.partCost.toFixed(2) : '—';
+
+      const badge = document.getElementById('part-converged-badge');
+      if (state.partConverged) {
+        badge.textContent = 'Converged';
+        badge.className = 'text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800';
+      } else {
+        badge.textContent = state.partIter === 0 ? 'Initialized' : 'Running';
+        badge.className = 'text-xs font-semibold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800';
+      }
+
+      const logEl = document.getElementById('step-log-box');
+      const stepBadge = document.getElementById('step-badge');
+      stepBadge.textContent = `Iter ${state.partIter}`;
+      if (state.points.length < 2) {
+        logEl.textContent = 'Click on the scatter plot to add at least 2 points.';
+      } else if (state.partConverged) {
+        logEl.textContent = `${isKMeans ? 'K-Means' : 'K-Medoids'} converged after ${state.partIter} iteration(s) with total cost = ${state.partCost.toFixed(2)}.`;
+      } else if (state.partPhase === 'update') {
+        logEl.textContent = `Assigned all ${state.points.length} points to their nearest ${isKMeans ? 'centroid (X)' : 'medoid (double ring)'}. Click Step to update centers.`;
+      } else {
+        logEl.textContent = `Updated ${isKMeans ? 'centroids to cluster means' : 'medoids to lowest-cost member points'}. Click Step to re-assign points.`;
+      }
+    }
+
+    // ===========================================================
+    // 8. RAND INDEX (RI) & ADJUSTED RAND INDEX (ARI)
+    // ===========================================================
+    function comb2(n) {
+      return n >= 2 ? (n * (n - 1)) / 2 : 0;
+    }
+
+    function updateRandIndex() {
+      const pts = state.points;
+      const n = pts.length;
+      const hasGT = n >= 2 && pts.every((p) => p.gt !== null && p.gt !== undefined);
+
+      const contentEl = document.getElementById('ri-content');
+      const disabledEl = document.getElementById('ri-disabled-msg');
+      const badgeEl = document.getElementById('ri-status-badge');
+
+      if (!hasGT) {
+        contentEl.classList.add('hidden');
+        disabledEl.classList.remove('hidden');
+        badgeEl.textContent = 'No Ground Truth';
+        badgeEl.className = 'text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600';
+        return;
+      }
+
+      contentEl.classList.remove('hidden');
+      disabledEl.classList.add('hidden');
+      badgeEl.textContent = 'Ground Truth Active';
+      badgeEl.className = 'text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-teal-100 text-teal-800';
+
+      let a = 0, b = 0, c = 0, d = 0;
+      for (let i = 0; i < n; i++) {
+        for (let j = i + 1; j < n; j++) {
+          const sameT = pts[i].gt === pts[j].gt;
+          const sameP = state.assignments[i] === state.assignments[j];
+          if (sameT && sameP) a++;
+          else if (!sameT && !sameP) b++;
+          else if (sameT && !sameP) c++;
+          else d++;
+        }
+      }
+
+      const totalPairs = comb2(n);
+      const ri = totalPairs > 0 ? (a + b) / totalPairs : 1;
+
+      // Exact Hubert-Arabie ARI via contingency table
+      const trueCounts = new Map();
+      const predCounts = new Map();
+      const cellCounts = new Map();
+
+      for (let i = 0; i < n; i++) {
+        const t = pts[i].gt;
+        const p = state.assignments[i];
+        trueCounts.set(t, (trueCounts.get(t) || 0) + 1);
+        predCounts.set(p, (predCounts.get(p) || 0) + 1);
+        const key = `${t}|${p}`;
+        cellCounts.set(key, (cellCounts.get(key) || 0) + 1);
+      }
+
+      let sumCombNij = 0;
+      cellCounts.forEach((cnt) => (sumCombNij += comb2(cnt)));
+
+      let sumCombAi = 0;
+      trueCounts.forEach((cnt) => (sumCombAi += comb2(cnt)));
+
+      let sumCombBj = 0;
+      predCounts.forEach((cnt) => (sumCombBj += comb2(cnt)));
+
+      const expectedIndex = totalPairs > 0 ? (sumCombAi * sumCombBj) / totalPairs : 0;
+      const maxIndex = 0.5 * (sumCombAi + sumCombBj);
+      let ari = 0;
+      if (Math.abs(maxIndex - expectedIndex) < 1e-12) {
+        ari = Math.abs(sumCombNij - expectedIndex) < 1e-12 ? 1.0 : 0.0;
+      } else {
+        ari = (sumCombNij - expectedIndex) / (maxIndex - expectedIndex);
+      }
+
+      document.getElementById('val-ri').textContent = ri.toFixed(3);
+      document.getElementById('val-ari').textContent = ari.toFixed(3);
+      document.getElementById('val-pairs').textContent = totalPairs;
+      document.getElementById('val-a').textContent = a;
+      document.getElementById('val-b').textContent = b;
+      document.getElementById('val-cd').textContent = c + d;
+    }
+
+    // ===========================================================
+    // 9. 2D SCATTER PLOT CANVAS RENDERER
+    // ===========================================================
+    const scatterCanvas = document.getElementById('scatter-canvas');
+    const scatterCtx = scatterCanvas.getContext('2d');
+
+    function resizeScatterCanvas() {
+      const container = document.getElementById('scatter-container');
+      const rect = container.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) return;
+      const dpr = window.devicePixelRatio || 1;
+      scatterCanvas.width = Math.round(rect.width * dpr);
+      scatterCanvas.height = Math.round(rect.height * dpr);
+      scatterCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    function dataToCanvas(x, y, w, h, pad) {
+      const px = pad + (x / 10) * (w - 2 * pad);
+      const py = h - pad - (y / 10) * (h - 2 * pad);
+      return { px, py };
+    }
+
+    function canvasToData(px, py, w, h, pad) {
+      const x = ((px - pad) / (w - 2 * pad)) * 10;
+      const y = ((h - pad - py) / (h - 2 * pad)) * 10;
+      return { x, y };
+    }
+
+    function drawPointShape(ctx, px, py, r, gt, showGT) {
+      ctx.beginPath();
+      if (!showGT || gt === null || gt === undefined || gt % 3 === 0) {
+        ctx.arc(px, py, r, 0, Math.PI * 2);
+      } else if (gt % 3 === 1) {
+        // Triangle
+        ctx.moveTo(px, py - r * 1.25);
+        ctx.lineTo(px + r * 1.15, py + r * 0.95);
+        ctx.lineTo(px - r * 1.15, py + r * 0.95);
+        ctx.closePath();
+      } else {
+        // Square
+        const s = r * 1.85;
+        ctx.rect(px - s / 2, py - s / 2, s, s);
+      }
+    }
+
+    function renderScatter() {
+      const container = document.getElementById('scatter-container');
+      const rect = container.getBoundingClientRect();
+      const w = rect.width;
+      const h = rect.height;
+      if (w === 0 || h === 0) return;
+
+      const pad = 34;
+      const ctx = scatterCtx;
+      ctx.clearRect(0, 0, w, h);
+
+      // Subtle grid
+      ctx.strokeStyle = '#e2e8f0';
+      ctx.lineWidth = 1;
+      ctx.font = '10px JetBrains Mono, monospace';
+      ctx.fillStyle = '#94a3b8';
+
+      for (let v = 0; v <= 10; v += 2) {
+        const { px } = dataToCanvas(v, 0, w, h, pad);
+        const { py } = dataToCanvas(0, v, w, h, pad);
+
+        ctx.beginPath();
+        ctx.moveTo(px, pad);
+        ctx.lineTo(px, h - pad);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(pad, py);
+        ctx.lineTo(w - pad, py);
+        ctx.stroke();
+
+        ctx.textAlign = 'center';
+        ctx.fillText(v.toString(), px, h - pad + 14);
+        ctx.textAlign = 'right';
+        ctx.fillText(v.toString(), pad - 8, py + 3);
+      }
+
+      // Axes border
+      ctx.strokeStyle = '#cbd5e1';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(pad, pad, w - 2 * pad, h - 2 * pad);
+
+      const pts = state.points;
+      document.getElementById('point-count-badge').textContent = `${pts.length} point${pts.length === 1 ? '' : 's'}`;
+
+      // Algorithm-specific overlays behind points
+      if (state.algo === 'hac' && pts.length >= 2) {
+        // Highlight most recently merged pair of clusters at current K
+        const activeMergeIdx = pts.length - state.hacK - 1;
+        if (activeMergeIdx >= 0 && activeMergeIdx < state.hacMerges.length) {
+          const m = state.hacMerges[activeMergeIdx];
+          const pA = dataToCanvas(m.nodeA.cx, m.nodeA.cy, w, h, pad);
+          const pB = dataToCanvas(m.nodeB.cx, m.nodeB.cy, w, h, pad);
+
+          ctx.save();
+          ctx.strokeStyle = '#4f46e5';
+          ctx.lineWidth = 2;
+          ctx.setLineDash([5, 4]);
+          ctx.beginPath();
+          ctx.moveTo(pA.px, pA.py);
+          ctx.lineTo(pB.px, pB.py);
+          ctx.stroke();
+          ctx.restore();
+        }
+      } else if ((state.algo === 'kmeans' || state.algo === 'kmedoids') && state.partCenters.length > 0) {
+        // Draw subtle assignment lines from points to their centers
+        ctx.save();
+        ctx.lineWidth = 1;
+        for (let i = 0; i < pts.length; i++) {
+          const c = state.assignments[i];
+          if (c === undefined || c >= state.partCenters.length) continue;
+          const centerPt = state.algo === 'kmeans' ? state.partCenters[c] : pts[state.partCenters[c]];
+          const p1 = dataToCanvas(pts[i].x, pts[i].y, w, h, pad);
+          const p2 = dataToCanvas(centerPt.x, centerPt.y, w, h, pad);
+          ctx.strokeStyle = CLUSTER_COLORS[c % CLUSTER_COLORS.length] + '38';
+          ctx.beginPath();
+          ctx.moveTo(p1.px, p1.py);
+          ctx.lineTo(p2.px, p2.py);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      // Draw data points
+      for (let i = 0; i < pts.length; i++) {
+        const p = pts[i];
+        const { px, py } = dataToCanvas(p.x, p.y, w, h, pad);
+        const cIdx = state.assignments[i] || 0;
+        const color = CLUSTER_COLORS[cIdx % CLUSTER_COLORS.length];
+        const isHovered = i === state.hoveredIdx;
+        const radius = isHovered ? 8.5 : 6.5;
+
+        drawPointShape(ctx, px, py, radius, p.gt, state.showGT);
+        ctx.fillStyle = color;
+        ctx.fill();
+        ctx.lineWidth = isHovered ? 2.5 : 1.6;
+        ctx.strokeStyle = isHovered ? '#0f172a' : '#ffffff';
+        ctx.stroke();
+
+        // Labels for small datasets (<= 10 points)
+        if (pts.length <= 10 || isHovered) {
+          ctx.font = '600 10px Inter, sans-serif';
+          ctx.fillStyle = '#1e293b';
+          ctx.textAlign = 'left';
+          ctx.fillText(p.label, px + 9, py - 6);
+        }
+      }
+
+      // Draw K-Means Centroids ('X') or K-Medoids Double Rings
+      if (state.algo === 'kmeans') {
+        state.partCenters.forEach((cPt, cIdx) => {
+          const { px, py } = dataToCanvas(cPt.x, cPt.y, w, h, pad);
+          const color = CLUSTER_COLORS[cIdx % CLUSTER_COLORS.length];
+          const s = 8;
+
+          // White halo
+          ctx.save();
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = 6;
+          ctx.lineCap = 'round';
+          ctx.beginPath();
+          ctx.moveTo(px - s, py - s);
+          ctx.lineTo(px + s, py + s);
+          ctx.moveTo(px + s, py - s);
+          ctx.lineTo(px - s, py + s);
+          ctx.stroke();
+
+          // Colored X
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.moveTo(px - s, py - s);
+          ctx.lineTo(px + s, py + s);
+          ctx.moveTo(px + s, py - s);
+          ctx.lineTo(px - s, py + s);
+          ctx.stroke();
+          ctx.restore();
+        });
+      } else if (state.algo === 'kmedoids') {
+        state.partCenters.forEach((ptIdx, cIdx) => {
+          const p = pts[ptIdx];
+          if (!p) return;
+          const { px, py } = dataToCanvas(p.x, p.y, w, h, pad);
+          const color = CLUSTER_COLORS[cIdx % CLUSTER_COLORS.length];
+
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(px, py, 12.5, 0, Math.PI * 2);
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = 4;
+          ctx.stroke();
+
+          ctx.beginPath();
+          ctx.arc(px, py, 12.5, 0, Math.PI * 2);
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 2.5;
+          ctx.stroke();
+
+          ctx.beginPath();
+          ctx.arc(px, py, 16, 0, Math.PI * 2);
+          ctx.strokeStyle = '#0f172a';
+          ctx.lineWidth = 1.2;
+          ctx.setLineDash([3, 2]);
+          ctx.stroke();
+          ctx.restore();
+        });
+      }
+
+      // Update legend marker info
+      const legendMarker = document.getElementById('legend-marker-info');
+      if (state.algo === 'hac') {
+        legendMarker.innerHTML = '<span class="inline-block w-4 border-t-2 border-dashed border-indigo-600"></span> Latest Merge Pair';
+      } else if (state.algo === 'kmeans') {
+        legendMarker.innerHTML = '<strong class="text-slate-800 font-mono">X</strong> Virtual Centroid';
+      } else {
+        legendMarker.innerHTML = '<span class="inline-block w-3.5 h-3.5 rounded-full border-2 border-slate-800"></span> Actual Medoid';
+      }
+    }
+
+    // ===========================================================
+    // 10. LIVE INTERACTIVE SVG DENDROGRAM RENDERER
+    // ===========================================================
+    function renderDendrogram() {
+      const svg = document.getElementById('dendro-svg');
+      const container = document.getElementById('dendro-container');
+      const rect = container.getBoundingClientRect();
+      const w = Math.max(300, rect.width || 480);
+      const h = Math.max(250, rect.height || 270);
+
+      svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+      while (svg.firstChild) svg.removeChild(svg.firstChild);
+
+      const n = state.points.length;
+      if (n < 2 || !state.hacRoot) {
+        const txt = createSvgEl('text', {
+          x: w / 2,
+          y: h / 2,
+          'text-anchor': 'middle',
+          fill: '#94a3b8',
+          'font-size': '13',
+        });
+        txt.textContent = 'Add at least 2 points to generate a dendrogram.';
+        svg.appendChild(txt);
+        state.dendroGeom = null;
+        return;
+      }
+
+      const padLeft = 46;
+      const padRight = 18;
+      const padTop = 18;
+      const padBottom = 34;
+      const plotW = w - padLeft - padRight;
+      const plotH = h - padTop - padBottom;
+
+      // In-order traversal to order leaves
+      const leaves = [];
+      function collectLeaves(node) {
+        if (!node.left && !node.right) {
+          leaves.push(node);
+          return;
+        }
+        collectLeaves(node.left);
+        collectLeaves(node.right);
+      }
+      collectLeaves(state.hacRoot);
+
+      const maxH = Math.max(state.hacRoot.height, 0.01) * 1.15;
+      const xMap = new Map();
+      leaves.forEach((leaf, idx) => {
+        const lx = padLeft + (leaves.length === 1 ? plotW / 2 : (idx / (leaves.length - 1)) * plotW);
+        xMap.set(leaf.id, lx);
+      });
+
+      function computeInternalX(node) {
+        if (!node.left && !node.right) return xMap.get(node.id);
+        const lx = computeInternalX(node.left);
+        const rx = computeInternalX(node.right);
+        const mx = (lx + rx) / 2;
+        xMap.set(node.id, mx);
+        return mx;
+      }
+      computeInternalX(state.hacRoot);
+
+      const yFromH = (val) => padTop + plotH - (val / maxH) * plotH;
+      const hFromY = (py) => ((padTop + plotH - py) / plotH) * maxH;
+
+      state.dendroGeom = { padTop, padBottom, plotH, maxH, yFromH, hFromY, w, h };
+
+      // Y-axis ticks & grid
+      const ticks = 4;
+      for (let t = 0; t <= ticks; t++) {
+        const val = (maxH * t) / ticks;
+        const py = yFromH(val);
+
+        svg.appendChild(
+          createSvgEl('line', {
+            x1: padLeft,
+            y1: py,
+            x2: w - padRight,
+            y2: py,
+            stroke: '#e2e8f0',
+            'stroke-width': 1,
+          })
+        );
+
+        const lbl = createSvgEl('text', {
+          x: padLeft - 6,
+          y: py + 3,
+          'text-anchor': 'end',
+          fill: '#64748b',
+          'font-size': '10',
+          'font-family': 'JetBrains Mono, monospace',
+        });
+        lbl.textContent = val.toFixed(1);
+        svg.appendChild(lbl);
+      }
+
+      // Y-axis title
+      const yTitle = createSvgEl('text', {
+        x: 12,
+        y: padTop + plotH / 2,
+        'text-anchor': 'middle',
+        fill: '#64748b',
+        'font-size': '10',
+        'font-weight': '600',
+        transform: `rotate(-90 12 ${padTop + plotH / 2})`,
+      });
+      yTitle.textContent = 'Dissimilarity';
+      svg.appendChild(yTitle);
+
+      // Draw tree branches
+      const activeStepLimit = state.hacStepMode ? state.hacCurrentStep : state.hacMerges.length;
+      const cutH = state.hacCutHeight !== null ? state.hacCutHeight : maxH * 0.5;
+
+      function drawNode(node) {
+        if (!node.left && !node.right) return;
+        drawNode(node.left);
+        drawNode(node.right);
+
+        const xL = xMap.get(node.left.id);
+        const xR = xMap.get(node.right.id);
+        const yL = yFromH(node.left.height);
+        const yR = yFromH(node.right.height);
+        const yTop = yFromH(node.height);
+
+        const isFuture = state.hacStepMode && node.stepIndex > activeStepLimit;
+        const isCurrent = state.hacStepMode && node.stepIndex === activeStepLimit;
+        const isBelowCut = node.height <= cutH;
+
+        let strokeColor = '#94a3b8';
+        let strokeWidth = 1.6;
+        let dash = null;
+
+        if (isFuture) {
+          strokeColor = '#cbd5e1';
+          strokeWidth = 1.2;
+          dash = '3,3';
+        } else if (isCurrent) {
+          strokeColor = '#4f46e5';
+          strokeWidth = 3;
+        } else if (isBelowCut) {
+          const cIdx = state.assignments[node.members[0]] || 0;
+          strokeColor = CLUSTER_COLORS[cIdx % CLUSTER_COLORS.length];
+          strokeWidth = 2;
+        }
+
+        const pathD = `M ${xL} ${yL} L ${xL} ${yTop} L ${xR} ${yTop} L ${xR} ${yR}`;
+        const attrs = {
+          d: pathD,
+          fill: 'none',
+          stroke: strokeColor,
+          'stroke-width': strokeWidth,
+          'stroke-linejoin': 'round',
+        };
+        if (dash) attrs['stroke-dasharray'] = dash;
+        svg.appendChild(createSvgEl('path', attrs));
+      }
+      drawNode(state.hacRoot);
+
+      // Leaf labels
+      const showEveryLabel = leaves.length <= 26;
+      leaves.forEach((leaf, idx) => {
+        const lx = xMap.get(leaf.id);
+        const cIdx = state.assignments[leaf.members[0]] || 0;
+        const color = CLUSTER_COLORS[cIdx % CLUSTER_COLORS.length];
+
+        // Leaf dot
+        svg.appendChild(
+          createSvgEl('circle', {
+            cx: lx,
+            cy: yFromH(0),
+            r: leaves.length > 20 ? 2.5 : 3.5,
+            fill: color,
+          })
+        );
+
+        if (showEveryLabel) {
+          const txt = createSvgEl('text', {
+            x: lx,
+            y: yFromH(0) + 14,
+            'text-anchor': 'middle',
+            fill: '#475569',
+            'font-size': leaves.length > 16 ? '8.5' : '10',
+            'font-family': 'JetBrains Mono, monospace',
+          });
+          txt.textContent = leaf.label;
+          svg.appendChild(txt);
+        }
+      });
+
+      // Draggable Red Dashed Threshold Cut Line
+      const cutY = clamp(yFromH(cutH), padTop, padTop + plotH);
+
+      svg.appendChild(
+        createSvgEl('line', {
+          x1: padLeft,
+          y1: cutY,
+          x2: w - padRight,
+          y2: cutY,
+          stroke: '#e11d48',
+          'stroke-width': 2.2,
+          'stroke-dasharray': '6,4',
+          class: 'dendro-cut-line',
+        })
+      );
+
+      // Cut label pill
+      const pillW = 78;
+      const pillX = w - padRight - pillW - 4;
+      const pillY = Math.max(padTop + 2, cutY - 19);
+      svg.appendChild(
+        createSvgEl('rect', {
+          x: pillX,
+          y: pillY,
+          width: pillW,
+          height: 16,
+          rx: 5,
+          fill: '#e11d48',
+        })
+      );
+      const pillText = createSvgEl('text', {
+        x: pillX + pillW / 2,
+        y: pillY + 11.5,
+        'text-anchor': 'middle',
+        fill: '#ffffff',
+        'font-size': '9.5',
+        'font-weight': '700',
+        'font-family': 'JetBrains Mono, monospace',
+      });
+      pillText.textContent = `Cut (K=${state.hacK})`;
+      svg.appendChild(pillText);
+
+      // Wide invisible hit area for effortless mouse/touch dragging
+      const hitRect = createSvgEl('rect', {
+        x: padLeft,
+        y: cutY - 14,
+        width: plotW,
+        height: 28,
+        fill: 'transparent',
+        class: 'dendro-hit-area',
+      });
+      svg.appendChild(hitRect);
+    }
+
+    function createSvgEl(tag, attrs) {
+      const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+      for (const [k, v] of Object.entries(attrs)) {
+        el.setAttribute(k, v);
+      }
+      return el;
+    }
+
+    // ===========================================================
+    // 11. INTERACTIONS (CANVAS CLICK/HOVER & DENDROGRAM DRAG)
+    // ===========================================================
+    scatterCanvas.addEventListener('click', (e) => {
+      const rect = scatterCanvas.getBoundingClientRect();
+      const pad = 34;
+      const px = e.clientX - rect.left;
+      const py = e.clientY - rect.top;
+      const { x, y } = canvasToData(px, py, rect.width, rect.height, pad);
+      if (x < 0 || x > 10 || y < 0 || y > 10) return;
+
+      const nextId = state.points.length + 1;
+      state.points.push({
+        id: nextId,
+        label: `P${nextId}`,
+        x: Number(x.toFixed(2)),
+        y: Number(y.toFixed(2)),
+        gt: null, // custom points remove ground truth unless preset reloaded
+      });
+      syncSliders();
+      recomputeAlgorithm();
+    });
+
+    scatterCanvas.addEventListener('mousemove', (e) => {
+      const rect = scatterCanvas.getBoundingClientRect();
+      const pad = 34;
+      const px = e.clientX - rect.left;
+      const py = e.clientY - rect.top;
+
+      let found = -1;
+      let bestDist = 14;
+      for (let i = 0; i < state.points.length; i++) {
+        const p = state.points[i];
+        const ptCanvas = dataToCanvas(p.x, p.y, rect.width, rect.height, pad);
+        const d = Math.hypot(ptCanvas.px - px, ptCanvas.py - py);
+        if (d < bestDist) {
+          bestDist = d;
+          found = i;
+        }
+      }
+
+      if (found !== state.hoveredIdx) {
+        state.hoveredIdx = found;
+        const readout = document.getElementById('hover-readout');
+        if (found >= 0) {
+          const p = state.points[found];
+          const c = (state.assignments[found] || 0) + 1;
+          readout.textContent = `${p.label} (${p.x.toFixed(1)}, ${p.y.toFixed(1)}) → C${c}`;
+        } else {
+          readout.textContent = 'Hover a point';
+        }
+        renderScatter();
+      }
+    });
+
+    scatterCanvas.addEventListener('mouseleave', () => {
+      if (state.hoveredIdx !== -1) {
+        state.hoveredIdx = -1;
+        document.getElementById('hover-readout').textContent = 'Hover a point';
+        renderScatter();
+      }
+    });
+
+    // Dendrogram Dragging (Mouse + Touch)
+    let isDraggingCut = false;
+    const dendroSvg = document.getElementById('dendro-svg');
+
+    function handleDendroPointer(clientY) {
+      if (!state.dendroGeom) return;
+      const rect = dendroSvg.getBoundingClientRect();
+      const localY = clientY - rect.top;
+      const hVal = state.dendroGeom.hFromY(localY);
+      stopHacPlayback();
+      applyHacCutByHeight(hVal);
+      renderAll();
+    }
+
+    dendroSvg.addEventListener('mousedown', (e) => {
+      if (!state.dendroGeom) return;
+      isDraggingCut = true;
+      handleDendroPointer(e.clientY);
+    });
+    window.addEventListener('mousemove', (e) => {
+      if (isDraggingCut) handleDendroPointer(e.clientY);
+    });
+    window.addEventListener('mouseup', () => {
+      isDraggingCut = false;
+    });
+
+    dendroSvg.addEventListener(
+      'touchstart',
+      (e) => {
+        if (!state.dendroGeom || e.touches.length === 0) return;
+        isDraggingCut = true;
+        handleDendroPointer(e.touches[0].clientY);
+      },
+      { passive: true }
+    );
+    window.addEventListener(
+      'touchmove',
+      (e) => {
+        if (isDraggingCut && e.touches.length > 0) {
+          handleDendroPointer(e.touches[0].clientY);
+        }
+      },
+      { passive: true }
+    );
+    window.addEventListener('touchend', () => {
+      isDraggingCut = false;
+    });
+
+    // ===========================================================
+    // 12. ORCHESTRATION & EVENT LISTENERS
+    // ===========================================================
+    function updateAlgoPanels() {
+      const hacPanel = document.getElementById('panel-hac');
+      const partPanel = document.getElementById('panel-partitional');
+      if (state.algo === 'hac') {
+        hacPanel.classList.remove('hidden');
+        hacPanel.classList.add('flex');
+        partPanel.classList.add('hidden');
+        partPanel.classList.remove('flex');
+      } else {
+        hacPanel.classList.add('hidden');
+        hacPanel.classList.remove('flex');
+        partPanel.classList.remove('hidden');
+        partPanel.classList.add('flex');
+      }
+      updateWardMetricUI();
+    }
+
+    function updateWardMetricUI() {
+      const metricSel = document.getElementById('hac-metric');
+      const note = document.getElementById('ward-metric-note');
+      if (state.hacLinkage === 'ward') {
+        metricSel.value = 'euclidean';
+        metricSel.disabled = true;
+        metricSel.classList.add('opacity-60', 'cursor-not-allowed');
+        note.classList.remove('hidden');
+      } else {
+        metricSel.disabled = false;
+        metricSel.classList.remove('opacity-60', 'cursor-not-allowed');
+        note.classList.add('hidden');
+      }
+    }
+
+    function recomputeAlgorithm() {
+      stopHacPlayback();
+      if (state.algo === 'hac') {
+        computeHAC();
+      } else {
+        initPartitional();
+      }
+      renderAll();
+    }
+
+    function renderAll() {
+      renderScatter();
+      if (state.algo === 'hac') {
+        renderDendrogram();
+      }
+      updateRandIndex();
+    }
+
+    // Wire up UI controls
+    document.getElementById('preset-select').addEventListener('change', (e) => {
+      state.preset = e.target.value;
+      loadPreset(state.preset);
+      recomputeAlgorithm();
+    });
+
+    document.getElementById('btn-reset-preset').addEventListener('click', () => {
+      loadPreset(state.preset);
+      recomputeAlgorithm();
+    });
+
+    document.getElementById('algo-select').addEventListener('change', (e) => {
+      state.algo = e.target.value;
+      updateAlgoPanels();
+      recomputeAlgorithm();
+    });
+
+    document.getElementById('toggle-gt').addEventListener('change', (e) => {
+      state.showGT = e.target.checked;
+      renderScatter();
+    });
+
+    // HAC Controls
+    document.getElementById('hac-linkage').addEventListener('change', (e) => {
+      state.hacLinkage = e.target.value;
+      updateWardMetricUI();
+      recomputeAlgorithm();
+    });
+
+    document.getElementById('hac-metric').addEventListener('change', (e) => {
+      state.hacMetric = e.target.value;
+      recomputeAlgorithm();
+    });
+
+    document.getElementById('hac-k-slider').addEventListener('input', (e) => {
+      stopHacPlayback();
+      state.hacStepMode = false;
+      applyHacCutByK(parseInt(e.target.value, 10));
+      renderAll();
+    });
+
+    document.getElementById('hac-reset').addEventListener('click', () => {
+      stopHacPlayback();
+      applyHacStep(0);
+      renderAll();
+    });
+
+    document.getElementById('hac-back').addEventListener('click', () => {
+      stopHacPlayback();
+      const cur = state.hacStepMode ? state.hacCurrentStep : state.points.length - state.hacK;
+      applyHacStep(cur - 1);
+      renderAll();
+    });
+
+    document.getElementById('hac-fwd').addEventListener('click', () => {
+      stopHacPlayback();
+      const cur = state.hacStepMode ? state.hacCurrentStep : state.points.length - state.hacK;
+      applyHacStep(cur + 1);
+      renderAll();
+    });
+
+    document.getElementById('hac-play').addEventListener('click', () => {
+      if (state.hacPlayTimer) {
+        stopHacPlayback();
+        return;
+      }
+      const total = state.hacMerges.length;
+      if (total === 0) return;
+
+      let cur = state.hacStepMode ? state.hacCurrentStep : state.points.length - state.hacK;
+      if (cur >= total) {
+        cur = 0;
+        applyHacStep(0);
+        renderAll();
+      }
+      document.getElementById('hac-play').textContent = 'Pause';
+      state.hacPlayTimer = setInterval(() => {
+        if (state.hacCurrentStep >= total) {
+          stopHacPlayback();
+          return;
+        }
+        applyHacStep(state.hacCurrentStep + 1);
+        renderAll();
+      }, 650);
+    });
+
+    // Partitional Controls
+    document.getElementById('part-k-slider').addEventListener('input', (e) => {
+      state.partK = parseInt(e.target.value, 10);
+      document.getElementById('part-k-val').textContent = state.partK;
+      recomputeAlgorithm();
+    });
+
+    document.getElementById('part-metric').addEventListener('change', (e) => {
+      state.partMetric = e.target.value;
+      recomputeAlgorithm();
+    });
+
+    document.getElementById('part-reinit').addEventListener('click', () => {
+      initPartitional();
+      renderAll();
+    });
+
+    document.getElementById('part-step').addEventListener('click', () => {
+      stepPartitional();
+    });
+
+    document.getElementById('part-run').addEventListener('click', () => {
+      runPartitionalToConvergence();
+    });
+
+    // Responsive Resize
+    window.addEventListener('resize', () => {
+      if (state.activeTab === 'lab') {
+        resizeScatterCanvas();
+        renderAll();
+      }
+    });
+
+    // ===========================================================
+    // 13. INITIALIZATION ON WINDOW LOAD
+    // ===========================================================
+    window.onload = function () {
+      loadPreset('blobs');
+      updateAlgoPanels();
+      resizeScatterCanvas();
+      recomputeAlgorithm();
+      renderAllMath(document.body);
+    };
+  </script>
+</body>
+</html>
