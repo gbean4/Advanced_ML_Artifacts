@@ -1,0 +1,2063 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Clustering Lab: Mixture Models (GMM) & Spectral Clustering</title>
+
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+          },
+        },
+      },
+    };
+  </script>
+
+  <!-- KaTeX CSS & JS (jsDelivr CDN) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+
+  <style>
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+    .katex-display {
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding: 0.4rem 0;
+      margin: 0.5rem 0;
+    }
+    canvas {
+      touch-action: manipulation;
+    }
+    /* Custom subtle scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #94a3b8;
+      border-radius: 9999px;
+    }
+    .dark ::-webkit-scrollbar-thumb {
+      background: #475569;
+    }
+    .formula-highlight {
+      transition: all 0.25s ease;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen transition-colors duration-200">
+
+  <!-- ==================== HEADER & NAVIGATION ==================== -->
+  <header class="sticky top-0 z-30 bg-white/90 dark:bg-slate-900/90 backdrop-blur border-b border-slate-200 dark:border-slate-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold shadow-sm text-sm">
+            ML
+          </div>
+          <div>
+            <h1 class="text-base sm:text-lg font-bold tracking-tight text-slate-900 dark:text-white leading-tight">
+              Clustering Lab: Mixture Models (GMM) &amp; Spectral Clustering
+            </h1>
+            <p class="text-xs text-slate-500 dark:text-slate-400">
+              Murphy Ch. 21.4 &amp; 21.5 &middot; Interactive Study Tool &amp; Final Exam Reference
+            </p>
+          </div>
+        </div>
+        <!-- Mobile Dark Mode Toggle -->
+        <button id="themeToggleMobile" type="button" aria-label="Toggle Dark Mode"
+          class="md:hidden p-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
+          <span class="theme-icon">🌙</span>
+        </button>
+      </div>
+
+      <!-- Navigation Tabs + Desktop Theme Toggle -->
+      <div class="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0">
+        <nav class="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl gap-1" role="tablist">
+          <button id="tab-btn-gmm" role="tab" aria-selected="true"
+            class="tab-btn px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg whitespace-nowrap transition-all bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm"
+            onclick="switchTab('gmm')">
+            1. GMM &amp; EM Playground
+          </button>
+          <button id="tab-btn-spectral" role="tab" aria-selected="false"
+            class="tab-btn px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg whitespace-nowrap transition-all text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
+            onclick="switchTab('spectral')">
+            2. Spectral Clustering Playground
+          </button>
+          <button id="tab-btn-guide" role="tab" aria-selected="false"
+            class="tab-btn px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg whitespace-nowrap transition-all text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
+            onclick="switchTab('guide')">
+            3. How to Use &amp; Exam Cheat Sheet
+          </button>
+        </nav>
+
+        <button id="themeToggleDesktop" type="button" aria-label="Toggle Dark Mode"
+          class="hidden md:flex items-center justify-center w-9 h-9 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0">
+          <span class="theme-icon">🌙</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==================== MAIN CONTENT ==================== -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+
+    <!-- ========================================================== -->
+    <!-- TAB 1: GMM & EM PLAYGROUND (SECTION 21.4)                  -->
+    <!-- ========================================================== -->
+    <section id="panel-gmm" class="tab-panel space-y-5">
+      <!-- Top Context Banner -->
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+        <div>
+          <span class="inline-block text-xs font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">Section 21.4 &middot; Probabilistic Clustering</span>
+          <h2 class="text-lg font-bold">Gaussian Mixture Models &amp; Expectation-Maximization (EM)</h2>
+          <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
+            Explore how covariance constraints ($\boldsymbol{\Sigma}_k$) change cluster shapes, step through E &amp; M updates, or toggle K-Means Mode to see the exact mathematical reduction.
+          </p>
+        </div>
+        <div class="text-xs bg-indigo-50 dark:bg-indigo-950/50 text-indigo-800 dark:text-indigo-200 border border-indigo-200 dark:border-indigo-800 rounded-xl px-3 py-2 shrink-0">
+          💡 <strong>Tip:</strong> Click anywhere on the canvas to add custom data points!
+        </div>
+      </div>
+
+      <!-- Main Grid: Controls | Canvas | Diagnostics -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+
+        <!-- LEFT: Controls -->
+        <div class="lg:col-span-3 space-y-4">
+          <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm space-y-4">
+            <h3 class="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Model &amp; Data Controls</h3>
+
+            <!-- Dataset Preset -->
+            <div>
+              <label for="gmmDataset" class="block text-xs font-semibold mb-1.5">Dataset Preset</label>
+              <select id="gmmDataset" class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <option value="murphy">Murphy Fig. 21.14 (3 Blobs + 2 Tilted Cigars)</option>
+                <option value="ellipses">Overlapping Ellipses (3 Tilted)</option>
+                <option value="rings">Concentric Rings (GMM Struggle Case)</option>
+              </select>
+            </div>
+
+            <!-- Covariance Type -->
+            <div>
+              <label for="gmmCovType" class="block text-xs font-semibold mb-1.5">Covariance Structure ($\boldsymbol{\Sigma}_k$)</label>
+              <select id="gmmCovType" class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50">
+                <option value="full">Full ($\boldsymbol{\Sigma}_k$ free per cluster)</option>
+                <option value="tied">Tied (shared $\boldsymbol{\Sigma}$ across all)</option>
+                <option value="diag">Diagonal (axis-aligned, no tilt)</option>
+                <option value="spherical">Spherical (isotropic $\sigma_k^2 \mathbf{I}$)</option>
+              </select>
+            </div>
+
+            <!-- K-Means Mode Toggle -->
+            <div class="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60">
+              <label class="flex items-start gap-2.5 cursor-pointer">
+                <input id="gmmKMeansMode" type="checkbox" class="mt-0.5 w-4 h-4 rounded text-amber-600 focus:ring-amber-500" />
+                <div class="text-xs">
+                  <span class="font-bold text-amber-900 dark:text-amber-200 block">K-Means Reduction Mode</span>
+                  <span class="text-amber-800/80 dark:text-amber-300/80">Locks $\boldsymbol{\Sigma}_k = \mathbf{I}$, $\pi_k = 1/K$, and uses hard $r_{nk} \in \{0,1\}$.</span>
+                </div>
+              </label>
+            </div>
+
+            <!-- Number of Clusters K -->
+            <div>
+              <div class="flex justify-between text-xs font-semibold mb-1">
+                <span>Number of Clusters ($K$)</span>
+                <span id="gmmKVal" class="text-indigo-600 dark:text-indigo-400 font-bold">5</span>
+              </div>
+              <input id="gmmKSlider" type="range" min="2" max="6" value="5" class="w-full accent-indigo-600 cursor-pointer" />
+            </div>
+
+            <!-- Visualization Mode -->
+            <div>
+              <span class="block text-xs font-semibold mb-1.5">Point Coloring</span>
+              <div class="grid grid-cols-2 gap-1.5 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+                <button id="gmmSoftBtn" type="button" class="px-2 py-1.5 text-xs font-semibold rounded-lg bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm">
+                  Soft ($r_{nk}$)
+                </button>
+                <button id="gmmHardBtn" type="button" class="px-2 py-1.5 text-xs font-semibold rounded-lg text-slate-600 dark:text-slate-300">
+                  Hard ($\hat{z}_n$)
+                </button>
+              </div>
+            </div>
+
+            <!-- Checkboxes -->
+            <div class="space-y-2 pt-1 border-t border-slate-200 dark:border-slate-800">
+              <label class="flex items-center gap-2 text-xs cursor-pointer">
+                <input id="gmmShowEllipses" type="checkbox" checked class="w-4 h-4 rounded text-indigo-600" />
+                <span>Show $1\sigma$ &amp; $2\sigma$ Ellipses + Centroids</span>
+              </label>
+              <label class="flex items-center gap-2 text-xs cursor-pointer">
+                <input id="gmmRegularize" type="checkbox" checked class="w-4 h-4 rounded text-indigo-600" />
+                <span>Diagonal Regularizer ($\boldsymbol{\Sigma}_k + \epsilon\mathbf{I}$)</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Step-by-Step EM Controls -->
+          <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm space-y-2.5">
+            <h3 class="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">EM Algorithm Controls</h3>
+            <div class="grid grid-cols-2 gap-2">
+              <button id="gmmInitBtn" type="button" class="px-3 py-2 text-xs font-semibold rounded-xl border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                🔄 Initialize
+              </button>
+              <button id="gmmRunBtn" type="button" class="px-3 py-2 text-xs font-semibold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm transition-colors">
+                ▶ Run EM
+              </button>
+              <button id="gmmEStepBtn" type="button" class="px-3 py-2 text-xs font-semibold rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-colors">
+                1. E-Step
+              </button>
+              <button id="gmmMStepBtn" type="button" class="px-3 py-2 text-xs font-semibold rounded-xl bg-sky-600 hover:bg-sky-700 text-white shadow-sm transition-colors">
+                2. M-Step
+              </button>
+            </div>
+            <button id="gmmResetDataBtn" type="button" class="w-full px-3 py-1.5 text-xs font-medium rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+              Regenerate Dataset
+            </button>
+          </div>
+        </div>
+
+        <!-- CENTER: Interactive Canvas + Formula Highlight -->
+        <div class="lg:col-span-6 space-y-4">
+          <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-3 shadow-sm">
+            <div class="flex items-center justify-between mb-2 px-1">
+              <span class="text-xs font-semibold text-slate-600 dark:text-slate-300">2D Input Space ($\mathbf{x} \in \mathbb{R}^2$)</span>
+              <span id="gmmCanvasHint" class="text-[11px] text-slate-400">Click canvas to add point</span>
+            </div>
+            <div class="relative w-full aspect-[4/3] bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+              <canvas id="gmmCanvas" class="w-full h-full block cursor-crosshair"></canvas>
+            </div>
+          </div>
+
+          <!-- Active EM Step Equations -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div id="eStepCard" class="formula-highlight bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-2xl p-3 shadow-sm">
+              <div class="flex items-center justify-between mb-1">
+                <span class="text-xs font-bold text-emerald-600 dark:text-emerald-400">E-Step: Responsibilities</span>
+                <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500">Eq. 21.23</span>
+              </div>
+              <div class="text-xs overflow-x-auto">
+                $$r_{nk} = \frac{\pi_k \mathcal{N}(\mathbf{x}_n|\boldsymbol{\mu}_k,\boldsymbol{\Sigma}_k)}{\sum_{k'}\pi_{k'} \mathcal{N}(\mathbf{x}_n|\boldsymbol{\mu}_{k'},\boldsymbol{\Sigma}_{k'})}$$
+              </div>
+            </div>
+            <div id="mStepCard" class="formula-highlight bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-2xl p-3 shadow-sm">
+              <div class="flex items-center justify-between mb-1">
+                <span class="text-xs font-bold text-sky-600 dark:text-sky-400">M-Step: Weighted MLE</span>
+                <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500">Max $Q$</span>
+              </div>
+              <div class="text-xs overflow-x-auto">
+                $$\pi_k = \frac{N_k}{N},\; \boldsymbol{\mu}_k = \frac{1}{N_k}\sum_n r_{nk}\mathbf{x}_n$$
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT: Live Diagnostics -->
+        <div class="lg:col-span-3 space-y-4">
+          <!-- Status & Log-Likelihood Sparkline -->
+          <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm space-y-3">
+            <h3 class="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Live Diagnostics</h3>
+
+            <div class="grid grid-cols-2 gap-2">
+              <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700">
+                <div class="text-[11px] text-slate-500 dark:text-slate-400">Iteration</div>
+                <div id="gmmIterCount" class="text-lg font-bold">0</div>
+              </div>
+              <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700">
+                <div class="text-[11px] text-slate-500 dark:text-slate-400">Phase</div>
+                <div id="gmmPhaseBadge" class="text-xs font-bold text-indigo-600 dark:text-indigo-400 mt-1">Initialized</div>
+              </div>
+            </div>
+
+            <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700">
+              <div class="flex items-baseline justify-between mb-1">
+                <span class="text-xs font-semibold">Log-Likelihood $\ell(\boldsymbol{\theta})$</span>
+                <span id="gmmLLVal" class="text-sm font-mono font-bold text-indigo-600 dark:text-indigo-400">—</span>
+              </div>
+              <div class="w-full h-24 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+                <canvas id="gmmSparkline" class="w-full h-full block"></canvas>
+              </div>
+              <p class="text-[10px] text-slate-500 dark:text-slate-400 mt-1">
+                Guaranteed monotonically non-decreasing: $\ell(\boldsymbol{\theta}^{(t+1)}) \ge \ell(\boldsymbol{\theta}^{(t)})$ (Jensen's inequality).
+              </p>
+            </div>
+          </div>
+
+          <!-- Cluster Weights & Effective Sizes Table -->
+          <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">Cluster Parameters ($\pi_k, N_k$)</h3>
+            <div class="overflow-x-auto">
+              <table class="w-full text-xs text-left">
+                <thead>
+                  <tr class="border-b border-slate-200 dark:border-slate-700 text-slate-500">
+                    <th class="py-1.5 font-semibold">Cluster</th>
+                    <th class="py-1.5 font-semibold text-right">Weight $\pi_k$</th>
+                    <th class="py-1.5 font-semibold text-right">Size $N_k$</th>
+                  </tr>
+                </thead>
+                <tbody id="gmmClusterTable" class="divide-y divide-slate-100 dark:divide-slate-800 font-mono">
+                  <!-- Populated by JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================== -->
+    <!-- TAB 2: SPECTRAL CLUSTERING PLAYGROUND (SECTION 21.5)       -->
+    <!-- ========================================================== -->
+    <section id="panel-spectral" class="tab-panel hidden space-y-5">
+      <!-- Top Context Banner -->
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+        <div>
+          <span class="inline-block text-xs font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">Section 21.5 &middot; Graph-Based Clustering</span>
+          <h2 class="text-lg font-bold">Spectral Clustering &amp; Normalized Graph Cuts</h2>
+          <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
+            See how the eigenvectors of the normalized Graph Laplacian $\mathbf{L}_{\text{sym}} = \mathbf{I} - \mathbf{D}^{-1/2}\mathbf{W}\mathbf{D}^{-1/2}$ untangle non-convex shapes (rings, moons) so K-Means can separate them cleanly.
+          </p>
+        </div>
+        <div class="text-xs bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-200 border border-emerald-200 dark:border-emerald-800 rounded-xl px-3 py-2 shrink-0">
+          ⚡ Real-time Jacobi Eigensolver running in-browser!
+        </div>
+      </div>
+
+      <!-- Controls Bar -->
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 items-end">
+          <!-- Dataset -->
+          <div class="lg:col-span-2">
+            <label for="specDataset" class="block text-xs font-semibold mb-1">Dataset Preset</label>
+            <select id="specDataset" class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              <option value="rings">Concentric Rings (2 Rings)</option>
+              <option value="moons">Two Moons (Interlocking Crescents)</option>
+              <option value="outlier">Three Blobs + Isolated Outlier</option>
+              <option value="murphy">Murphy Fig. 21.14 (5 Clusters)</option>
+            </select>
+          </div>
+
+          <!-- k-NN Slider -->
+          <div>
+            <div class="flex justify-between text-xs font-semibold mb-1">
+              <span>$k$-NN Graph</span>
+              <span id="specKnnVal" class="text-indigo-600 dark:text-indigo-400 font-bold">8</span>
+            </div>
+            <input id="specKnnSlider" type="range" min="3" max="15" value="8" class="w-full accent-indigo-600 cursor-pointer" />
+          </div>
+
+          <!-- Sigma Slider -->
+          <div>
+            <div class="flex justify-between text-xs font-semibold mb-1">
+              <span>RBF Bandwidth $\sigma$</span>
+              <span id="specSigmaVal" class="text-indigo-600 dark:text-indigo-400 font-bold">0.80</span>
+            </div>
+            <input id="specSigmaSlider" type="range" min="0.15" max="2.50" step="0.05" value="0.80" class="w-full accent-indigo-600 cursor-pointer" />
+          </div>
+
+          <!-- Clusters K -->
+          <div>
+            <div class="flex justify-between text-xs font-semibold mb-1">
+              <span>Clusters ($K$)</span>
+              <span id="specKVal" class="text-indigo-600 dark:text-indigo-400 font-bold">2</span>
+            </div>
+            <input id="specKSlider" type="range" min="2" max="5" value="2" class="w-full accent-indigo-600 cursor-pointer" />
+          </div>
+
+          <!-- Recompute Button -->
+          <div>
+            <button id="specRecomputeBtn" type="button" class="w-full px-3 py-2 text-xs font-semibold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm transition-colors">
+              ⚡ Recompute &amp; Cluster
+            </button>
+          </div>
+        </div>
+
+        <!-- Secondary Toggles Row -->
+        <div class="mt-4 pt-3 border-t border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3">
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-semibold text-slate-600 dark:text-slate-300">Algorithm:</span>
+            <div class="inline-flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+              <button id="specAlgoSpectral" type="button" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm">
+                Spectral Clustering (Normalized Cut)
+              </button>
+              <button id="specAlgoKMeans" type="button" class="px-3 py-1.5 text-xs font-semibold rounded-lg text-slate-600 dark:text-slate-300">
+                Standard K-Means (Input Space)
+              </button>
+            </div>
+          </div>
+
+          <label class="flex items-center gap-2 text-xs font-medium cursor-pointer">
+            <input id="specShowEdges" type="checkbox" checked class="w-4 h-4 rounded text-indigo-600" />
+            <span>Show Similarity Graph Edges ($\mathbf{W}$)</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Dual Canvases -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <!-- Left Canvas: Input Space & Graph -->
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-3 shadow-sm">
+          <div class="flex items-center justify-between mb-2 px-1">
+            <span class="text-xs font-bold text-slate-700 dark:text-slate-200">1. Input Space &amp; Similarity Graph ($\mathbf{W}$)</span>
+            <span id="specLeftBadge" class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400">Spectral Partition</span>
+          </div>
+          <div class="relative w-full aspect-[4/3] bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+            <canvas id="specInputCanvas" class="w-full h-full block"></canvas>
+          </div>
+        </div>
+
+        <!-- Right Canvas: Spectral Embedding Space -->
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-3 shadow-sm">
+          <div class="flex items-center justify-between mb-2 px-1">
+            <span class="text-xs font-bold text-slate-700 dark:text-slate-200">2. Spectral Embedding (Eigenvectors $\mathbf{v}_2$ vs $\mathbf{v}_3$)</span>
+            <span class="text-[11px] text-slate-500 dark:text-slate-400">Tangled shapes &rarr; separable blobs</span>
+          </div>
+          <div class="relative w-full aspect-[4/3] bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+            <canvas id="specEmbedCanvas" class="w-full h-full block"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Spectral Diagnostics Panel -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        <!-- Eigenvalues Display -->
+        <div class="lg:col-span-7 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Smallest 6 Eigenvalues of $\mathbf{L}_{\text{sym}}$ (The Spectrum)</h3>
+            <span class="text-[11px] text-slate-500 dark:text-slate-400">Count of $\lambda \approx 0 \implies$ connected components</span>
+          </div>
+          <div id="specEigenBars" class="grid grid-cols-3 sm:grid-cols-6 gap-2">
+            <!-- Populated by JS -->
+          </div>
+          <p id="specEigenNote" class="text-xs text-slate-600 dark:text-slate-400 mt-3 leading-relaxed">
+            Notice how $\lambda_1 \approx 0$ always. A large jump (**eigengap**) after $\lambda_K$ signals that $K$ is a natural number of clusters!
+          </p>
+        </div>
+
+        <!-- Cut Scores -->
+        <div class="lg:col-span-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm flex flex-col justify-between">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">Graph Partition Cost Metrics</h3>
+          <div class="grid grid-cols-2 gap-3">
+            <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700">
+              <div class="text-[11px] text-slate-500 dark:text-slate-400">Raw Cut (Eq. 21.28)</div>
+              <div id="specRawCutVal" class="text-xl font-mono font-bold text-slate-900 dark:text-white mt-0.5">—</div>
+              <div class="text-[10px] text-slate-500 mt-1">$\frac{1}{2}\sum_k W(S_k, \bar{S}_k)$</div>
+            </div>
+            <div class="p-3 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800">
+              <div class="text-[11px] text-indigo-700 dark:text-indigo-300 font-semibold">Normalized Cut (Ncut)</div>
+              <div id="specNormCutVal" class="text-xl font-mono font-bold text-indigo-600 dark:text-indigo-400 mt-0.5">—</div>
+              <div class="text-[10px] text-indigo-700/80 dark:text-indigo-300/80 mt-1">$\sum_k \frac{W(S_k, \bar{S}_k)}{\text{vol}(S_k)}$</div>
+            </div>
+          </div>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-3">
+            Lower Ncut indicates cleaner, more balanced separation. Compare Ncut between <strong>Spectral</strong> and <strong>Standard K-Means</strong>!
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================== -->
+    <!-- TAB 3: HOW TO USE & EXAM CHEAT SHEET                       -->
+    <!-- ========================================================== -->
+    <section id="panel-guide" class="tab-panel hidden space-y-6">
+
+      <!-- SECTION A: HOW TO USE & GUIDED EXPERIMENTS -->
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-5">
+        <div class="border-b border-slate-200 dark:border-slate-800 pb-3">
+          <span class="text-xs font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">Part A &middot; Interactive Study Guide</span>
+          <h2 class="text-xl font-bold mt-0.5">How to Use This Interactive &amp; Guided Exam Experiments</h2>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-slate-700 dark:text-slate-300">
+          <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-2">
+            <h3 class="font-bold text-slate-900 dark:text-white">Using the GMM &amp; EM Playground (Tab 1)</h3>
+            <ul class="list-disc pl-5 space-y-1 text-xs sm:text-sm">
+              <li>Pick a dataset (start with <strong>Murphy Fig. 21.14</strong>) and choose a covariance constraint (Full, Tied, Diagonal, or Spherical).</li>
+              <li>Click <strong>1. E-Step</strong> and <strong>2. M-Step</strong> alternately to watch responsibilities ($r_{nk}$) update point colors and ellipses snap to the data, or click <strong>Run EM</strong> to animate to convergence.</li>
+              <li>Watch the <strong>Log-Likelihood Sparkline</strong> on the right—it never goes down!</li>
+              <li>Click anywhere on the canvas to drop an extra outlier point and test how the regularizer ($\epsilon \mathbf{I}$) prevents singularity collapse.</li>
+            </ul>
+          </div>
+          <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-2">
+            <h3 class="font-bold text-slate-900 dark:text-white">Using the Spectral Playground (Tab 2)</h3>
+            <ul class="list-disc pl-5 space-y-1 text-xs sm:text-sm">
+              <li>Choose a non-convex dataset like <strong>Concentric Rings</strong> or <strong>Two Moons</strong>.</li>
+              <li>Inspect the <strong>Left Canvas</strong> (Input Space + $k$-NN similarity graph $\mathbf{W}$) and compare it with the <strong>Right Canvas</strong> (Spectral Embedding $\mathbf{v}_2, \mathbf{v}_3$).</li>
+              <li>Toggle between <strong>Spectral Clustering</strong> and <strong>Standard K-Means</strong> to watch K-Means slice right through rings while Spectral separates them cleanly.</li>
+              <li>Adjust $k$-NN and $\sigma$ to see how graph connectivity affects the eigenvalues ($\lambda_1, \dots, \lambda_6$) and Ncut score.</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- 4 Guided Experiments with Quick Launch Buttons -->
+        <div>
+          <h3 class="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">4 Guided Final-Exam Experiments (Click to Launch)</h3>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div class="p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/40 flex flex-col justify-between gap-3">
+              <div>
+                <div class="text-xs font-bold text-indigo-600 dark:text-indigo-400">Experiment 1</div>
+                <h4 class="font-bold text-sm mt-0.5">Reproduce Murphy Fig. 21.14</h4>
+                <p class="text-xs text-slate-600 dark:text-slate-400 mt-1">
+                  Compare <strong>Full</strong> vs <strong>Diagonal</strong> covariance on the 3 blobs + 2 tilted cigars. See why off-diagonal covariance is required for tilted clusters.
+                </p>
+              </div>
+              <button onclick="launchExperiment(1)" class="w-full py-2 px-3 rounded-lg bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900 text-xs font-semibold transition-colors">
+                Launch Experiment 1 &rarr;
+              </button>
+            </div>
+
+            <div class="p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/40 flex flex-col justify-between gap-3">
+              <div>
+                <div class="text-xs font-bold text-amber-600 dark:text-amber-400">Experiment 2</div>
+                <h4 class="font-bold text-sm mt-0.5">Verify K-Means Reduction</h4>
+                <p class="text-xs text-slate-600 dark:text-slate-400 mt-1">
+                  Enable <strong>K-Means Mode</strong> ($\boldsymbol{\Sigma}_k = \mathbf{I}, \pi_k = 1/K$, hard $r_{nk}$). Observe identical unit circles and hard Voronoi boundaries.
+                </p>
+              </div>
+              <button onclick="launchExperiment(2)" class="w-full py-2 px-3 rounded-lg bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900 text-xs font-semibold transition-colors">
+                Launch Experiment 2 &rarr;
+              </button>
+            </div>
+
+            <div class="p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/40 flex flex-col justify-between gap-3">
+              <div>
+                <div class="text-xs font-bold text-emerald-600 dark:text-emerald-400">Experiment 3</div>
+                <h4 class="font-bold text-sm mt-0.5">Monotonic EM Ascent</h4>
+                <p class="text-xs text-slate-600 dark:text-slate-400 mt-1">
+                  Step through E &amp; M on Overlapping Ellipses in <strong>Soft Mode</strong>. Watch blended colors clarify and $\ell(\boldsymbol{\theta})$ climb monotonically.
+                </p>
+              </div>
+              <button onclick="launchExperiment(3)" class="w-full py-2 px-3 rounded-lg bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900 text-xs font-semibold transition-colors">
+                Launch Experiment 3 &rarr;
+              </button>
+            </div>
+
+            <div class="p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/40 flex flex-col justify-between gap-3">
+              <div>
+                <div class="text-xs font-bold text-purple-600 dark:text-purple-400">Experiment 4</div>
+                <h4 class="font-bold text-sm mt-0.5">Spectral vs. K-Means on Rings</h4>
+                <p class="text-xs text-slate-600 dark:text-slate-400 mt-1">
+                  Load <strong>Concentric Rings</strong> in Tab 2. See the rings untangle in $(\mathbf{v}_2, \mathbf{v}_3)$ space and compare Ncut scores with Standard K-Means.
+                </p>
+              </div>
+              <button onclick="launchExperiment(4)" class="w-full py-2 px-3 rounded-lg bg-purple-50 dark:bg-purple-950 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900 text-xs font-semibold transition-colors">
+                Launch Experiment 4 &rarr;
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION B: COMPLETE CONVERSATION SUMMARY & FORMULA CHEAT SHEET -->
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-8">
+        <div class="border-b border-slate-200 dark:border-slate-800 pb-3">
+          <span class="text-xs font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">Part B &middot; Conversation Summary &amp; Final Exam Reference</span>
+          <h2 class="text-xl font-bold mt-0.5">Complete Concept Summary &amp; Formula Cheat Sheet</h2>
+        </div>
+
+        <!-- 1. Context & K-Means Limitations -->
+        <div class="space-y-2">
+          <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <span class="w-6 h-6 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs flex items-center justify-center font-bold">1</span>
+            Context: Why Move Beyond K-Means? (Fig. 21.13)
+          </h3>
+          <p class="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+            Both mixture models and spectral clustering address the rigid limitations of standard <strong>K-Means</strong>: K-Means assumes every cluster is an equal-sized <strong>sphere</strong> in continuous space $\mathbb{R}^D$, gives only hard 0/1 assignments, and cannot handle discrete data or non-convex shapes.
+          </p>
+          <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm text-slate-700 dark:text-slate-300">
+            <strong>Interpreting Silhouette Diagrams (Fig. 21.13):</strong> Used to pick the number of clusters $K$ in K-Means.
+            <ul class="list-disc pl-5 mt-1 space-y-0.5">
+              <li><strong>Colored block thickness (y-axis):</strong> Number of points in each cluster.</li>
+              <li><strong>Horizontal axis $[-1, 1]$:</strong> Silhouette score—how close each point is to its own cluster vs. the nearest neighboring cluster (higher is better; negative values indicate likely misassignment).</li>
+              <li><strong>Red dashed vertical line:</strong> Average silhouette score across all points (in Fig. 21.13, $k=3$ scores highest at $0.52$).</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- 2. Section 21.4 GMMs -->
+        <div class="space-y-3">
+          <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <span class="w-6 h-6 rounded-lg bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 text-xs flex items-center justify-center font-bold">2</span>
+            Section 21.4: Gaussian Mixture Models (GMMs)
+          </h3>
+          <p class="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+            A GMM models data as a weighted sum of $K$ overlapping Gaussian distributions, allowing stretched, tilted, and overlapping clusters (and non-Gaussian mixtures can handle discrete data).
+          </p>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+              <div class="text-xs font-bold text-indigo-600 dark:text-indigo-400 mb-1">GMM Density (Eq. 21.22)</div>
+              <div class="text-xs">
+                $$p(\mathbf{x}|\boldsymbol{\theta}) = \sum_{k=1}^K \pi_k \mathcal{N}(\mathbf{x}|\boldsymbol{\mu}_k, \boldsymbol{\Sigma}_k)$$
+              </div>
+              <p class="text-[11px] text-slate-500 dark:text-slate-400">$\pi_k$: mixing weight ($\sum \pi_k = 1$), $\boldsymbol{\mu}_k$: mean, $\boldsymbol{\Sigma}_k$: covariance.</p>
+            </div>
+
+            <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+              <div class="text-xs font-bold text-indigo-600 dark:text-indigo-400 mb-1">Responsibility / Soft (Eq. 21.23)</div>
+              <div class="text-xs">
+                $$r_{nk} \triangleq p(z_n = k | \mathbf{x}_n, \boldsymbol{\theta}) = \frac{\pi_k \mathcal{N}(\mathbf{x}_n|\boldsymbol{\mu}_k,\boldsymbol{\Sigma}_k)}{\sum_{k'=1}^K \pi_{k'} \mathcal{N}(\mathbf{x}_n|\boldsymbol{\mu}_{k'},\boldsymbol{\Sigma}_{k'})}$$
+              </div>
+              <p class="text-[11px] text-slate-500 dark:text-slate-400">Posterior membership probability via Bayes' rule.</p>
+            </div>
+
+            <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+              <div class="text-xs font-bold text-indigo-600 dark:text-indigo-400 mb-1">Hard Assignment (Eq. 21.24)</div>
+              <div class="text-xs">
+                $$\hat{z}_n = \arg\max_k r_{nk}$$
+              </div>
+              <p class="text-[11px] text-slate-500 dark:text-slate-400">Equivalently $\arg\max_k [\log p(\mathbf{x}_n|z_n=k,\boldsymbol{\theta}) + \log \pi_k]$.</p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs sm:text-sm">
+            <div class="p-3.5 rounded-xl border border-slate-200 dark:border-slate-700">
+              <strong class="block mb-1">Covariance Shapes (Fig. 21.14):</strong>
+              <ul class="list-disc pl-5 space-y-1 text-slate-700 dark:text-slate-300">
+                <li><strong>Full (a–b):</strong> Each cluster has its own $\boldsymbol{\Sigma}_k$ (handles tilted cigars + round blobs).</li>
+                <li><strong>Tied (c–d):</strong> All clusters share one $\boldsymbol{\Sigma}$ (tilts every cluster the same way).</li>
+                <li><strong>Diagonal (e–f):</strong> Off-diagonals are $0$; axis-aligned ellipses only (fails on tilted cigars).</li>
+                <li><strong>Spherical (g–h):</strong> $\boldsymbol{\Sigma}_k = \sigma_k^2 \mathbf{I}$; perfect circles only (fails on tilted cigars).</li>
+              </ul>
+            </div>
+            <div class="p-3.5 rounded-xl border border-slate-200 dark:border-slate-700">
+              <strong class="block mb-1">Label Switching &amp; Non-Identifiability (Sec. 21.4.1.2):</strong>
+              <p class="text-slate-700 dark:text-slate-300 leading-relaxed">
+                Permuting the cluster indices ($1 \leftrightarrow 2$) leaves the likelihood $p(\mathbf{x}|\boldsymbol{\theta})$ completely unchanged. This means there are $K!$ equivalent parameter solutions—a phenomenon called <strong>non-identifiability</strong> (harmless for clustering, but problematic when averaging MCMC samples across runs).
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. Training GMMs via EM -->
+        <div class="space-y-3">
+          <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <span class="w-6 h-6 rounded-lg bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 text-xs flex items-center justify-center font-bold">3</span>
+            Training GMMs: Expectation-Maximization (EM)
+          </h3>
+          <p class="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+            Direct MLE fails to yield a closed-form solution because the observed log-likelihood has a <strong>sum inside the logarithm</strong>, coupling all parameters together:
+          </p>
+          <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm">
+            $$\ell(\boldsymbol{\theta}) = \sum_{n=1}^N \log \left( \sum_{k=1}^K \pi_k \mathcal{N}(\mathbf{x}_n | \boldsymbol{\mu}_k, \boldsymbol{\Sigma}_k) \right)$$
+          </div>
+          <p class="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+            EM introduces latent assignments $z_n$, forms the complete-data log-likelihood $\ell_c(\boldsymbol{\theta}) = \sum_{n,k} \mathbb{I}(z_n=k)[\log\pi_k + \log\mathcal{N}(\mathbf{x}_n|\boldsymbol{\mu}_k,\boldsymbol{\Sigma}_k)]$, and alternates between computing its expectation $Q(\boldsymbol{\theta}, \boldsymbol{\theta}^{(t)}) = \mathbb{E}[\ell_c(\boldsymbol{\theta})]$ and maximizing $Q$:
+          </p>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div class="p-4 rounded-xl bg-emerald-50/50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/60 text-xs sm:text-sm">
+              <div class="font-bold text-emerald-700 dark:text-emerald-300 mb-1">E-Step (Expectation)</div>
+              <p class="text-slate-700 dark:text-slate-300 mb-2">Fix $\boldsymbol{\theta}^{(t)}$ and compute soft responsibilities $r_{nk} = p(z_n=k|\mathbf{x}_n,\boldsymbol{\theta}^{(t)})$:</p>
+              $$Q(\boldsymbol{\theta}, \boldsymbol{\theta}^{(t)}) = \sum_{n=1}^N \sum_{k=1}^K r_{nk} \left[ \log\pi_k + \log\mathcal{N}(\mathbf{x}_n|\boldsymbol{\mu}_k,\boldsymbol{\Sigma}_k) \right]$$
+            </div>
+
+            <div class="p-4 rounded-xl bg-sky-50/50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-800/60 text-xs sm:text-sm">
+              <div class="font-bold text-sky-700 dark:text-sky-300 mb-1">M-Step (Maximization — Weighted MLE)</div>
+              <p class="text-slate-700 dark:text-slate-300">Let $N_k = \sum_{n=1}^N r_{nk}$ be the effective cluster size:</p>
+              $$\pi_k = \frac{N_k}{N}, \quad \boldsymbol{\mu}_k = \frac{1}{N_k}\sum_{n=1}^N r_{nk}\mathbf{x}_n$$
+              $$\boldsymbol{\Sigma}_k = \frac{1}{N_k}\sum_{n=1}^N r_{nk}(\mathbf{x}_n - \boldsymbol{\mu}_k)(\mathbf{x}_n - \boldsymbol{\mu}_k)^\top$$
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+            <div class="p-3 rounded-xl border border-slate-200 dark:border-slate-700">
+              <strong class="text-slate-900 dark:text-white block mb-1">Monotonicity &amp; Local Optima</strong>
+              By <strong>Jensen's inequality</strong>, $\ell(\boldsymbol{\theta}^{(t+1)}) \ge \ell(\boldsymbol{\theta}^{(t)})$ every iteration. Because $\ell(\boldsymbol{\theta})$ is non-convex, EM converges to a <em>local optimum</em>—initialization matters.
+            </div>
+            <div class="p-3 rounded-xl border border-slate-200 dark:border-slate-700">
+              <strong class="text-slate-900 dark:text-white block mb-1">Singularity Collapse</strong>
+              If $\boldsymbol{\mu}_k = \mathbf{x}_n$ and $\det(\boldsymbol{\Sigma}_k) \to 0$, density spikes to $+\infty$ ($\ell \to +\infty$). Prevented by diagonal regularization ($\boldsymbol{\Sigma}_k + \epsilon\mathbf{I}$) or MAP estimation.
+            </div>
+            <div class="p-3 rounded-xl border border-slate-200 dark:border-slate-700">
+              <strong class="text-slate-900 dark:text-white block mb-1">Exact Reduction to K-Means</strong>
+              Fix $\boldsymbol{\Sigma}_k = \mathbf{I}$, $\pi_k = 1/K$, and replace soft $r_{nk}$ with hard $r_{nk} = \mathbb{I}(k = \arg\max_{k'} r_{nk'})$. The M-step mean update becomes exact K-Means!
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. Section 21.5 Spectral Clustering -->
+        <div class="space-y-3">
+          <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <span class="w-6 h-6 rounded-lg bg-purple-100 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300 text-xs flex items-center justify-center font-bold">4</span>
+            Section 21.5: Spectral Clustering &amp; Normalized Cuts
+          </h3>
+          <p class="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+            Instead of fitting geometric shapes, spectral clustering builds a sparse weighted similarity graph $\mathbf{W}$ (connecting each node to its $k$-nearest neighbors) and partitions the graph by minimizing the cost of cutting edges between clusters.
+          </p>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs sm:text-sm">
+            <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+              <div class="font-bold text-purple-600 dark:text-purple-400 mb-1">Raw Cut (Eq. 21.28) &amp; The Outlier Trap</div>
+              $$\text{cut}(S_1, \dots, S_K) \triangleq \frac{1}{2} \sum_{k=1}^K W(S_k, \bar{S}_k)$$
+              <p class="text-xs text-slate-600 dark:text-slate-400">
+                <strong>Problem:</strong> Minimizing raw cut cheats by snipping off a single isolated outlier node (very few edges to cut!).
+              </p>
+            </div>
+            <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+              <div class="font-bold text-purple-600 dark:text-purple-400 mb-1">Normalized Cut &amp; Graph Laplacian</div>
+              $$\text{Ncut}(S_1,\dots,S_K) = \sum_{k=1}^K \frac{W(S_k, \bar{S}_k)}{\text{vol}(S_k)}, \quad \mathbf{L}_{\text{sym}} = \mathbf{I} - \mathbf{D}^{-1/2}\mathbf{W}\mathbf{D}^{-1/2}$$
+              <p class="text-xs text-slate-600 dark:text-slate-400">
+                Dividing by cluster volume forces balanced cuts. Exact minimization is NP-hard, so we compute the $K$ smallest <strong>eigenvectors</strong> of $\mathbf{L}_{\text{sym}}$ as new features and run <strong>K-Means</strong> on them.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 5. Quick-Reference Comparison Table -->
+        <div class="space-y-2">
+          <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <span class="w-6 h-6 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs flex items-center justify-center font-bold">5</span>
+            Quick-Reference Comparison: GMMs vs. Spectral Clustering
+          </h3>
+          <div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700">
+            <table class="w-full text-xs sm:text-sm text-left">
+              <thead class="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200">
+                <tr>
+                  <th class="p-3 font-bold">Dimension</th>
+                  <th class="p-3 font-bold text-indigo-700 dark:text-indigo-300">Mixture Models (GMMs)</th>
+                  <th class="p-3 font-bold text-purple-700 dark:text-purple-300">Spectral Clustering</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-200 dark:divide-slate-700 text-slate-700 dark:text-slate-300">
+                <tr>
+                  <td class="p-3 font-semibold">Core Basis</td>
+                  <td class="p-3">Probabilistic modeling (overlapping distributions fitted via EM).</td>
+                  <td class="p-3">Graph theory &amp; linear algebra (eigenvectors of Graph Laplacian).</td>
+                </tr>
+                <tr>
+                  <td class="p-3 font-semibold">Best Uses</td>
+                  <td class="p-3">Elliptical/tilted overlapping clusters, density estimation, discrete data (non-Gaussian mixtures).</td>
+                  <td class="p-3">Non-convex shapes (concentric rings, moons, spirals), image segmentation, social networks.</td>
+                </tr>
+                <tr>
+                  <td class="p-3 font-semibold">Key Benefits</td>
+                  <td class="p-3">Soft probabilities (uncertainty), flexible sizes &amp; tilts, generative (can sample new data).</td>
+                  <td class="p-3">No geometric shape assumptions; only requires a pairwise similarity matrix $\mathbf{W}$.</td>
+                </tr>
+                <tr>
+                  <td class="p-3 font-semibold">Main Drawbacks</td>
+                  <td class="p-3">Fails on non-elliptical shapes; local optima; singularity collapse / high-D overfitting.</td>
+                  <td class="p-3">Eigendecomposition scales poorly ($O(N^3)$ dense) for huge $N$; sensitive to $k$-NN &amp; $\sigma$.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ==================== JAVASCRIPT ENGINE ==================== -->
+  <script>
+    // =========================================================================
+    // 1. GLOBAL CONFIG, PALETTE, THEME & TABS
+    // =========================================================================
+    const PALETTE = [
+      { hex: '#2563eb', rgb: [37, 99, 235] },   // Blue
+      { hex: '#ea580c', rgb: [234, 88, 12] },   // Orange
+      { hex: '#059669', rgb: [5, 150, 105] },   // Emerald
+      { hex: '#9333ea', rgb: [147, 51, 234] },  // Purple
+      { hex: '#db2777', rgb: [219, 39, 119] },  // Magenta
+      { hex: '#ca8a04', rgb: [202, 138, 4] }    // Amber
+    ];
+
+    let activeTab = 'gmm';
+
+    function switchTab(tabId) {
+      activeTab = tabId;
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
+      document.getElementById('panel-' + tabId).classList.remove('hidden');
+
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        const isTarget = btn.id === 'tab-btn-' + tabId;
+        btn.setAttribute('aria-selected', isTarget ? 'true' : 'false');
+        if (isTarget) {
+          btn.className = 'tab-btn px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg whitespace-nowrap transition-all bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm';
+        } else {
+          btn.className = 'tab-btn px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg whitespace-nowrap transition-all text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white';
+        }
+      });
+
+      // Redraw canvases when becoming visible
+      requestAnimationFrame(() => {
+        if (tabId === 'gmm') {
+          drawGMM();
+          drawSparkline();
+        } else if (tabId === 'spectral') {
+          if (!specState.computed) {
+            runSpectralPipeline();
+          } else {
+            drawSpectralCanvases();
+          }
+        }
+      });
+    }
+
+    // Theme toggle
+    function toggleTheme() {
+      const html = document.documentElement;
+      const isDark = html.classList.toggle('dark');
+      document.querySelectorAll('.theme-icon').forEach(el => {
+        el.textContent = isDark ? '☀️' : '🌙';
+      });
+      drawGMM();
+      drawSparkline();
+      if (specState.computed) drawSpectralCanvases();
+    }
+    document.getElementById('themeToggleMobile').addEventListener('click', toggleTheme);
+    document.getElementById('themeToggleDesktop').addEventListener('click', toggleTheme);
+
+    // =========================================================================
+    // 2. MATH & DATASET UTILITIES
+    // =========================================================================
+    function randn() {
+      // Box-Muller transform
+      let u = 0, v = 0;
+      while (u === 0) u = Math.random();
+      while (v === 0) v = Math.random();
+      return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+    }
+
+    function generateDataset(type, countScale = 1.0) {
+      const pts = [];
+      if (type === 'murphy') {
+        // Recreate Murphy Fig 21.14: 3 circular blobs on left, 2 parallel diagonal cigars on right
+        const nBlob = Math.round(45 * countScale);
+        const nCigar = Math.round(65 * countScale);
+        const blobs = [
+          { mx: -3.8, my: 3.1, sx: 0.42, sy: 0.42 },
+          { mx: -3.8, my: 0.9, sx: 0.42, sy: 0.42 },
+          { mx: -3.8, my: -2.0, sx: 0.45, sy: 0.45 }
+        ];
+        blobs.forEach(b => {
+          for (let i = 0; i < nBlob; i++) {
+            pts.push([b.mx + randn() * b.sx, b.my + randn() * b.sy]);
+          }
+        });
+        // Two tilted cigars (angle ~52 degrees)
+        const angle = 0.92;
+        const ca = Math.cos(angle), sa = Math.sin(angle);
+        const cigars = [
+          { mx: -1.1, my: 1.2, sMajor: 1.35, sMinor: 0.30 },
+          { mx: 0.85, my: -0.35, sMajor: 1.35, sMinor: 0.30 }
+        ];
+        cigars.forEach(c => {
+          for (let i = 0; i < nCigar; i++) {
+            const u = randn() * c.sMajor;
+            const v = randn() * c.sMinor;
+            pts.push([c.mx + u * ca - v * sa, c.my + u * sa + v * ca]);
+          }
+        });
+      } else if (type === 'ellipses') {
+        const nEach = Math.round(75 * countScale);
+        const configs = [
+          { mx: -1.5, my: 0.8, sMaj: 1.6, sMin: 0.42, ang: 0.65 },
+          { mx: 1.2, my: 0.5, sMaj: 1.5, sMin: 0.45, ang: -0.75 },
+          { mx: 0.0, my: -1.5, sMaj: 1.8, sMin: 0.38, ang: 0.1 }
+        ];
+        configs.forEach(c => {
+          const ca = Math.cos(c.ang), sa = Math.sin(c.ang);
+          for (let i = 0; i < nEach; i++) {
+            const u = randn() * c.sMaj;
+            const v = randn() * c.sMin;
+            pts.push([c.mx + u * ca - v * sa, c.my + u * sa + v * ca]);
+          }
+        });
+      } else if (type === 'rings') {
+        const nInner = Math.round(40 * countScale);
+        const nOuter = Math.round(65 * countScale);
+        for (let i = 0; i < nInner; i++) {
+          const t = (2 * Math.PI * i) / nInner + randn() * 0.08;
+          const r = 1.0 + randn() * 0.13;
+          pts.push([r * Math.cos(t), r * Math.sin(t)]);
+        }
+        for (let i = 0; i < nOuter; i++) {
+          const t = (2 * Math.PI * i) / nOuter + randn() * 0.06;
+          const r = 2.85 + randn() * 0.16;
+          pts.push([r * Math.cos(t), r * Math.sin(t)]);
+        }
+      } else if (type === 'moons') {
+        const nMoon = Math.round(45 * countScale);
+        for (let i = 0; i < nMoon; i++) {
+          const t = (Math.PI * i) / (nMoon - 1);
+          pts.push([-0.6 + 1.8 * Math.cos(t) + randn() * 0.14, -0.3 + 1.6 * Math.sin(t) + randn() * 0.14]);
+        }
+        for (let i = 0; i < nMoon; i++) {
+          const t = (Math.PI * i) / (nMoon - 1);
+          pts.push([1.1 - 1.8 * Math.cos(t) + randn() * 0.14, 0.45 - 1.6 * Math.sin(t) + randn() * 0.14]);
+        }
+      } else if (type === 'outlier') {
+        const nBlob = Math.round(28 * countScale);
+        const centers = [[-2.0, -1.2], [1.8, -1.2], [-0.1, 1.8]];
+        centers.forEach(([mx, my]) => {
+          for (let i = 0; i < nBlob; i++) {
+            pts.push([mx + randn() * 0.42, my + randn() * 0.42]);
+          }
+        });
+        // Add 1 isolated outlier far away
+        pts.push([3.6, 2.8]);
+      }
+      return pts;
+    }
+
+    function getBounds(pts, pad = 0.8) {
+      if (!pts.length) return { minX: -5, maxX: 5, minY: -5, maxY: 5 };
+      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+      for (const [x, y] of pts) {
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+      }
+      return { minX: minX - pad, maxX: maxX + pad, minY: minY - pad, maxY: maxY + pad };
+    }
+
+    // Uniform 1:1 aspect-ratio coordinate mapper for accurate circles & ellipses
+    function createMapper(canvas, bounds) {
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      const w = Math.max(10, Math.floor(rect.width));
+      const h = Math.max(10, Math.floor(rect.height));
+      if (canvas.width !== w * dpr || canvas.height !== h * dpr) {
+        canvas.width = w * dpr;
+        canvas.height = h * dpr;
+      }
+      const ctx = canvas.getContext('2d');
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      const dataW = Math.max(1e-4, bounds.maxX - bounds.minX);
+      const dataH = Math.max(1e-4, bounds.maxY - bounds.minY);
+      // Keep margin smaller than half the canvas dimensions so scale is never negative
+      const margin = Math.min(24, Math.floor(Math.min(w, h) * 0.1));
+      const scale = Math.max(1e-3, Math.min((w - 2 * margin) / dataW, (h - 2 * margin) / dataH));
+      const cx = (bounds.minX + bounds.maxX) / 2;
+      const cy = (bounds.minY + bounds.maxY) / 2;
+
+      return {
+        ctx, w, h, scale,
+        toPx: (x, y) => [w / 2 + (x - cx) * scale, h / 2 - (y - cy) * scale],
+        toData: (px, py) => [cx + (px - w / 2) / scale, cy - (py - h / 2) / scale]
+      };
+    }
+
+    function drawGrid(ctx, w, h, mapper, isDark) {
+      ctx.clearRect(0, 0, w, h);
+      ctx.strokeStyle = isDark ? 'rgba(148, 163, 184, 0.1)' : 'rgba(148, 163, 184, 0.22)';
+      ctx.lineWidth = 1;
+      const [ox, oy] = mapper.toPx(0, 0);
+      // Axes through origin
+      ctx.beginPath();
+      ctx.moveTo(0, oy); ctx.lineTo(w, oy);
+      ctx.moveTo(ox, 0); ctx.lineTo(ox, h);
+      ctx.stroke();
+    }
+
+    // =========================================================================
+    // 3. TAB 1: GMM & EM ENGINE
+    // =========================================================================
+    const gmmState = {
+      dataset: 'murphy',
+      points: [],
+      bounds: null,
+      K: 5,
+      covType: 'full',
+      kmeansMode: false,
+      softMode: true,
+      showEllipses: true,
+      regularize: true,
+      // Model parameters
+      pi: [],
+      mu: [],
+      sigma: [], // array of [a, b, c] representing [[a, b], [b, c]]
+      resp: [],  // N x K
+      iter: 0,
+      phase: 'Initialized',
+      llHistory: [],
+      running: false,
+      timerId: null
+    };
+
+    function logGaussian2D(x, y, mu, sig) {
+      const dx = x - mu[0];
+      const dy = y - mu[1];
+      let a = sig[0], b = sig[1], c = sig[2];
+      let det = a * c - b * b;
+      if (det < 1e-10) {
+        a += 1e-5; c += 1e-5;
+        det = Math.max(1e-10, a * c - b * b);
+      }
+      const mahal = (c * dx * dx - 2 * b * dx * dy + a * dy * dy) / det;
+      return -Math.log(2 * Math.PI) - 0.5 * Math.log(det) - 0.5 * mahal;
+    }
+
+    function initGMMParams() {
+      stopGMMRun();
+      const N = gmmState.points.length;
+      const K = gmmState.K;
+      if (N < K) return;
+
+      // K-Means++ style initialization for means
+      const mu = [];
+      const firstIdx = Math.floor(Math.random() * N);
+      mu.push([...gmmState.points[firstIdx]]);
+
+      while (mu.length < K) {
+        const dists = gmmState.points.map(p => {
+          let minD = Infinity;
+          for (const m of mu) {
+            const d = (p[0] - m[0]) ** 2 + (p[1] - m[1]) ** 2;
+            if (d < minD) minD = d;
+          }
+          return minD;
+        });
+        const total = dists.reduce((s, d) => s + d, 0);
+        let r = Math.random() * total;
+        let chosen = 0;
+        for (let i = 0; i < N; i++) {
+          r -= dists[i];
+          if (r <= 0) { chosen = i; break; }
+        }
+        mu.push([...gmmState.points[chosen]]);
+      }
+
+      gmmState.mu = mu;
+      gmmState.pi = Array(K).fill(1 / K);
+      const initVar = gmmState.kmeansMode ? 1.0 : 0.9;
+      gmmState.sigma = Array.from({ length: K }, () => [initVar, 0, initVar]);
+      gmmState.resp = Array.from({ length: N }, () => Array(K).fill(1 / K));
+      gmmState.iter = 0;
+      gmmState.phase = 'Initialized';
+      gmmState.llHistory = [];
+
+      // Compute initial responsibilities & log-likelihood so display is meaningful
+      computeEStep(true);
+      gmmState.phase = 'Initialized';
+      highlightEMCard('none');
+      updateGMMUI();
+      drawGMM();
+      drawSparkline();
+    }
+
+    function computeEStep(isInit = false) {
+      const N = gmmState.points.length;
+      const K = gmmState.K;
+      let totalLL = 0;
+
+      for (let n = 0; n < N; n++) {
+        const [x, y] = gmmState.points[n];
+        const logProbs = new Array(K);
+        let maxLP = -Infinity;
+        for (let k = 0; k < K; k++) {
+          const lp = Math.log(Math.max(1e-12, gmmState.pi[k])) + logGaussian2D(x, y, gmmState.mu[k], gmmState.sigma[k]);
+          logProbs[k] = lp;
+          if (lp > maxLP) maxLP = lp;
+        }
+        // Log-sum-exp
+        let sumExp = 0;
+        for (let k = 0; k < K; k++) sumExp += Math.exp(logProbs[k] - maxLP);
+        const lse = maxLP + Math.log(sumExp);
+        totalLL += lse;
+
+        if (gmmState.kmeansMode) {
+          // Hard assignment for K-Means reduction
+          let bestK = 0;
+          for (let k = 1; k < K; k++) if (logProbs[k] > logProbs[bestK]) bestK = k;
+          for (let k = 0; k < K; k++) gmmState.resp[n][k] = (k === bestK) ? 1 : 0;
+        } else {
+          for (let k = 0; k < K; k++) gmmState.resp[n][k] = Math.exp(logProbs[k] - lse);
+        }
+      }
+
+      if (!isInit) {
+        gmmState.phase = 'E-Step Complete';
+        highlightEMCard('e');
+      }
+      if (gmmState.llHistory.length === 0 || !isInit) {
+        // Record LL after E-step if first time
+        if (gmmState.llHistory.length === 0) gmmState.llHistory.push(totalLL);
+      }
+      return totalLL;
+    }
+
+    function computeMStep() {
+      const N = gmmState.points.length;
+      const K = gmmState.K;
+      const eps = gmmState.regularize ? 1e-3 : 1e-7;
+
+      const Nk = new Array(K).fill(0);
+      for (let n = 0; n < N; n++) {
+        for (let k = 0; k < K; k++) Nk[k] += gmmState.resp[n][k];
+      }
+
+      // Update weights and means
+      for (let k = 0; k < K; k++) {
+        if (Nk[k] < 1e-6) continue; // Keep old mean if cluster empty
+        gmmState.pi[k] = gmmState.kmeansMode ? (1 / K) : (Nk[k] / N);
+        let mx = 0, my = 0;
+        for (let n = 0; n < N; n++) {
+          const r = gmmState.resp[n][k];
+          mx += r * gmmState.points[n][0];
+          my += r * gmmState.points[n][1];
+        }
+        gmmState.mu[k] = [mx / Nk[k], my / Nk[k]];
+      }
+
+      // Update covariances
+      if (gmmState.kmeansMode) {
+        for (let k = 0; k < K; k++) gmmState.sigma[k] = [1.0, 0.0, 1.0];
+      } else if (gmmState.covType === 'tied') {
+        let sxx = 0, sxy = 0, syy = 0;
+        for (let k = 0; k < K; k++) {
+          const [mx, my] = gmmState.mu[k];
+          for (let n = 0; n < N; n++) {
+            const r = gmmState.resp[n][k];
+            const dx = gmmState.points[n][0] - mx;
+            const dy = gmmState.points[n][1] - my;
+            sxx += r * dx * dx;
+            sxy += r * dx * dy;
+            syy += r * dy * dy;
+          }
+        }
+        const shared = [sxx / N + eps, sxy / N, syy / N + eps];
+        for (let k = 0; k < K; k++) gmmState.sigma[k] = [...shared];
+      } else {
+        for (let k = 0; k < K; k++) {
+          if (Nk[k] < 1e-6) continue;
+          const [mx, my] = gmmState.mu[k];
+          let sxx = 0, sxy = 0, syy = 0;
+          for (let n = 0; n < N; n++) {
+            const r = gmmState.resp[n][k];
+            const dx = gmmState.points[n][0] - mx;
+            const dy = gmmState.points[n][1] - my;
+            sxx += r * dx * dx;
+            sxy += r * dx * dy;
+            syy += r * dy * dy;
+          }
+          sxx /= Nk[k]; sxy /= Nk[k]; syy /= Nk[k];
+          if (gmmState.covType === 'full') {
+            gmmState.sigma[k] = [sxx + eps, sxy, syy + eps];
+          } else if (gmmState.covType === 'diag') {
+            gmmState.sigma[k] = [sxx + eps, 0, syy + eps];
+          } else if (gmmState.covType === 'spherical') {
+            const v = 0.5 * (sxx + syy) + eps;
+            gmmState.sigma[k] = [v, 0, v];
+          }
+        }
+      }
+
+      // Recompute log-likelihood after M-step
+      let newLL = 0;
+      for (let n = 0; n < N; n++) {
+        const [x, y] = gmmState.points[n];
+        const lps = [];
+        let maxLP = -Infinity;
+        for (let k = 0; k < K; k++) {
+          const lp = Math.log(Math.max(1e-12, gmmState.pi[k])) + logGaussian2D(x, y, gmmState.mu[k], gmmState.sigma[k]);
+          lps.push(lp);
+          if (lp > maxLP) maxLP = lp;
+        }
+        let se = 0;
+        for (let k = 0; k < K; k++) se += Math.exp(lps[k] - maxLP);
+        newLL += maxLP + Math.log(se);
+      }
+
+      gmmState.iter += 1;
+      const prevLL = gmmState.llHistory[gmmState.llHistory.length - 1];
+      gmmState.llHistory.push(newLL);
+      gmmState.phase = (prevLL !== undefined && Math.abs(newLL - prevLL) < 1e-4) ? 'Converged' : 'M-Step Complete';
+      highlightEMCard('m');
+      return newLL;
+    }
+
+    function highlightEMCard(which) {
+      const eCard = document.getElementById('eStepCard');
+      const mCard = document.getElementById('mStepCard');
+      eCard.classList.remove('border-emerald-500', 'ring-2', 'ring-emerald-500/30');
+      mCard.classList.remove('border-sky-500', 'ring-2', 'ring-sky-500/30');
+      eCard.classList.add('border-slate-200', 'dark:border-slate-800');
+      mCard.classList.add('border-slate-200', 'dark:border-slate-800');
+
+      if (which === 'e') {
+        eCard.classList.remove('border-slate-200', 'dark:border-slate-800');
+        eCard.classList.add('border-emerald-500', 'ring-2', 'ring-emerald-500/30');
+      } else if (which === 'm') {
+        mCard.classList.remove('border-slate-200', 'dark:border-slate-800');
+        mCard.classList.add('border-sky-500', 'ring-2', 'ring-sky-500/30');
+      }
+    }
+
+    function stopGMMRun() {
+      gmmState.running = false;
+      if (gmmState.timerId) {
+        clearTimeout(gmmState.timerId);
+        gmmState.timerId = null;
+      }
+      document.getElementById('gmmRunBtn').textContent = '▶ Run EM';
+    }
+
+    function toggleGMMRun() {
+      if (gmmState.running) {
+        stopGMMRun();
+        return;
+      }
+      gmmState.running = true;
+      document.getElementById('gmmRunBtn').textContent = '⏸ Pause';
+
+      function stepLoop() {
+        if (!gmmState.running) return;
+        const prevLL = gmmState.llHistory[gmmState.llHistory.length - 1] ?? -Infinity;
+        computeEStep();
+        const newLL = computeMStep();
+        updateGMMUI();
+        drawGMM();
+        drawSparkline();
+
+        if (Math.abs(newLL - prevLL) < 1e-4 || gmmState.iter >= 60) {
+          gmmState.phase = 'Converged';
+          updateGMMUI();
+          stopGMMRun();
+        } else {
+          gmmState.timerId = setTimeout(stepLoop, 120);
+        }
+      }
+      stepLoop();
+    }
+
+    function updateGMMUI() {
+      document.getElementById('gmmIterCount').textContent = gmmState.iter;
+      const badge = document.getElementById('gmmPhaseBadge');
+      badge.textContent = gmmState.phase;
+      badge.className = 'text-xs font-bold mt-1 ' + (
+        gmmState.phase === 'Converged' ? 'text-emerald-600 dark:text-emerald-400' :
+        gmmState.phase.startsWith('E') ? 'text-emerald-600 dark:text-emerald-400' :
+        gmmState.phase.startsWith('M') ? 'text-sky-600 dark:text-sky-400' :
+        'text-indigo-600 dark:text-indigo-400'
+      );
+
+      const ll = gmmState.llHistory[gmmState.llHistory.length - 1];
+      document.getElementById('gmmLLVal').textContent = ll !== undefined ? ll.toFixed(1) : '—';
+
+      // Update table
+      const tbody = document.getElementById('gmmClusterTable');
+      const N = gmmState.points.length;
+      const Nk = new Array(gmmState.K).fill(0);
+      for (let n = 0; n < N; n++) {
+        for (let k = 0; k < gmmState.K; k++) Nk[k] += gmmState.resp[n][k];
+      }
+
+      tbody.innerHTML = '';
+      for (let k = 0; k < gmmState.K; k++) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="py-1.5 flex items-center gap-2 font-sans font-semibold">
+            <span class="w-2.5 h-2.5 rounded-full inline-block" style="background:${PALETTE[k % PALETTE.length].hex}"></span>
+            Cluster ${k + 1}
+          </td>
+          <td class="py-1.5 text-right">${(gmmState.pi[k] || 0).toFixed(3)}</td>
+          <td class="py-1.5 text-right">${Nk[k].toFixed(1)}</td>
+        `;
+        tbody.appendChild(tr);
+      }
+    }
+
+    function drawGMM() {
+      const canvas = document.getElementById('gmmCanvas');
+      if (!canvas || !gmmState.points.length) return;
+      const isDark = document.documentElement.classList.contains('dark');
+      const mapper = createMapper(canvas, gmmState.bounds);
+      const { ctx, w, h, scale } = mapper;
+
+      drawGrid(ctx, w, h, mapper, isDark);
+
+      // Draw 1-sigma and 2-sigma covariance ellipses
+      if (gmmState.showEllipses) {
+        for (let k = 0; k < gmmState.K; k++) {
+          const [mx, my] = gmmState.mu[k];
+          const [a, b, c] = gmmState.sigma[k];
+          const [px, py] = mapper.toPx(mx, my);
+          const col = PALETTE[k % PALETTE.length];
+
+          // 2x2 Eigenvalues & major axis angle
+          const trace = a + c;
+          const disc = Math.sqrt(Math.max(0, (a - c) * (a - c) + 4 * b * b));
+          const l1 = Math.max(1e-5, (trace + disc) / 2);
+          const l2 = Math.max(1e-5, (trace - disc) / 2);
+          const angle = 0.5 * Math.atan2(2 * b, a - c);
+
+          // Draw 2-sigma (outer translucent) and 1-sigma (inner)
+          [2.0, 1.0].forEach((mult, idx) => {
+            const rx = Math.max(0.5, mult * Math.sqrt(l1) * scale);
+            const ry = Math.max(0.5, mult * Math.sqrt(l2) * scale);
+            ctx.save();
+            ctx.translate(px, py);
+            ctx.rotate(-angle); // Negative because canvas Y increases downward
+            ctx.beginPath();
+            ctx.ellipse(0, 0, rx, ry, 0, 0, 2 * Math.PI);
+            ctx.fillStyle = `rgba(${col.rgb[0]}, ${col.rgb[1]}, ${col.rgb[2]}, ${idx === 0 ? 0.11 : 0.18})`;
+            ctx.fill();
+            ctx.lineWidth = idx === 0 ? 1.2 : 2.0;
+            ctx.strokeStyle = `rgba(${col.rgb[0]}, ${col.rgb[1]}, ${col.rgb[2]}, ${idx === 0 ? 0.55 : 0.9})`;
+            ctx.stroke();
+            ctx.restore();
+          });
+        }
+      }
+
+      // Draw data points
+      for (let n = 0; n < gmmState.points.length; n++) {
+        const [x, y] = gmmState.points[n];
+        const [px, py] = mapper.toPx(x, y);
+        const r = gmmState.resp[n];
+        let fillStyle;
+
+        if (gmmState.softMode && !gmmState.kmeansMode) {
+          let R = 0, G = 0, B = 0;
+          for (let k = 0; k < gmmState.K; k++) {
+            const rgb = PALETTE[k % PALETTE.length].rgb;
+            R += r[k] * rgb[0];
+            G += r[k] * rgb[1];
+            B += r[k] * rgb[2];
+          }
+          fillStyle = `rgb(${Math.round(R)}, ${Math.round(G)}, ${Math.round(B)})`;
+        } else {
+          let bestK = 0;
+          for (let k = 1; k < gmmState.K; k++) if (r[k] > r[bestK]) bestK = k;
+          fillStyle = PALETTE[bestK % PALETTE.length].hex;
+        }
+
+        ctx.beginPath();
+        ctx.arc(px, py, 3.6, 0, 2 * Math.PI);
+        ctx.fillStyle = fillStyle;
+        ctx.fill();
+        ctx.lineWidth = 0.8;
+        ctx.strokeStyle = isDark ? 'rgba(15,23,42,0.7)' : 'rgba(255,255,255,0.85)';
+        ctx.stroke();
+      }
+
+      // Draw Centroids
+      if (gmmState.showEllipses) {
+        for (let k = 0; k < gmmState.K; k++) {
+          const [px, py] = mapper.toPx(gmmState.mu[k][0], gmmState.mu[k][1]);
+          ctx.beginPath();
+          ctx.arc(px, py, 6, 0, 2 * Math.PI);
+          ctx.fillStyle = PALETTE[k % PALETTE.length].hex;
+          ctx.fill();
+          ctx.lineWidth = 2.2;
+          ctx.strokeStyle = isDark ? '#0f172a' : '#ffffff';
+          ctx.stroke();
+        }
+      }
+    }
+
+    function drawSparkline() {
+      const canvas = document.getElementById('gmmSparkline');
+      if (!canvas) return;
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      const w = Math.max(10, Math.floor(rect.width));
+      const h = Math.max(10, Math.floor(rect.height));
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
+      const ctx = canvas.getContext('2d');
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, w, h);
+
+      const hist = gmmState.llHistory;
+      if (hist.length < 1) return;
+
+      const pad = 10;
+      const minV = Math.min(...hist);
+      const maxV = Math.max(...hist);
+      const span = Math.max(1e-3, maxV - minV);
+
+      ctx.beginPath();
+      hist.forEach((v, i) => {
+        const x = hist.length === 1 ? w / 2 : pad + (i / (hist.length - 1)) * (w - 2 * pad);
+        const y = h - pad - ((v - minV) / span) * (h - 2 * pad);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.strokeStyle = '#4f46e5';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Highlight latest point
+      const lastX = hist.length === 1 ? w / 2 : w - pad;
+      const lastY = h - pad - ((hist[hist.length - 1] - minV) / span) * (h - 2 * pad);
+      ctx.beginPath();
+      ctx.arc(lastX, lastY, 3.5, 0, 2 * Math.PI);
+      ctx.fillStyle = '#4f46e5';
+      ctx.fill();
+    }
+
+    function loadGMMDataset(type, overrideK = null) {
+      gmmState.dataset = type;
+      gmmState.points = generateDataset(type, 1.0);
+      gmmState.bounds = getBounds(gmmState.points, 0.9);
+      if (overrideK !== null) {
+        gmmState.K = overrideK;
+      } else {
+        gmmState.K = type === 'murphy' ? 5 : type === 'ellipses' ? 3 : 2;
+      }
+      document.getElementById('gmmKSlider').value = gmmState.K;
+      document.getElementById('gmmKVal').textContent = gmmState.K;
+      initGMMParams();
+    }
+
+    // =========================================================================
+    // 4. TAB 2: SPECTRAL CLUSTERING & JACOBI EIGENSOLVER
+    // =========================================================================
+    const specState = {
+      dataset: 'rings',
+      points: [],
+      bounds: null,
+      knn: 8,
+      sigma: 0.75,
+      K: 2,
+      algo: 'spectral', // 'spectral' or 'kmeans'
+      showEdges: true,
+      computed: false,
+      W: [],            // N x N affinity matrix
+      degrees: [],
+      eigenvalues: [],  // sorted ascending
+      eigenvectors: [], // array of N-length vectors corresponding to eigenvalues
+      labels: [],
+      rawCut: 0,
+      normCut: 0
+    };
+
+    // Real Symmetric Jacobi Eigenvalue Algorithm (fast & accurate for N <= 120)
+    function jacobiEigenSymmetric(matrix) {
+      const n = matrix.length;
+      const A = matrix.map(row => Float64Array.from(row));
+      const V = Array.from({ length: n }, (_, i) => {
+        const row = new Float64Array(n);
+        row[i] = 1.0;
+        return row;
+      });
+
+      const maxSweeps = 18;
+      const tol = 1e-8;
+
+      for (let sweep = 0; sweep < maxSweeps; sweep++) {
+        let maxOff = 0;
+        for (let p = 0; p < n - 1; p++) {
+          for (let q = p + 1; q < n; q++) {
+            const apq = A[p][q];
+            if (Math.abs(apq) > maxOff) maxOff = Math.abs(apq);
+            if (Math.abs(apq) < tol) continue;
+
+            const app = A[p][p];
+            const aqq = A[q][q];
+            const tau = (aqq - app) / (2.0 * apq);
+            const t = (tau >= 0 ? 1.0 : -1.0) / (Math.abs(tau) + Math.sqrt(1.0 + tau * tau));
+            const c = 1.0 / Math.sqrt(1.0 + t * t);
+            const s = t * c;
+
+            // Update diagonal & zero (p, q)
+            A[p][p] = app - t * apq;
+            A[q][q] = aqq + t * apq;
+            A[p][q] = 0.0;
+            A[q][p] = 0.0;
+
+            // Update off-diagonal rows/cols
+            for (let r = 0; r < n; r++) {
+              if (r !== p && r !== q) {
+                const arp = A[r][p];
+                const arq = A[r][q];
+                A[r][p] = c * arp - s * arq;
+                A[p][r] = A[r][p];
+                A[r][q] = s * arp + c * arq;
+                A[q][r] = A[r][q];
+              }
+              // Update eigenvectors
+              const vrp = V[r][p];
+              const vrq = V[r][q];
+              V[r][p] = c * vrp - s * vrq;
+              V[r][q] = s * vrp + c * vrq;
+            }
+          }
+        }
+        if (maxOff < tol) break;
+      }
+
+      // Extract & sort eigenvalues ascending
+      const pairs = [];
+      for (let i = 0; i < n; i++) {
+        const vec = new Float64Array(n);
+        for (let r = 0; r < n; r++) vec[r] = V[r][i];
+        pairs.push({ val: Math.max(0, A[i][i]), vec });
+      }
+      pairs.sort((a, b) => a.val - b.val);
+
+      return {
+        eigenvalues: pairs.map(p => p.val),
+        eigenvectors: pairs.map(p => p.vec)
+      };
+    }
+
+    // General D-dimensional K-Means++ with multiple restarts
+    function runKMeans(features, K, restarts = 8) {
+      const N = features.length;
+      const D = features[0].length;
+      let bestLabels = new Array(N).fill(0);
+      let bestInertia = Infinity;
+
+      for (let run = 0; run < restarts; run++) {
+        // K-Means++ init
+        const centroids = [features[Math.floor(Math.random() * N)].slice()];
+        while (centroids.length < K) {
+          const dists = features.map(f => {
+            let minD = Infinity;
+            for (const c of centroids) {
+              let d = 0;
+              for (let j = 0; j < D; j++) d += (f[j] - c[j]) ** 2;
+              if (d < minD) minD = d;
+            }
+            return minD;
+          });
+          const sumD = dists.reduce((a, b) => a + b, 0);
+          if (sumD === 0) {
+            centroids.push(features[Math.floor(Math.random() * N)].slice());
+            continue;
+          }
+          let r = Math.random() * sumD;
+          let idx = 0;
+          for (let i = 0; i < N; i++) {
+            r -= dists[i];
+            if (r <= 0) { idx = i; break; }
+          }
+          centroids.push(features[idx].slice());
+        }
+
+        const labels = new Array(N).fill(0);
+        for (let it = 0; it < 30; it++) {
+          let changed = false;
+          for (let i = 0; i < N; i++) {
+            let bestK = 0, bestD = Infinity;
+            for (let k = 0; k < K; k++) {
+              let d = 0;
+              for (let j = 0; j < D; j++) d += (features[i][j] - centroids[k][j]) ** 2;
+              if (d < bestD) { bestD = d; bestK = k; }
+            }
+            if (labels[i] !== bestK) { labels[i] = bestK; changed = true; }
+          }
+          if (!changed) break;
+
+          // Update centroids
+          const counts = new Array(K).fill(0);
+          const sums = Array.from({ length: K }, () => new Array(D).fill(0));
+          for (let i = 0; i < N; i++) {
+            const k = labels[i];
+            counts[k]++;
+            for (let j = 0; j < D; j++) sums[k][j] += features[i][j];
+          }
+          for (let k = 0; k < K; k++) {
+            if (counts[k] > 0) {
+              for (let j = 0; j < D; j++) centroids[k][j] = sums[k][j] / counts[k];
+            }
+          }
+        }
+
+        // Compute inertia
+        let inertia = 0;
+        for (let i = 0; i < N; i++) {
+          const c = centroids[labels[i]];
+          for (let j = 0; j < D; j++) inertia += (features[i][j] - c[j]) ** 2;
+        }
+        if (inertia < bestInertia) {
+          bestInertia = inertia;
+          bestLabels = labels;
+        }
+      }
+      return bestLabels;
+    }
+
+    function computeGraphCuts(W, degrees, labels, K) {
+      const N = W.length;
+      const cutK = new Array(K).fill(0);
+      const volK = new Array(K).fill(0);
+
+      for (let i = 0; i < N; i++) {
+        const ci = labels[i];
+        volK[ci] += degrees[i];
+        for (let j = 0; j < N; j++) {
+          if (labels[j] !== ci && W[i][j] > 0) {
+            cutK[ci] += W[i][j];
+          }
+        }
+      }
+
+      let rawCut = 0;
+      let normCut = 0;
+      for (let k = 0; k < K; k++) {
+        rawCut += 0.5 * cutK[k];
+        if (volK[k] > 1e-9) normCut += cutK[k] / volK[k];
+      }
+      return { rawCut, normCut };
+    }
+
+    function runSpectralPipeline() {
+      const pts = specState.points;
+      const N = pts.length;
+      if (!N) return;
+
+      // 1. Build symmetric union k-NN RBF affinity matrix W
+      const W = Array.from({ length: N }, () => new Float64Array(N));
+      const inv2Sig2 = 1.0 / (2.0 * specState.sigma * specState.sigma);
+
+      for (let i = 0; i < N; i++) {
+        const dists = [];
+        for (let j = 0; j < N; j++) {
+          if (i === j) continue;
+          const d2 = (pts[i][0] - pts[j][0]) ** 2 + (pts[i][1] - pts[j][1]) ** 2;
+          dists.push({ j, d2 });
+        }
+        dists.sort((a, b) => a.d2 - b.d2);
+        const limit = Math.min(specState.knn, dists.length);
+        for (let m = 0; m < limit; m++) {
+          const { j, d2 } = dists[m];
+          const w = Math.exp(-d2 * inv2Sig2);
+          W[i][j] = w;
+          W[j][i] = w;
+        }
+      }
+
+      // 2. Degree matrix D & Symmetric Normalized Laplacian L_sym = I - D^{-1/2} W D^{-1/2}
+      const degrees = new Float64Array(N);
+      const invSqrtD = new Float64Array(N);
+      for (let i = 0; i < N; i++) {
+        let d = 0;
+        for (let j = 0; j < N; j++) d += W[i][j];
+        degrees[i] = d;
+        invSqrtD[i] = d > 1e-12 ? 1.0 / Math.sqrt(d) : 0.0;
+      }
+
+      const Lsym = Array.from({ length: N }, (_, i) => {
+        const row = new Float64Array(N);
+        for (let j = 0; j < N; j++) {
+          row[j] = (i === j ? 1.0 : 0.0) - invSqrtD[i] * W[i][j] * invSqrtD[j];
+        }
+        return row;
+      });
+
+      // 3. Eigendecomposition
+      const { eigenvalues, eigenvectors } = jacobiEigenSymmetric(Lsym);
+
+      specState.W = W;
+      specState.degrees = degrees;
+      specState.eigenvalues = eigenvalues;
+      specState.eigenvectors = eigenvectors;
+      specState.computed = true;
+
+      clusterSpectralData();
+    }
+
+    function clusterSpectralData() {
+      const N = specState.points.length;
+      const K = specState.K;
+
+      if (specState.algo === 'spectral') {
+        // Ng-Jordan-Weiss: Take K smallest eigenvectors & row-normalize
+        const embed = [];
+        for (let i = 0; i < N; i++) {
+          const row = [];
+          let normSq = 0;
+          for (let k = 0; k < K; k++) {
+            const val = specState.eigenvectors[k][i];
+            row.push(val);
+            normSq += val * val;
+          }
+          const norm = Math.sqrt(normSq);
+          if (norm > 1e-10) {
+            for (let k = 0; k < K; k++) row[k] /= norm;
+          }
+          embed.push(row);
+        }
+        specState.labels = runKMeans(embed, K, 10);
+      } else {
+        // Standard K-Means directly in 2D input space
+        specState.labels = runKMeans(specState.points, K, 10);
+      }
+
+      const cuts = computeGraphCuts(specState.W, specState.degrees, specState.labels, K);
+      specState.rawCut = cuts.rawCut;
+      specState.normCut = cuts.normCut;
+
+      updateSpectralUI();
+      drawSpectralCanvases();
+    }
+
+    function updateSpectralUI() {
+      document.getElementById('specRawCutVal').textContent = specState.rawCut.toFixed(2);
+      document.getElementById('specNormCutVal').textContent = specState.normCut.toFixed(3);
+      document.getElementById('specLeftBadge').textContent =
+        specState.algo === 'spectral' ? 'Spectral Partition (Ncut)' : 'Standard K-Means Partition';
+
+      const barsContainer = document.getElementById('specEigenBars');
+      const top6 = specState.eigenvalues.slice(0, 6);
+      const maxEig = Math.max(0.1, ...top6);
+
+      // Detect largest eigengap among first 5 intervals
+      let bestGapIdx = 0, bestGap = -1;
+      for (let i = 0; i < Math.min(5, top6.length - 1); i++) {
+        const gap = top6[i + 1] - top6[i];
+        if (gap > bestGap) { bestGap = gap; bestGapIdx = i; }
+      }
+
+      barsContainer.innerHTML = '';
+      top6.forEach((val, idx) => {
+        const pct = Math.min(100, Math.max(4, (val / maxEig) * 100));
+        const isUsed = idx < specState.K;
+        const card = document.createElement('div');
+        card.className = `p-2 rounded-xl border text-center ${
+          isUsed
+            ? 'bg-indigo-50/70 dark:bg-indigo-950/40 border-indigo-300 dark:border-indigo-700'
+            : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700'
+        }`;
+        card.innerHTML = `
+          <div class="text-[10px] font-bold ${isUsed ? 'text-indigo-700 dark:text-indigo-300' : 'text-slate-500'}">λ<sub>${idx + 1}</sub></div>
+          <div class="h-10 flex items-end justify-center my-1">
+            <div class="w-4 rounded-t ${isUsed ? 'bg-indigo-500' : 'bg-slate-400 dark:bg-slate-600'}" style="height:${pct}%"></div>
+          </div>
+          <div class="text-[11px] font-mono font-semibold">${val.toFixed(3)}</div>
+        `;
+        barsContainer.appendChild(card);
+      });
+
+      document.getElementById('specEigenNote').innerHTML =
+        `Highlighted bars show the <strong>${specState.K}</strong> eigenvectors used for clustering. Largest eigengap occurs after <strong>&lambda;<sub>${bestGapIdx + 1}</sub></strong> (gap = ${bestGap.toFixed(3)}).`;
+    }
+
+    function drawSpectralCanvases() {
+      const isDark = document.documentElement.classList.contains('dark');
+      const N = specState.points.length;
+      if (!N) return;
+
+      // 1. Left Canvas: Input Space & Similarity Graph
+      const leftCanvas = document.getElementById('specInputCanvas');
+      const mLeft = createMapper(leftCanvas, specState.bounds);
+      drawGrid(mLeft.ctx, mLeft.w, mLeft.h, mLeft, isDark);
+
+      if (specState.showEdges) {
+        for (let i = 0; i < N; i++) {
+          const [x1, y1] = mLeft.toPx(specState.points[i][0], specState.points[i][1]);
+          for (let j = i + 1; j < N; j++) {
+            const w = specState.W[i][j];
+            if (w > 0.02) {
+              const [x2, y2] = mLeft.toPx(specState.points[j][0], specState.points[j][1]);
+              const isCutEdge = specState.labels[i] !== specState.labels[j];
+              mLeft.ctx.beginPath();
+              mLeft.ctx.moveTo(x1, y1);
+              mLeft.ctx.lineTo(x2, y2);
+              if (isCutEdge) {
+                mLeft.ctx.strokeStyle = `rgba(239, 68, 68, ${Math.min(0.8, 0.25 + w * 0.55)})`;
+                mLeft.ctx.lineWidth = 1.4;
+              } else {
+                mLeft.ctx.strokeStyle = isDark
+                  ? `rgba(148, 163, 184, ${Math.min(0.55, w * 0.5)})`
+                  : `rgba(100, 116, 139, ${Math.min(0.5, w * 0.45)})`;
+                mLeft.ctx.lineWidth = 1.0;
+              }
+              mLeft.ctx.stroke();
+            }
+          }
+        }
+      }
+
+      for (let i = 0; i < N; i++) {
+        const [px, py] = mLeft.toPx(specState.points[i][0], specState.points[i][1]);
+        const col = PALETTE[specState.labels[i] % PALETTE.length].hex;
+        mLeft.ctx.beginPath();
+        mLeft.ctx.arc(px, py, 4.5, 0, 2 * Math.PI);
+        mLeft.ctx.fillStyle = col;
+        mLeft.ctx.fill();
+        mLeft.ctx.lineWidth = 1.2;
+        mLeft.ctx.strokeStyle = isDark ? '#0f172a' : '#ffffff';
+        mLeft.ctx.stroke();
+      }
+
+      // 2. Right Canvas: Spectral Embedding Space (v2 vs v3)
+      const rightCanvas = document.getElementById('specEmbedCanvas');
+      const v2 = specState.eigenvectors[1];
+      const v3 = specState.eigenvectors[2];
+      const embedPts = [];
+      for (let i = 0; i < N; i++) embedPts.push([v2[i], v3[i]]);
+      const eBounds = getBounds(embedPts, 0.05);
+      const mRight = createMapper(rightCanvas, eBounds);
+      drawGrid(mRight.ctx, mRight.w, mRight.h, mRight, isDark);
+
+      // Axis labels
+      mRight.ctx.fillStyle = isDark ? '#94a3b8' : '#64748b';
+      mRight.ctx.font = '600 11px Inter, sans-serif';
+      mRight.ctx.fillText('v₂ (2nd eigenvector)', mRight.w - 115, mRight.h - 10);
+      mRight.ctx.fillText('v₃ (3rd eigenvector)', 10, 18);
+
+      for (let i = 0; i < N; i++) {
+        const [px, py] = mRight.toPx(embedPts[i][0], embedPts[i][1]);
+        const col = PALETTE[specState.labels[i] % PALETTE.length].hex;
+        mRight.ctx.beginPath();
+        mRight.ctx.arc(px, py, 4.6, 0, 2 * Math.PI);
+        mRight.ctx.fillStyle = col;
+        mRight.ctx.fill();
+        mRight.ctx.lineWidth = 1.2;
+        mRight.ctx.strokeStyle = isDark ? '#0f172a' : '#ffffff';
+        mRight.ctx.stroke();
+      }
+    }
+
+    function loadSpectralDataset(type) {
+      specState.dataset = type;
+      // Keep N around 85-100 so Jacobi runs instantaneously
+      const scale = type === 'murphy' ? 0.36 : 0.9;
+      specState.points = generateDataset(type, scale);
+      specState.bounds = getBounds(specState.points, 0.7);
+
+      // Sensible defaults per dataset
+      if (type === 'rings') {
+        specState.K = 2; specState.knn = 7; specState.sigma = 0.65;
+      } else if (type === 'moons') {
+        specState.K = 2; specState.knn = 8; specState.sigma = 0.55;
+      } else if (type === 'outlier') {
+        specState.K = 3; specState.knn = 8; specState.sigma = 0.85;
+      } else if (type === 'murphy') {
+        specState.K = 5; specState.knn = 7; specState.sigma = 0.75;
+      }
+
+      document.getElementById('specKSlider').value = specState.K;
+      document.getElementById('specKVal').textContent = specState.K;
+      document.getElementById('specKnnSlider').value = specState.knn;
+      document.getElementById('specKnnVal').textContent = specState.knn;
+      document.getElementById('specSigmaSlider').value = specState.sigma;
+      document.getElementById('specSigmaVal').textContent = specState.sigma.toFixed(2);
+
+      runSpectralPipeline();
+    }
+
+    // =========================================================================
+    // 5. GUIDED EXAM EXPERIMENTS (QUICK LAUNCHERS)
+    // =========================================================================
+    function launchExperiment(num) {
+      if (num === 1) {
+        // Reproduce Murphy Fig. 21.14
+        switchTab('gmm');
+        document.getElementById('gmmKMeansMode').checked = false;
+        gmmState.kmeansMode = false;
+        document.getElementById('gmmCovType').disabled = false;
+        document.getElementById('gmmCovType').value = 'full';
+        gmmState.covType = 'full';
+        document.getElementById('gmmDataset').value = 'murphy';
+        loadGMMDataset('murphy', 5);
+        toggleGMMRun();
+      } else if (num === 2) {
+        // K-Means Reduction Mode
+        switchTab('gmm');
+        document.getElementById('gmmDataset').value = 'murphy';
+        document.getElementById('gmmKMeansMode').checked = true;
+        gmmState.kmeansMode = true;
+        document.getElementById('gmmCovType').disabled = true;
+        loadGMMDataset('murphy', 5);
+        toggleGMMRun();
+      } else if (num === 3) {
+        // Monotonic EM Ascent on Overlapping Ellipses
+        switchTab('gmm');
+        document.getElementById('gmmKMeansMode').checked = false;
+        gmmState.kmeansMode = false;
+        document.getElementById('gmmCovType').disabled = false;
+        document.getElementById('gmmCovType').value = 'full';
+        gmmState.covType = 'full';
+        setGMMSoftMode(true);
+        document.getElementById('gmmDataset').value = 'ellipses';
+        loadGMMDataset('ellipses', 3);
+      } else if (num === 4) {
+        // Spectral vs K-Means on Concentric Rings
+        switchTab('spectral');
+        setSpectralAlgo('spectral');
+        document.getElementById('specDataset').value = 'rings';
+        loadSpectralDataset('rings');
+      }
+    }
+
+    // =========================================================================
+    // 6. EVENT LISTENERS
+    // =========================================================================
+    function setGMMSoftMode(isSoft) {
+      gmmState.softMode = isSoft;
+      const softBtn = document.getElementById('gmmSoftBtn');
+      const hardBtn = document.getElementById('gmmHardBtn');
+      const activeCls = 'px-2 py-1.5 text-xs font-semibold rounded-lg bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm';
+      const inactiveCls = 'px-2 py-1.5 text-xs font-semibold rounded-lg text-slate-600 dark:text-slate-300';
+      softBtn.className = isSoft ? activeCls : inactiveCls;
+      hardBtn.className = isSoft ? inactiveCls : activeCls;
+      drawGMM();
+    }
+
+    function setSpectralAlgo(algo) {
+      specState.algo = algo;
+      const sBtn = document.getElementById('specAlgoSpectral');
+      const kBtn = document.getElementById('specAlgoKMeans');
+      const activeCls = 'px-3 py-1.5 text-xs font-semibold rounded-lg bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm';
+      const inactiveCls = 'px-3 py-1.5 text-xs font-semibold rounded-lg text-slate-600 dark:text-slate-300';
+      sBtn.className = algo === 'spectral' ? activeCls : inactiveCls;
+      kBtn.className = algo === 'kmeans' ? activeCls : inactiveCls;
+      if (specState.computed) clusterSpectralData();
+    }
+
+    // GMM listeners
+    document.getElementById('gmmDataset').addEventListener('change', e => loadGMMDataset(e.target.value));
+    document.getElementById('gmmCovType').addEventListener('change', e => {
+      gmmState.covType = e.target.value;
+      initGMMParams();
+    });
+    document.getElementById('gmmKMeansMode').addEventListener('change', e => {
+      gmmState.kmeansMode = e.target.checked;
+      document.getElementById('gmmCovType').disabled = gmmState.kmeansMode;
+      initGMMParams();
+    });
+    document.getElementById('gmmKSlider').addEventListener('input', e => {
+      gmmState.K = parseInt(e.target.value, 10);
+      document.getElementById('gmmKVal').textContent = gmmState.K;
+      initGMMParams();
+    });
+    document.getElementById('gmmSoftBtn').addEventListener('click', () => setGMMSoftMode(true));
+    document.getElementById('gmmHardBtn').addEventListener('click', () => setGMMSoftMode(false));
+    document.getElementById('gmmShowEllipses').addEventListener('change', e => {
+      gmmState.showEllipses = e.target.checked;
+      drawGMM();
+    });
+    document.getElementById('gmmRegularize').addEventListener('change', e => {
+      gmmState.regularize = e.target.checked;
+    });
+    document.getElementById('gmmInitBtn').addEventListener('click', initGMMParams);
+    document.getElementById('gmmRunBtn').addEventListener('click', toggleGMMRun);
+    document.getElementById('gmmEStepBtn').addEventListener('click', () => {
+      stopGMMRun();
+      computeEStep();
+      updateGMMUI();
+      drawGMM();
+    });
+    document.getElementById('gmmMStepBtn').addEventListener('click', () => {
+      stopGMMRun();
+      computeMStep();
+      updateGMMUI();
+      drawGMM();
+      drawSparkline();
+    });
+    document.getElementById('gmmResetDataBtn').addEventListener('click', () => loadGMMDataset(gmmState.dataset, gmmState.K));
+
+    // Click on GMM Canvas to add custom points
+    document.getElementById('gmmCanvas').addEventListener('click', e => {
+      const canvas = e.currentTarget;
+      const rect = canvas.getBoundingClientRect();
+      const px = e.clientX - rect.left;
+      const py = e.clientY - rect.top;
+      const mapper = createMapper(canvas, gmmState.bounds);
+      const [dx, dy] = mapper.toData(px, py);
+      gmmState.points.push([dx, dy]);
+      gmmState.resp.push(Array(gmmState.K).fill(1 / gmmState.K));
+      computeEStep(true);
+      updateGMMUI();
+      drawGMM();
+    });
+
+    // Spectral listeners
+    document.getElementById('specDataset').addEventListener('change', e => loadSpectralDataset(e.target.value));
+    document.getElementById('specKnnSlider').addEventListener('input', e => {
+      specState.knn = parseInt(e.target.value, 10);
+      document.getElementById('specKnnVal').textContent = specState.knn;
+    });
+    document.getElementById('specKnnSlider').addEventListener('change', runSpectralPipeline);
+
+    document.getElementById('specSigmaSlider').addEventListener('input', e => {
+      specState.sigma = parseFloat(e.target.value);
+      document.getElementById('specSigmaVal').textContent = specState.sigma.toFixed(2);
+    });
+    document.getElementById('specSigmaSlider').addEventListener('change', runSpectralPipeline);
+
+    document.getElementById('specKSlider').addEventListener('input', e => {
+      specState.K = parseInt(e.target.value, 10);
+      document.getElementById('specKVal').textContent = specState.K;
+      if (specState.computed) clusterSpectralData();
+    });
+    document.getElementById('specRecomputeBtn').addEventListener('click', runSpectralPipeline);
+    document.getElementById('specAlgoSpectral').addEventListener('click', () => setSpectralAlgo('spectral'));
+    document.getElementById('specAlgoKMeans').addEventListener('click', () => setSpectralAlgo('kmeans'));
+    document.getElementById('specShowEdges').addEventListener('change', e => {
+      specState.showEdges = e.target.checked;
+      drawSpectralCanvases();
+    });
+
+    // Responsive canvas redraw on resize
+    window.addEventListener('resize', () => {
+      if (activeTab === 'gmm') {
+        drawGMM();
+        drawSparkline();
+      } else if (activeTab === 'spectral' && specState.computed) {
+        drawSpectralCanvases();
+      }
+    });
+
+    // =========================================================================
+    // 7. INITIALIZATION & KATEX AUTO-RENDER
+    // =========================================================================
+    document.addEventListener('DOMContentLoaded', () => {
+      // Render all LaTeX formulas across the entire document (including hidden tabs)
+      if (typeof renderMathInElement === 'function') {
+        renderMathInElement(document.body, {
+          delimiters: [
+            { left: '$$', right: '$$', display: true },
+            { left: '$', right: '$', display: false }
+          ],
+          throwOnError: false
+        });
+      }
+
+      // Initialize default GMM playground
+      loadGMMDataset('murphy', 5);
+      // Pre-load default spectral dataset (computation runs when tab is opened or on demand)
+      specState.points = generateDataset('rings', 0.9);
+      specState.bounds = getBounds(specState.points, 0.7);
+
+      // Ensure canvases redraw once Tailwind/layout finishes sizing containers
+      const redrawActive = () => {
+        if (activeTab === 'gmm') {
+          drawGMM();
+          drawSparkline();
+        } else if (activeTab === 'spectral' && specState.computed) {
+          drawSpectralCanvases();
+        }
+      };
+
+      window.addEventListener('load', redrawActive);
+      if (typeof ResizeObserver !== 'undefined') {
+        const ro = new ResizeObserver(redrawActive);
+        ['gmmCanvas', 'gmmSparkline', 'specInputCanvas', 'specEmbedCanvas'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) ro.observe(el);
+        });
+      }
+    });
+  </script>
+</body>
+</html>
